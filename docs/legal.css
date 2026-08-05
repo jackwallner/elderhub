@@ -1,0 +1,52 @@
+/* Shared styles for Bond legal / support pages (Vitals framework) */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 24px;
+    line-height: 1.6;
+    color: #1d1d1f;
+    background: #fafafa;
+}
+.site-nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 28px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+.site-nav img {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+}
+.site-nav a {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1d1d1f;
+    text-decoration: none;
+}
+.site-nav a:hover { color: #eb567c; }
+h1 { font-size: 28px; margin-bottom: 4px; letter-spacing: -0.3px; }
+h2 { font-size: 20px; margin-top: 32px; }
+.date { color: #86868b; font-size: 14px; margin-bottom: 32px; }
+ul { padding-left: 20px; }
+li { margin-bottom: 8px; }
+a { color: #0066cc; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.contact {
+    background: #f5f5f7;
+    padding: 16px;
+    border-radius: 12px;
+    margin-top: 32px;
+}
+.footer-links {
+    margin-top: 40px;
+    font-size: 13px;
+    color: #86868b;
+}
+.footer-links a {
+    color: #86868b;
+    margin-right: 16px;
+}
