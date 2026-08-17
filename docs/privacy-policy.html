@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" sizes="256x256" href="icon_256.png" />
     <link rel="apple-touch-icon" href="icon_256.png" />
-    <title>Elderhub — Privacy Policy</title>
+    <title>Elderhub - Privacy Policy</title>
     <link
       rel="canonical"
       href="https://jackwallner.com/ios/elderhub/privacy-policy.html"
@@ -18,14 +18,15 @@
     </nav>
 
     <h1>Elderhub Privacy Policy</h1>
-    <p class="date">Last updated: August 8, 2026</p>
+    <p class="date">Last updated: August 17, 2026</p>
 
     <h2>Overview</h2>
     <p>
-      Elderhub is an iPhone app for keeping track of the medications of the
-      people you look after, and for sharing that list with the rest of your
-      family. Most of what is in it is health information about someone other
-      than the person typing it, so it is treated accordingly.
+      Elderhub is an iPhone app for keeping a care record for a parent, partner,
+      or another person you help. It records medications and other health
+      information, along with care tasks, notes, bills, contacts, and family
+      sharing. Much of what is in it is information about someone other than the
+      person typing it, so it is treated accordingly.
     </p>
 
     <p>
@@ -38,34 +39,54 @@
     </p>
 
     <h2>What Elderhub Collects</h2>
-    <p>Only what the app needs to be a shared family record.</p>
+    <p>
+      Elderhub collects information you enter, information needed to operate a
+      care circle, and information needed for notifications and purchases.
+    </p>
     <ul>
       <li>
-        <strong>Account:</strong> Sign in with Apple creates an account. Apple
-        may share your name and a private-relay email address. If you address an
-        invitation to someone, Elderhub stores that email address on the
-        invitation until it is used, revoked, or expires. Elderhub never
-        receives your Apple ID password.
+        <strong>Account and care circle:</strong> your display name, Supabase
+        account identifier, care-circle name, membership, role, and membership
+        dates. Sign in with Apple creates an account. Apple may share your name
+        and a private-relay email address. Elderhub never receives your Apple ID
+        password. Sign in with Apple is the only sign-in method currently
+        offered.
       </li>
       <li>
-        <strong>Invitations:</strong> if a member addresses an invitation to an
-        email, Elderhub stores that address with the pending invitation until it
-        is used, revoked or deleted.
+        <strong>Invitations:</strong> an invitation email address, invite code,
+        intended role or person, and the invitation's created, used, revoked,
+        and expiry state. Invitation attempts are also recorded to protect codes
+        from guessing.
       </li>
       <li>
         <strong>People you track:</strong> name, relationship, date of birth,
-        blood type, allergies, conditions and free-text notes.
+        blood type, allergies, conditions, free-text notes, and the time a
+        caregiver confirmed that the person knows about the record or that the
+        caregiver makes their health decisions.
       </li>
       <li>
-        <strong>Medications and doses:</strong> drug names, strengths,
-        schedules, what a medication is for, the prescriber, and a record of
-        which doses were marked taken or skipped and by whom.
+        <strong>Medications and doses:</strong> drug names, strengths, forms,
+        schedules, what a medication is for, prescriber and pharmacy details,
+        instructions, active dates, as-needed status, refill quantities and
+        thresholds, and a record of which doses were marked taken, skipped, or
+        missed, when, with any note, and by whom.
       </li>
       <li>
-        <strong>Doctor visits and readings:</strong> visit notes and any vital
-        signs you type in, such as blood pressure or weight. Elderhub does not
-        read from Apple Health and does not connect to any monitor or device;
-        every reading in the app was typed in by a person.
+        <strong>Visits, providers, readings, and care events:</strong> visit
+        dates, doctors, specialties, reasons, notes, follow-ups, appointments,
+        provider and pharmacy names, specialties, phone numbers, addresses,
+        portal links and notes, vital signs, and events such as falls, symptoms,
+        mood, appetite, sleep, or pain, including their severity and who logged
+        them.
+      </li>
+      <li>
+        <strong>Tasks, notes, and bills:</strong> task titles, notes, due dates,
+        priorities, recurrence, assignees, and completion history; standalone
+        note titles, bodies, and pin status; and bill payees, amounts, notes,
+        categories, recurrence, due dates, autopay status, and who marked a bill
+        paid. Bills are a record that a person says they paid. Elderhub does not
+        connect to a bank, make payments, or provide fields for account numbers,
+        card numbers, or passwords.
       </li>
       <li>
         <strong>Emergency contacts:</strong> names and phone numbers you enter
@@ -73,22 +94,28 @@
       </li>
       <li>
         <strong>Check-ins:</strong> the time a person pressed their daily
-        check-in button, and the agreed window it should happen in.
+        check-in button, who recorded it, and the agreed window and time zone it
+        should happen in.
       </li>
       <li>
-        <strong>Notifications:</strong> a device token, so the app can tell
-        caregivers when a check-in did not happen.
+        <strong>Notifications:</strong> an Apple Push Notification service
+        device token, so the server can tell caregivers when a check-in did not
+        happen. That push contains the recipient's name and a factual
+        no-check-in message, not medication or diagnosis details.
       </li>
       <li>
-        <strong>Purchases:</strong> subscription status, so the paid features
-        unlock additional people for everyone in a care circle.
+        <strong>Purchases:</strong> StoreKit and RevenueCat purchase, receipt,
+        product, subscription, and entitlement information, linked to the
+        Supabase account identifier so a care circle can receive its
+        entitlement.
       </li>
     </ul>
     <p>
       <strong>Elderhub does not collect location.</strong> The app never asks
-      for it and contains no location code at all. There is no advertising SDK
-      and no behavioral analytics. Nothing is sold and nothing is used for
-      tracking.
+      for it and contains no location code. It does not read Apple Health or
+      connect to a monitor, wearable, or medical device; readings and events are
+      typed in by a person. There is no advertising SDK or behavioral analytics.
+      Nothing is sold and nothing is used for tracking.
     </p>
 
     <h2>Information About Other People</h2>
@@ -109,34 +136,68 @@
       about them. They can see that page again at any time, and they can leave
       whenever they want.
     </p>
+    <p>
+      A record can remain local to one phone without an account or care circle.
+      It is not uploaded merely because the app is installed. Sharing is an
+      explicit choice that adopts the record into a care circle.
+    </p>
 
     <h2>How Data Is Stored</h2>
     <p>
-      A full copy lives on your iPhone so the medication list opens with no
-      signal, which is the situation the app is built for. The device copy is
-      encrypted at rest by iOS.
+      Elderhub has a local store and, only when you choose to share a record, a
+      shared store. The local store is a full working copy of the care record,
+      including the records needed for offline use, so the app opens with no
+      signal.
     </p>
     <p>
-      The shared copy is stored on <strong>Supabase</strong> (encrypted Postgres
-      on AWS), encrypted in transit and at rest. Access is enforced per row by
-      the database itself, not just by the app: a member of one family cannot
-      read another family's record, and a person in the "being supported" role
-      can read only their own. See
-      <a href="https://supabase.com/security">Supabase security</a>.
+      The local SwiftData store is protected by iOS with
+      <code>NSFileProtectionCompleteUntilFirstUserAuthentication</code>. This
+      protects the files before the first unlock after a reboot. After the first
+      unlock, iOS may make them available while the phone is locked so offline
+      reads, background sync, and local notifications can work. The care record
+      is not end-to-end or client-side encrypted.
+    </p>
+    <p>
+      The shared copy is stored on <strong>Supabase</strong> in Postgres,
+      encrypted in transit and at rest. Access is enforced per row by the
+      database itself, not just by the app: a member of one family cannot read
+      another family's record. Free-text notes and bill notes are ordinary
+      plaintext fields protected by these access rules, not a password vault.
+      Supabase processes the data to provide authentication, storage, and sync.
+      See <a href="https://supabase.com/security">Supabase security</a>.
+    </p>
+    <p>
+      To make offline sync and family history work, edited or deleted synced
+      rows carry server timestamps and deletion markers. Deleted rows are hidden
+      from the app but may remain as server tombstones while the care circle
+      exists. For medications, doses, people, and membership changes, an audit
+      log can retain old and new snapshots and the name recorded for the person
+      who made the change.
     </p>
 
     <h2>Who Can See What</h2>
     <ul>
       <li>
         <strong>Organizer</strong> and <strong>caregiver</strong> see and edit
-        everyone in their own care circle.
+        the shared care records for everyone in their own care circle. This
+        includes health records, tasks, notes, and bills. The organizer also
+        controls membership and billing.
       </li>
       <li>
-        <strong>Being supported</strong> sees only their own record, and can
-        mark their own doses and press their own check-in button.
+        <strong>Being supported</strong> can see only the permitted parts of
+        their own record, including medications, doses, visits, readings,
+        contacts, providers, care events, tasks, and check-ins. Family notes and
+        bills are staff-only. They can mark their own doses and press their own
+        check-in button, but cannot edit the shared health record.
       </li>
       <li>Nobody outside your care circle can see anything in it.</li>
     </ul>
+    <p>
+      Device handover is a local phone setting, not a change to account
+      permissions. In recipient mode, the selected person sees a read-only
+      check-in screen, their medications, and the emergency card. The emergency
+      card is never behind the caregiver code.
+    </p>
 
     <h2>The Check-in Feature</h2>
     <p>
@@ -149,18 +210,20 @@
 
     <h2>Notifications</h2>
     <p>
-      The daily reminder to check in is scheduled on the device itself. The
-      message to caregivers about a missed check-in is a push notification sent
-      from the server. You can turn notifications off in iOS Settings →
-      Notifications → Elderhub.
+      Check-in, medication, and refill reminders are scheduled on the device
+      itself. The message to caregivers about a missed check-in is a push
+      notification sent from the server. You can turn notifications off in iOS
+      Settings → Notifications → Elderhub.
     </p>
 
     <h2>Purchases &amp; Subscriptions</h2>
     <p>
-      The subscription is processed entirely by <strong>Apple StoreKit</strong>.
-      Elderhub never receives payment card details, billing address, or Apple ID
-      credentials. <strong>RevenueCat</strong> verifies subscription status; it
-      receives purchase receipts from Apple, not a payment profile. See
+      The purchase is processed by <strong>Apple StoreKit</strong>. Elderhub
+      never receives payment card details, billing address, or Apple ID
+      credentials. <strong>RevenueCat</strong> receives the purchase receipt and
+      the linked app account identifier to verify product, subscription, and
+      entitlement status. It does not receive the care record or a payment
+      profile. See
       <a href="https://www.revenuecat.com/privacy">RevenueCat Privacy</a>.
       Subscription management and refunds are handled in your Apple ID account
       settings.
@@ -169,36 +232,51 @@
     <h2>Third-Party Services</h2>
     <ul>
       <li>
-        <strong>Apple</strong> — Sign in with Apple, in-app purchases, push
-        notification delivery
+        <strong>Apple:</strong> Sign in with Apple, in-app purchases, and push
+        notification delivery. Apple receives the information needed for those
+        services, including push content and the device token.
       </li>
       <li>
-        <strong>Supabase</strong> — database, Apple and email authentication,
-        and sync
+        <strong>Supabase:</strong> account authentication, profiles, care-circle
+        membership, database storage, server-side check-in processing, and sync
       </li>
-      <li><strong>RevenueCat</strong> — subscription entitlement checks</li>
+      <li>
+        <strong>RevenueCat:</strong> purchase receipt and subscription
+        entitlement checks, linked to the Supabase account identifier
+      </li>
     </ul>
 
     <h2>Retention &amp; Deletion</h2>
     <p>
       Deleting your account (Settings → Delete my account, or by email) removes
-      your account and signs your device out. It deliberately does not delete
-      the family's medication record: that record belongs to everyone looking
-      after that person, and one member leaving should not erase it for the
-      others. Entries you made keep your first name on them so the history still
-      reads sensibly.
+      your account from the service and unlinks it from any care-recipient
+      record. It deliberately does not delete the family's shared care record:
+      that record belongs to everyone looking after that person, and one member
+      leaving should not erase it for the others. Entries and audit records can
+      keep the display name recorded for the person who made them so the history
+      still reads sensibly. The app removes the shared copy from that phone.
     </p>
     <p>
-      When the last member of a care circle leaves or deletes the circle, the
-      shared record is deleted.
+      Leaving a care circle stops that account's access and removes the shared
+      copy from that phone. When the last member leaves, or the organizer
+      deletes the circle, the active care-circle records and group audit history
+      are deleted from the active database. Invitation, notification, service,
+      and provider-backup records may follow their own retention periods.
     </p>
-    <p>Verified deletion requests sent by email are actioned within 30 days.</p>
+    <p>
+      Individual deletions are propagated as tombstones for sync and may remain
+      in the server history described above while the care circle exists.
+      Verified deletion requests sent by email are actioned within 30 days.
+    </p>
 
     <h2>Your Rights</h2>
     <p>
-      You can see, correct, export (the emergency card shares as plain text) and
-      delete what is in the app at any time from within it. For anything you
-      cannot do in the app, email the address below.
+      You can see and correct the records available to your role, export the
+      emergency card as plain text, and delete entries from the app. Exporting
+      sends a copy to the app or person you choose through the iOS share sheet;
+      after that, the recipient's privacy policy controls that copy. Deleting an
+      entry hides it in the app and follows the sync and audit retention rules
+      above. For anything you cannot do in the app, email the address below.
     </p>
     <p>
       Elderhub is not currently offered in the European Union or the United
