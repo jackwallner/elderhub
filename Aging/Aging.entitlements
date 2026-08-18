@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>com.apple.developer.applesignin</key>
+	<array>
+		<string>Default</string>
+	</array>
+	<!-- Without this, registerForRemoteNotifications() fails 100% of the time
+	     on device and the only trace is an OSLog line in didFailToRegister, so
+	     a caregiver who turns on check-in reminders is told nothing and gets
+	     nothing. Xcode rewrites this to "production" on export. -->
+	<key>aps-environment</key>
+	<string>development</string>
+</dict>
+</plist>

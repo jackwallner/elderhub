@@ -1,0 +1,39 @@
+Most medication apps assume you are tracking your own pills. Elderhub assumes you are not.
+
+If you help look after a parent, a spouse, or both, you already know the problem: the real list lives in three places at once. Some of it is in your head, some of it is on a scrap of paper in a kitchen drawer, and some of it is whatever the pharmacy printed out last spring. Then a nurse asks what she takes, and you are guessing.
+
+Elderhub keeps one current list per person, so you always have the answer.
+
+MORE THAN ONE PERSON
+Add Mom, Dad, and yourself. Each person gets their own medications, their own schedule, and their own history. Switch between them in one tap.
+
+THE LIST A DOCTOR ACTUALLY WANTS
+Name, strength, form, what it is for, who prescribed it, and the instructions that matter. Not just an alarm.
+
+ONE TAP TO HAND IT OVER
+The emergency card renders the whole picture in large type: allergies, conditions, every active medication, and emergency contacts. Share it as plain text into a message or an email, or read it straight off the screen in a waiting room. It works with no signal.
+
+MARK DOSES ON SOMEONE ELSE'S BEHALF
+Log a dose as taken or skipped, and the entry records who did it. Useful when more than one person is helping.
+
+WHAT THE DOCTOR SAID
+Log a visit while it is fresh: the provider, the reason, the notes, and the follow up. Six weeks later you will not have to reconstruct it.
+
+VITALS WORTH WATCHING
+Blood pressure, weight, glucose, heart rate, temperature and oxygen, recorded over time.
+
+SHARE A CARE CIRCLE
+Invite family by email, link, or a code that is easy to read over the phone. Helpers can see and update every person in the care circle. A parent or partner invited to their own record sees only themselves. There are no per-person seat fees for invited family members.
+
+PRIVATE BY DEFAULT
+The record works on this phone with no account and no signal. If you choose to share, sign in with Apple. You choose who joins, and database rules control what each member can see and edit.
+
+ONE PERSON, EVERY FEATURE, FREE
+The free version includes medications, doses, reminders, visits, readings, tasks, notes, contacts, check-in, emergency card, and export for one person. Elderhub Plus adds more people to the same care circle. Invited family members are always free.
+
+Elderhub Plus is available monthly or yearly, each with a 1-week free trial for eligible new subscribers, or as a one-time lifetime purchase. Prices are shown in the app before you buy and vary by region. After a trial, payment is charged through your Apple ID and the selected subscription renews automatically each month or year unless cancelled at least 24 hours before the end of the current period. Renewal is charged within 24 hours before the current period ends. Manage or cancel subscriptions in your Apple ID settings. See our Privacy Policy and Apple's Standard EULA.
+
+Privacy Policy: https://jackwallner.github.io/elderhub/privacy-policy.html
+Apple Standard EULA: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
+Elderhub is an organizational tool. It does not diagnose, treat, or cure any condition, and it does not provide medical advice. Always follow the guidance of a licensed clinician.
