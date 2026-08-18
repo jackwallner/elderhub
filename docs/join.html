@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" sizes="256x256" href="icon_256.png" />
+    <link rel="apple-touch-icon" href="icon_256.png" />
+    <title>Elderhub — Join a care circle</title>
+    <link rel="canonical" href="https://jackwallner.com/ios/elderhub/join.html" />
+    <meta name="robots" content="noindex" />
+    <link rel="stylesheet" href="legal.css" />
+    <style>
+      .code-card {
+        background: #f5f5f7;
+        border-radius: 16px;
+        padding: 24px 16px;
+        text-align: center;
+        margin: 24px 0;
+      }
+      .code {
+        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        font-size: 34px;
+        font-weight: 600;
+        letter-spacing: 4px;
+        margin: 8px 0 0;
+        word-break: break-all;
+      }
+      .code-label {
+        font-size: 13px;
+        color: #86868b;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+      }
+      .open-btn {
+        display: block;
+        background: #0066cc;
+        color: #fff;
+        font-size: 17px;
+        font-weight: 600;
+        text-align: center;
+        padding: 16px;
+        border-radius: 12px;
+        margin: 20px 0 8px;
+      }
+      .open-btn:hover {
+        text-decoration: none;
+        opacity: 0.9;
+      }
+      .steps li {
+        margin-bottom: 12px;
+      }
+      .note {
+        font-size: 14px;
+        color: #86868b;
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="site-nav">
+      <a href="./"><img src="icon_256.png" alt="" /> Elderhub</a>
+    </nav>
+
+    <h1>You have been invited to a care circle</h1>
+    <p>
+      A family member is sharing a care record with you in Elderhub: medications
+      and their times, appointments, an emergency card, and the daily check-in.
+    </p>
+
+    <div class="code-card">
+      <div class="code-label">Your invitation code</div>
+      <p class="code" id="code">See your invitation message</p>
+    </div>
+
+    <a class="open-btn" id="open" href="#" hidden>Open in Elderhub</a>
+
+    <h2>How to join</h2>
+    <ol class="steps">
+      <li>
+        <strong>Install Elderhub on your iPhone.</strong> Search the App Store
+        for Elderhub, or ask whoever invited you for the link.
+      </li>
+      <li>
+        Open it and choose <strong>I have an invitation</strong> on the first
+        screen.
+      </li>
+      <li>Type the code above. It is eight letters and numbers.</li>
+    </ol>
+
+    <p class="note">
+      Invitations work once and expire after 48 hours. If yours has run out, ask
+      whoever invited you to send a new one. Elderhub is an iPhone app, so the
+      code has to be entered on an iPhone.
+    </p>
+
+    <div class="contact">
+      <p>
+        Not sure who sent this, or something is not working? Email
+        <a href="mailto:jackwallner+medlist@gmail.com"
+          >jackwallner+medlist@gmail.com</a
+        >
+        and we will sort it out.
+      </p>
+    </div>
+
+    <div class="footer-links">
+      <a href="./">Elderhub</a>
+      <a href="support.html">Support</a>
+      <a href="privacy-policy.html">Privacy</a>
+      <a href="terms.html">Terms</a>
+    </div>
+
+    <script>
+      // The code is only ever displayed and handed back to the app. There is no
+      // request from this page: a code in a URL is a bearer token for one
+      // membership, so nothing here reports it anywhere.
+      (function () {
+        var raw = new URLSearchParams(window.location.search).get("code") || "";
+        var code = raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
+        if (code.length !== 8) return;
+
+        document.getElementById("code").textContent = code;
+
+        var open = document.getElementById("open");
+        open.href = "elderhub://invite?code=" + code;
+        open.hidden = false;
+      })();
+    </script>
+  </body>
+</html>

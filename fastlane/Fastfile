@@ -1,0 +1,135 @@
+opt_out_usage
+
+default_platform(:ios)
+
+platform :ios do
+  desc "Download current metadata + screenshots from App Store Connect into /tmp/asc-live"
+  lane :download_state do
+    api_key = app_store_connect_api_key(
+      key_id: ENV["ASC_API_KEY_ID"],
+      issuer_id: ENV["ASC_ISSUER_ID"],
+      key_filepath: ENV["ASC_KEY_PATH"]
+    )
+
+    sh("rm -rf /tmp/asc-live && mkdir -p /tmp/asc-live")
+
+    deliver(
+      api_key: api_key,
+      run_precheck_before_submit: false,
+      metadata_path: "/tmp/asc-live/metadata",
+      screenshots_path: "/tmp/asc-live/screenshots",
+      skip_binary_upload: true,
+      skip_screenshots: false,
+      skip_metadata: false,
+      force: true
+    )
+  end
+
+  desc "Upload screenshots and metadata to App Store Connect"
+  lane :upload_metadata do
+    api_key = app_store_connect_api_key(
+      key_id: ENV["ASC_API_KEY_ID"],
+      issuer_id: ENV["ASC_ISSUER_ID"],
+      key_filepath: ENV["ASC_KEY_PATH"]
+    )
+
+    version = ENV["ASC_APP_VERSION"]
+    UI.user_error!("Set ASC_APP_VERSION") unless version && !version.empty?
+
+    skip_shots = ENV.fetch("SKIP_SCREENSHOTS", "false") == "true"
+    ENV["FASTLANE_ENABLE_BETA_DELIVER_SYNC_SCREENSHOTS"] = "1" unless skip_shots
+    review_phone = ENV["ASC_REVIEW_PHONE"].to_s.strip
+    UI.user_error!("Set ASC_REVIEW_PHONE to the real App Review contact number") if review_phone.empty?
+    unless review_phone.match?(/\A\+\d[\d ()-]{6,}\z/)
+      UI.user_error!("ASC_REVIEW_PHONE must start with + and include a valid phone number")
+    end
+
+    review_information = {
+        first_name: "Jack",
+        last_name: "Wallner",
+        phone_number: review_phone,
+        email_address: "jackwallner@gmail.com",
+        demo_user: "No demo account required",
+        demo_password: "",
+        notes: <<~NOTES
+          Elderhub is an organizational tool for tracking medications and health
+          information for more than one person (typically a user and their parents).
+          The local-only medication list needs no account and works without a network.
+          Family sharing is optional and uses Sign in with Apple, which is the only
+          sign-in method the app offers. The shared copy is
+          mirrored locally for offline use and syncs through Supabase when available.
+
+          Core flow:
+          1. Launch and choose a path, then optionally skip sign-in
+          2. Add a person and a medication with its strength and schedule
+          3. Today tab lists that day's doses; tap Taken to log one
+          4. Care tab holds each tracked person
+          5. Emergency card renders a shareable plain-text summary
+          6. Sharing tab offers account setup and invitations by email, link, or code
+          7. To test Elderhub Plus, finish setup with one person, then open Care
+             and tap Add person. The second-person action presents the paywall.
+
+          Every feature is free for the first person. Elderhub Plus (IAP via
+          RevenueCat) unlocks additional people in the same care circle. Monthly,
+          yearly, and lifetime purchases unlock the same capability. Invited family
+          members are never charged as separate seats.
+
+          The app does not diagnose, treat or give medical advice, and carries a
+          disclaimer to that effect in Settings and on the emergency card.
+        NOTES
+    }
+
+    deliver(
+      api_key: api_key,
+      app_version: version,
+      skip_app_version_update: true,
+      force: true,
+      ignore_language_directory_validation: true,
+      precheck_include_in_app_purchases: false,
+      version_check_wait_retry_limit: 7,
+      skip_binary_upload: true,
+      skip_screenshots: skip_shots,
+      sync_screenshots: !skip_shots,
+      submit_for_review: false,
+      automatic_release: false,
+      run_precheck_before_submit: false,
+      app_review_information: review_information,
+      submission_information: {
+        add_id_info_uses_idfa: false
+      }
+    )
+  end
+
+  desc "Submit the draft version for App Store review (metadata already uploaded)"
+  lane :submit_review do
+    api_key = app_store_connect_api_key(
+      key_id: ENV["ASC_API_KEY_ID"],
+      issuer_id: ENV["ASC_ISSUER_ID"],
+      key_filepath: ENV["ASC_KEY_PATH"]
+    )
+
+    version = ENV["ASC_APP_VERSION"]
+    UI.user_error!("Set ASC_APP_VERSION") unless version && !version.empty?
+    build_number = ENV["ASC_BUILD_NUMBER"]
+    UI.user_error!("Set ASC_BUILD_NUMBER") unless build_number && !build_number.empty?
+
+    deliver(
+      api_key: api_key,
+      app_version: version,
+      build_number: build_number,
+      skip_app_version_update: true,
+      skip_binary_upload: true,
+      skip_metadata: true,
+      skip_screenshots: true,
+      force: true,
+      submit_for_review: true,
+      automatic_release: true,
+      run_precheck_before_submit: false,
+      submission_information: {
+        add_id_info_uses_idfa: false,
+        export_compliance_uses_encryption: false,
+        content_rights_contains_third_party_content: false
+      }
+    )
+  end
+end

@@ -1,0 +1,29 @@
+# Xcode
+build/
+DerivedData/
+*.xcodeproj
+*.xcworkspace
+!*.xcodeproj/project.xcworkspace
+xcuserdata/
+*.xcuserstate
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# XcodeGen output is generated; project.yml is the source of truth
+Aging.xcodeproj/
+
+# Secrets
+.env
+.env.*
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/test_output
+fastlane/metadata.bak.*
+
+# macOS
+.DS_Store

@@ -1,0 +1,24 @@
+Elderhub is an organizational tool for tracking medications and health
+information for more than one person (typically a user and their parents).
+The local-only medication list needs no account and works without a network.
+Family sharing is optional and uses Sign in with Apple, which is the only
+sign-in method the app offers. The shared copy is
+mirrored locally for offline use and syncs through Supabase when available.
+
+Core flow:
+1. Launch and choose a path, then optionally skip sign-in
+2. Add a person and a medication with its strength and schedule
+3. Today tab lists that day's doses; tap Taken to log one
+4. Care tab holds each tracked person
+5. Emergency card renders a shareable plain-text summary
+6. Sharing tab offers account setup and invitations by email, link, or code
+7. To test Elderhub Plus, finish setup with one person, then open Care
+   and tap Add person. The second-person action presents the paywall.
+
+Every feature is free for the first person. Elderhub Plus (IAP via
+RevenueCat) unlocks additional people in the same care circle. Monthly,
+yearly, and lifetime purchases unlock the same capability. Invited family
+members are never charged as separate seats.
+
+The app does not diagnose, treat or give medical advice, and carries a
+disclaimer to that effect in Settings and on the emergency card.
