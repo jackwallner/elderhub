@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Compose App Store screenshots from raw simulator captures.
 
-Reads raws from claude-design/raw/ and writes 1290x2796 (IPHONE_67) PNGs to
+Reads raws from claude-design/raw/ and writes 1320x2868 (IPHONE_67) PNGs to
 claude-design/output/store/, ready for `fastlane deliver`.
 
 The house style here is deliberately plain: a soft tinted canvas, a drawn
@@ -27,7 +27,7 @@ OUT = os.path.join(ROOT, "claude-design", "output", "store")
 
 # The 6.7" bucket. One set at this size covers the sizes ASC requires for
 # submission; the 6.9" bucket accepts it too.
-W, H = 1290, 2796
+W, H = 1320, 2868
 
 INK = (17, 24, 39)
 BEZEL = (24, 25, 27)
@@ -54,23 +54,26 @@ TAB_BAR_CROP = 210
 
 # (raw, output, tint, headline, crop_bottom)
 FRAMES = [
-    ("02b-emergency.png", "store-1-emergency.png", "blue",
+    ("00-checkin.png", "store-1-checkin.png", "lilac",
+     "Mom checks in,\nfamily sees the update",
+     0),
+    ("02b-emergency.png", "store-2-emergency.png", "blue",
      "Everything a doctor\nasks for, on one screen",
      TAB_BAR_CROP),
-    ("01-today.png", "store-2-today.png", "mint",
+    ("01-today.png", "store-3-today.png", "mint",
      "Know what was taken,\nand who marked it",
      TAB_BAR_CROP),
-    ("03-detail.png", "store-3-medications.png", "blue",
+    ("03-detail.png", "store-4-medications.png", "blue",
      "One medication list,\nkept properly",
      TAB_BAR_CROP),
-    ("04-tasks.png", "store-4-tasks.png", "sand",
+    ("04-tasks.png", "store-5-tasks.png", "sand",
      "Nobody calls the\npharmacy twice",
      TAB_BAR_CROP),
-    ("05-timeline.png", "store-5-timeline.png", "lilac",
+    ("05-timeline.png", "store-6-timeline.png", "lilac",
      "Two years of history,\nwithout the shoebox",
      TAB_BAR_CROP),
     # The paywall is a sheet: no tab bar, nothing to crop.
-    ("07-paywall.png", "store-6-family.png", "rose",
+    ("07-paywall.png", "store-7-family.png", "rose",
      "Every feature free\nfor one person",
      0),
 ]
