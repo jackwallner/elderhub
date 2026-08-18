@@ -82,7 +82,15 @@ final class SetupAndHandoverUITests: XCTestCase {
         XCTAssertTrue(handOver.waitForExistence(timeout: 5))
         scrollTo(handOver, in: app)
         handOver.tap()
-        app.buttons["Switch to their view"].tap()
+        let candidateButtons = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "settings.hand-over.")
+        )
+        if candidateButtons.firstMatch.waitForExistence(timeout: 2) {
+            // The seeded circle has Eleanor first, so the capture covers Mom.
+            candidateButtons.element(boundBy: 0).tap()
+        } else {
+            app.buttons["Switch to their view"].tap()
+        }
 
         // Their whole app: one button, their medications, the emergency card.
         let unlock = app.buttons["check-in.unlock"]
