@@ -19,6 +19,10 @@ Aging.xcodeproj/
 .env
 .env.*
 
+# Python
+__pycache__/
+*.py[cod]
+
 # fastlane
 fastlane/report.xml
 fastlane/Preview.html
