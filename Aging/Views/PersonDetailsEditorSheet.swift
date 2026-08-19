@@ -49,9 +49,9 @@ struct PersonDetailsEditorSheet: View {
                 Section {
                     TextField("Name", text: $name)
                         .textContentType(.name)
-                    TextField("Relationship (Mom, Dad, Me)", text: $relationship)
+                    TextField("Relationship (optional)", text: $relationship)
                 } footer: {
-                    Text("The name is what every screen calls this record. The relationship is the subtitle under it.")
+                    Text("The name is what every screen calls this record. The relationship is the subtitle under it, and can be anything, or nothing.")
                 }
 
                 // Switchable, because it is a thing people get wrong on the

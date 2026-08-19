@@ -481,7 +481,7 @@ struct PersonEditorSheet: View {
                 Section {
                     TextField("Name", text: $name)
                         .textContentType(.name)
-                    TextField("Relationship (Mom, Dad, Me)", text: $relationship)
+                    TextField("Relationship (optional)", text: $relationship)
                 }
 
                 Section {
