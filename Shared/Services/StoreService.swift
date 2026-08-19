@@ -39,6 +39,14 @@ struct PlanOption: Identifiable, Sendable {
     let currencyCode: String
     let period: PlanPeriod
     let package: Package?
+    /// Days of free trial this product's introductory offer grants, or nil when
+    /// it has no free-trial offer. Read off the store's own subscription period
+    /// rather than hard-coded, so changing the offer in ASC changes every line
+    /// of copy on the paywall without a new build. Eligibility is a separate
+    /// question: this is what the *product* offers, not what *this Apple ID*
+    /// would be granted. Ask `StoreService.eligibleTrialDays(for:)` before
+    /// putting the word "trial" on screen.
+    let trialDays: Int?
 
     /// "$4.08 / month" for a yearly plan, so the two subscriptions can be
     /// compared without arithmetic. Nil for a one-off purchase.
@@ -46,6 +54,54 @@ struct PlanOption: Identifiable, Sendable {
         guard let months = period.months, months > 1, amount > 0 else { return nil }
         let perMonth = amount / Decimal(months)
         return perMonth.formatted(.currency(code: currencyCode).precision(.fractionLength(2)))
+    }
+
+    /// Whole per cent saved by paying for this plan instead of twelve months of
+    /// `monthly`. Nil unless this is the yearly plan and it genuinely costs
+    /// less, so the badge is never invented.
+    ///
+    /// Rounded **down**, and deliberately not via `Int(truncating:)`: that
+    /// returns 0 for a Decimal carrying a long fraction (66.641641…), which is
+    /// what kept this badge off the paywall entirely.
+    func savingsPercent(against monthly: PlanOption?) -> Int? {
+        guard period == .yearly,
+              let monthly, monthly.period == .monthly, monthly.amount > 0 else { return nil }
+        let twelveMonths = monthly.amount * 12
+        guard amount < twelveMonths else { return nil }
+        let saved = (twelveMonths - amount) / twelveMonths * 100
+        let percent = Int((saved as NSDecimalNumber).doubleValue)
+        return percent > 0 ? percent : nil
+    }
+
+    /// Free-trial length from a RevenueCat introductory offer.
+    ///
+    /// Only `.freeTrial` counts. A pay-up-front or pay-as-you-go introductory
+    /// *price* is a discount, and selling one as a free trial is an Apple 3.1.2
+    /// problem rather than a wording preference.
+    static func freeTrialDays(from discount: RevenueCat.StoreProductDiscount?) -> Int? {
+        guard let discount, discount.paymentMode == .freeTrial else { return nil }
+        let period = discount.subscriptionPeriod
+        switch period.unit {
+        case .day: return period.value
+        case .week: return period.value * 7
+        case .month: return period.value * 30
+        case .year: return period.value * 365
+        @unknown default: return nil
+        }
+    }
+
+    /// The StoreKit-Testing equivalent, for the simulator, where RevenueCat is
+    /// never configured and the offer comes from the local `.storekit` catalog.
+    static func freeTrialDays(from offer: StoreKit.Product.SubscriptionOffer?) -> Int? {
+        guard let offer, offer.paymentMode == .freeTrial else { return nil }
+        let period = offer.period
+        switch period.unit {
+        case .day: return period.value
+        case .week: return period.value * 7
+        case .month: return period.value * 30
+        case .year: return period.value * 365
+        @unknown default: return nil
+        }
     }
 }
 
@@ -101,6 +157,16 @@ final class StoreService: NSObject {
     private(set) var plans: [PlanOption] = []
     private(set) var isLoading: Bool = false
 
+    /// Whether *this* Apple ID would actually be granted each product's
+    /// introductory offer. A trial already used on the account is still
+    /// advertised by the product, so without this the paywall promises a free
+    /// week and charges on the spot — the failure Apple 3.1.2 is about.
+    private(set) var introEligibility: [String: Bool] = [:]
+    /// True once the first eligibility check has finished, successfully or not.
+    /// Until then every trial line stays off: silence is recoverable, a promise
+    /// the store will not honour is not.
+    private(set) var introEligibilityResolved: Bool = false
+
     private var isConfigured = false
     private var localOverride: Bool?
     private let log = Logger(subsystem: "com.jackwallner.aging", category: "store")
@@ -150,6 +216,7 @@ final class StoreService: NSObject {
         guard isConfigured else {
             // Simulator: no RevenueCat, so fall back to StoreKit Testing products.
             await loadStoreKitTestingPlans()
+            await refreshIntroEligibility()
             return
         }
 
@@ -166,13 +233,54 @@ final class StoreService: NSObject {
                     amount: $0.storeProduct.price,
                     currencyCode: $0.storeProduct.currencyCode ?? Locale.current.currency?.identifier ?? "USD",
                     period: ProProduct.period(for: $0.storeProduct.productIdentifier),
-                    package: $0
+                    package: $0,
+                    trialDays: PlanOption.freeTrialDays(from: $0.storeProduct.introductoryDiscount)
                 )
             }
             .sorted { ProProduct.order(for: $0.id) < ProProduct.order(for: $1.id) }
         } catch {
             log.error("refresh failed: \(error.localizedDescription, privacy: .public)")
         }
+        await refreshIntroEligibility()
+    }
+
+    /// Asks the store which advertised trials this account would really get.
+    ///
+    /// Cheap enough to re-run whenever the paywall opens, and worth it: the
+    /// answer changes the moment the user starts a trial on another device.
+    func refreshIntroEligibility() async {
+        let withTrial = plans.filter { $0.trialDays != nil }
+        guard !withTrial.isEmpty else {
+            introEligibility = [:]
+            introEligibilityResolved = true
+            return
+        }
+
+        guard isConfigured else {
+            // Simulator: there is no RevenueCat customer to ask, and StoreKit
+            // Testing starts each run with a clean purchase history, so what the
+            // catalog advertises is what would be granted. This is also what
+            // makes the trial layout visible in the paywall render test.
+            introEligibility = Dictionary(uniqueKeysWithValues: withTrial.map { ($0.id, true) })
+            introEligibilityResolved = true
+            return
+        }
+
+        let result = await Purchases.shared.checkTrialOrIntroDiscountEligibility(
+            productIdentifiers: withTrial.map(\.id)
+        )
+        introEligibility = result.mapValues { $0.status == .eligible }
+        introEligibilityResolved = true
+    }
+
+    /// The trial length to advertise for a plan, or nil when none may be.
+    ///
+    /// The single accessor the paywall uses, so headline, plan row, CTA,
+    /// timeline and disclosure cannot drift apart from each other or from what
+    /// StoreKit will grant. Returns nil until eligibility resolves.
+    func eligibleTrialDays(for plan: PlanOption) -> Int? {
+        guard let days = plan.trialDays, introEligibilityResolved else { return nil }
+        return introEligibility[plan.id] == true ? days : nil
     }
 
     /// Populates `plans` from the local `.storekit` catalog. Only ever runs when
@@ -191,7 +299,8 @@ final class StoreService: NSObject {
                         amount: $0.price,
                         currencyCode: $0.priceFormatStyle.currencyCode,
                         period: ProProduct.period(for: $0.id),
-                        package: nil
+                        package: nil,
+                        trialDays: PlanOption.freeTrialDays(from: $0.subscription?.introductoryOffer)
                     )
                 }
         } catch {

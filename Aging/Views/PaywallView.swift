@@ -1,5 +1,15 @@
 import SwiftUI
 
+/// The plan picker, and the app's only trial pitch.
+///
+/// It used to sell "Add another person" and mention the free week once, in the
+/// middle of the legal paragraph under the buttons, which is the one place a
+/// reader skips. Both subscriptions carry a real 1-week trial, so the trial —
+/// not the feature and not the price — is the offer, and it now leads the
+/// headline, the plan captions, the CTA and a timeline that says exactly when
+/// money moves. Every one of those lines is gated on
+/// `StoreService.eligibleTrialDays(for:)`, so an account that has already used
+/// its trial sees an honest subscribe pitch instead.
 struct PaywallView: View {
     @Environment(StoreService.self) private var store
     @Environment(\.dismiss) private var dismiss
@@ -24,32 +34,80 @@ struct PaywallView: View {
         return plans.first { $0.period == .yearly } ?? plans.first
     }
 
-    /// The monthly plan's price, used as the baseline for the yearly plan's
-    /// savings line. Nil when there is no monthly plan to compare against, and
-    /// the savings badge then simply does not appear rather than being invented.
-    private var monthlyBaseline: Decimal? {
-        plans.first { $0.period == .monthly }.map(\.amount)
+    /// Trial length to advertise for the plan the user is about to buy, or nil
+    /// when there is none they would actually receive. Everything on this
+    /// screen that says "free" reads this, never `plan.trialDays` directly.
+    private var selectedTrialDays: Int? {
+        selectedPlan.flatMap { store.eligibleTrialDays(for: $0) }
     }
 
-    /// Whole per cent saved by paying yearly. Rounded down so the badge can
-    /// never overstate it.
+    /// The monthly plan, which the yearly plan's savings line is measured
+    /// against. Nil when there is no monthly plan, and the badge then simply
+    /// does not appear rather than being invented.
+    private var monthlyBaseline: PlanOption? {
+        plans.first { $0.period == .monthly }
+    }
+
     private func savingsPercent(for plan: PlanOption) -> Int? {
-        guard plan.period == .yearly,
-              let monthly = monthlyBaseline,
-              monthly > 0 else { return nil }
-        let twelveMonths = monthly * 12
-        guard plan.amount < twelveMonths else { return nil }
-        let saved = (twelveMonths - plan.amount) / twelveMonths * 100
-        let percent = Int(truncating: NSDecimalNumber(decimal: saved))
-        return percent > 0 ? percent : nil
+        plan.savingsPercent(against: monthlyBaseline)
     }
 
+    /// The plan row's second line. Leads with the trial when there is one,
+    /// because that is what the reader is comparing; the billed figure stays on
+    /// the right of the row either way, so the per-month maths never displaces
+    /// the amount that is actually charged.
     private func caption(for plan: PlanOption) -> String? {
+        let trialPrefix = store.eligibleTrialDays(for: plan).map { "\($0) days free, then " } ?? ""
         switch plan.period {
-        case .monthly: return "Cancel any time"
-        case .yearly: return plan.perMonthLabel().map { "\($0) a month, billed yearly" }
-        case .lifetime: return "One payment, no renewal"
+        case .monthly:
+            return trialPrefix.isEmpty
+                ? "Cancel any time"
+                : "\(trialPrefix)\(plan.price) a month"
+        case .yearly:
+            guard let perMonth = plan.perMonthLabel() else {
+                return trialPrefix.isEmpty ? "Billed yearly" : "\(trialPrefix)\(plan.price) a year"
+            }
+            return "\(trialPrefix)\(perMonth) a month, billed yearly"
+        case .lifetime:
+            // Never trial or subscription language, whatever is selected above.
+            return "One payment, no renewal"
         }
+    }
+
+    private var headline: String {
+        guard let days = selectedTrialDays else { return "Add another person" }
+        return "Free for \(days) days"
+    }
+
+    /// Keeps the reason the sheet opened visible even when the trial takes the
+    /// headline: the reader tapped "add person", not "subscribe".
+    private var subhead: String {
+        selectedTrialDays == nil
+            ? "Care records for everyone you look after, in one circle."
+            : "Add everyone you look after. Full access from today, nothing to pay now."
+    }
+
+    private var ctaTitle: String {
+        guard let plan = selectedPlan else { return "Continue" }
+        if isPurchasing { return "Working…" }
+        if let days = selectedTrialDays { return "Start My \(days)-Day Free Trial" }
+        if plan.period == .lifetime { return "Unlock Lifetime" }
+        return "Subscribe"
+    }
+
+    /// Apple's required disclosure, rebuilt for the selected plan so the billed
+    /// amount, the period and the trial always match the row above.
+    private var disclosureText: String? {
+        guard let plan = selectedPlan else { return nil }
+        if plan.period == .lifetime {
+            return "\(plan.price) once. Lifetime access, no subscription and no renewal."
+        }
+        let unit = plan.period == .yearly ? "year" : "month"
+        let renewal = "Cancel at least 24 hours before the period ends to avoid renewal. Manage or cancel in your Apple ID settings."
+        if let days = selectedTrialDays {
+            return "Free for \(days) days, then \(plan.price) per \(unit), renewing automatically. \(renewal)"
+        }
+        return "\(plan.price) per \(unit), renewing automatically. \(renewal)"
     }
 
     private enum LegalLinks {
@@ -61,20 +119,25 @@ struct PaywallView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 26) {
+                VStack(spacing: 24) {
                     VStack(spacing: 10) {
-                        Image(systemName: "person.2.badge.key")
+                        Image(systemName: selectedTrialDays == nil ? "person.2.badge.key" : "gift")
                             .font(.system(size: 46))
                             .foregroundStyle(.tint)
-                        Text("Add another person")
+                        Text(headline)
                             .font(.title2.bold())
                             .multilineTextAlignment(.center)
+                        Text(subhead)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
                     }
-                    .padding(.top, 20)
+                    .padding(.top, 12)
 
+                    // Three rows, not a feature catalogue: this screen has to
+                    // reach the plan cards above the fold on the smallest phone.
                     VStack(alignment: .leading, spacing: 14) {
                         benefit("person.2", "Keep care records for Mom, Dad, a partner, or anyone else")
-                        benefit("person.3", "Everyone stays in one care circle")
                         benefit("person.badge.plus", "Invite as many family helpers as you need, with no seat fees")
                         benefit("checkmark.seal", "Every care feature is included for every person")
                     }
@@ -97,53 +160,33 @@ struct PaywallView: View {
                             }
                         }
 
-                        Button {
-                            if let plan = selectedPlan { purchase(plan) }
-                        } label: {
-                            Text(isPurchasing ? "Working…" : "Continue")
-                                .font(.headline)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 52)
+                        if let days = selectedTrialDays {
+                            TrialTimeline(trialDays: days, priceLabel: selectedPlan?.price)
                         }
-                        .buttonStyle(.borderedProminent)
-                        .disabled(isPurchasing || selectedPlan == nil)
-                        .accessibilityIdentifier("paywall.continue")
                     }
-
-                    Text("Monthly and yearly plans include a 1-week free trial for eligible new subscribers. After the trial, the displayed price is charged through your Apple ID and the selected plan renews automatically each month or year unless cancelled at least 24 hours before the period ends. Lifetime is a one-time purchase and does not renew. Manage or cancel subscriptions in your Apple ID settings.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-
-                    if let errorMessage {
-                        Text(errorMessage)
-                            .font(.footnote)
-                            .foregroundStyle(.red)
-                    }
-
-                    Button("Restore purchases") {
-                        Task { await restore() }
-                    }
-                    .font(.footnote)
-                    .disabled(isRestoring)
-
-                    VStack(spacing: 8) {
-                        HStack(spacing: 12) {
-                            Link("Privacy Policy", destination: LegalLinks.privacy)
-                            Text("•")
-                                .foregroundStyle(.secondary)
-                            Link("Terms of Use", destination: LegalLinks.terms)
-                        }
-                        Link("Apple Standard EULA", destination: LegalLinks.eula)
-                    }
-                    .font(.footnote)
                 }
                 .padding(24)
+            }
+            // The purchase area is pinned rather than scrolled to, so the
+            // decision is always under the reader's thumb and does not move
+            // when the plan changes or an error appears.
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                purchaseFooter
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Not now") { dismiss() }
+                }
+            }
+            .task {
+                // Eligibility can change between launches (a trial started on
+                // another device), so it is re-resolved every time the sheet
+                // opens rather than trusted from app start.
+                if store.plans.isEmpty {
+                    await store.refresh()
+                } else {
+                    await store.refreshIntroEligibility()
                 }
             }
             .alert(
@@ -155,6 +198,69 @@ struct PaywallView: View {
                 Text(restoreResult ?? "")
             }
         }
+    }
+
+    /// CTA, reassurance, disclosure and legal, all at the point of purchase.
+    /// The variable text sits in one min-height slot that grows upward, so the
+    /// button itself never jumps as plans, errors and states change under it.
+    private var purchaseFooter: some View {
+        VStack(spacing: 8) {
+            if !plans.isEmpty {
+                Button {
+                    if let plan = selectedPlan { purchase(plan) }
+                } label: {
+                    Text(ctaTitle)
+                        .font(.headline)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(isPurchasing || selectedPlan == nil)
+                .accessibilityIdentifier("paywall.continue")
+
+                if selectedTrialDays != nil {
+                    Text("No payment now · Cancel any time")
+                        .font(.footnote.weight(.medium))
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            VStack(spacing: 8) {
+                // Error takes the disclosure's slot rather than stacking with
+                // it: two paragraphs appearing at once is what pushed the
+                // button off the screen before.
+                if let errorMessage {
+                    Text(errorMessage)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .multilineTextAlignment(.center)
+                } else if let disclosureText {
+                    Text(disclosureText)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+
+                HStack(spacing: 10) {
+                    Button("Restore") { Task { await restore() } }
+                        .disabled(isRestoring)
+                    Text("·").foregroundStyle(.secondary)
+                    Link("Terms", destination: LegalLinks.terms)
+                    Text("·").foregroundStyle(.secondary)
+                    Link("Privacy", destination: LegalLinks.privacy)
+                    Text("·").foregroundStyle(.secondary)
+                    Link("EULA", destination: LegalLinks.eula)
+                }
+                .font(.caption)
+            }
+            .frame(minHeight: 64, alignment: .top)
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 10)
+        .padding(.bottom, 6)
+        .background(.bar)
     }
 
     private func benefit(_ symbol: String, _ text: String) -> some View {
@@ -203,6 +309,9 @@ struct PaywallView: View {
                         Text(plan.title)
                             .font(.headline)
                             .foregroundStyle(.primary)
+                        // Exactly one badge on the whole list, so there is no
+                        // contest between "best value" and "free trial" for
+                        // the reader's attention. The trial rides the caption.
                         if let percent = savingsPercent(for: plan) {
                             Text("Save \(percent)%")
                                 .font(.caption2.weight(.semibold))
@@ -210,12 +319,18 @@ struct PaywallView: View {
                                 .padding(.vertical, 2)
                                 .background(Color.green.opacity(0.18), in: Capsule())
                                 .foregroundStyle(.green)
+                                // The badge is the row's only differentiator, so
+                                // it must not be the thing that gets compressed
+                                // away when the caption grew a trial clause.
+                                .fixedSize()
+                                .layoutPriority(1)
                         }
                     }
                     if let caption = caption(for: plan) {
                         Text(caption)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
 
@@ -256,6 +371,87 @@ struct PaywallView: View {
                 errorMessage = error.localizedDescription
             }
         }
+    }
+}
+
+/// What happens on which day, which is the question people are actually
+/// declining a trial over: not the price, but whether they will be charged
+/// without noticing. Every line is true — access starts now, the reminder is
+/// Apple's rather than ours (this app schedules no billing notification), and
+/// the final day names the real amount.
+private struct TrialTimeline: View {
+    let trialDays: Int
+    let priceLabel: String?
+
+    private var reminderDay: Int { max(trialDays - 1, 1) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("How the free trial works")
+                .font(.subheadline.bold())
+                .padding(.bottom, 12)
+
+            step(
+                symbol: "lock.open",
+                title: "Today: everything unlocks",
+                detail: "Add the people you look after and use every feature.",
+                isLast: false
+            )
+            step(
+                symbol: "bell",
+                title: "Day \(reminderDay): a heads-up",
+                detail: "The App Store reminds you before the trial ends.",
+                isLast: false
+            )
+            step(
+                symbol: "checkmark.seal",
+                title: "Day \(trialDays): the trial ends",
+                detail: priceLabel.map { "Billed \($0) unless you cancel first." }
+                    ?? "You are only billed if you keep it.",
+                isLast: true
+            )
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.secondary.opacity(0.08))
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(
+            "How the free trial works. Today, everything unlocks. Day \(reminderDay), the App Store reminds you. Day \(trialDays), the trial ends and you are billed unless you cancel."
+        )
+    }
+
+    private func step(symbol: String, title: String, detail: String, isLast: Bool) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(spacing: 0) {
+                ZStack {
+                    Circle()
+                        .fill(Color.accentColor.opacity(0.15))
+                        .frame(width: 28, height: 28)
+                    Image(systemName: symbol)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.tint)
+                }
+                if !isLast {
+                    Rectangle()
+                        .fill(Color.secondary.opacity(0.25))
+                        .frame(width: 2)
+                        .frame(maxHeight: .infinity)
+                }
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                Text(detail)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.bottom, isLast ? 0 : 14)
+            Spacer(minLength: 0)
+        }
+        .fixedSize(horizontal: false, vertical: true)
     }
 }
 
