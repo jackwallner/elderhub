@@ -8,11 +8,28 @@ struct OnboardingView: View {
     let onComplete: (String, String, Bool) -> Void
 
     @State private var name = ""
-    @State private var relationship = "Mom"
+    @State private var relationship = ""
     @State private var hasPermission = false
 
+    /// One-tap fills for the common cases, not the set of allowed answers. The
+    /// people this app is used for are as often an aunt, a neighbour or a
+    /// friend, and a fixed list of four told those users the app was not for
+    /// them on the first screen. The field below takes anything, including
+    /// nothing: `Person.relationship` has always been free text that defaults
+    /// to empty, and `displayLabel` reads the entered name regardless, so a
+    /// blank relationship is a complete record rather than a half-filled one.
     private var suggestions: [String] {
-        isSolo ? ["Me"] : ["Mom", "Dad", "Me", "Spouse"]
+        isSolo ? ["Me"] : ["Mom", "Dad", "Spouse", "Partner", "Me"]
+    }
+
+    private var trimmedRelationship: String {
+        relationship.trimmingCharacters(in: .whitespaces)
+    }
+
+    /// Case- and space-insensitive, so a chip stays lit when the same word was
+    /// typed rather than tapped.
+    private func isChosen(_ option: String) -> Bool {
+        trimmedRelationship.caseInsensitiveCompare(option) == .orderedSame
     }
 
     var body: some View {
@@ -42,11 +59,20 @@ struct OnboardingView: View {
                     .font(.title3)
                     .textContentType(.name)
 
+                TextField("Relationship (optional)", text: $relationship)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.body)
+                    .textInputAutocapitalization(.words)
+                    .autocorrectionDisabled()
+                    .accessibilityIdentifier("onboarding.relationship")
+
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
                         ForEach(suggestions, id: \.self) { option in
                             Button {
-                                relationship = option
+                                // Tapping the lit chip clears it, so "none of
+                                // these" is reachable without deleting text.
+                                relationship = isChosen(option) ? "" : option
                             } label: {
                                 Text(option)
                                     .font(.callout.weight(.medium))
@@ -54,13 +80,14 @@ struct OnboardingView: View {
                                     .padding(.vertical, 9)
                                     .background(
                                         Capsule().fill(
-                                            relationship == option
+                                            isChosen(option)
                                                 ? Color.accentColor.opacity(0.18)
                                                 : Color.secondary.opacity(0.12)
                                         )
                                     )
                             }
                             .buttonStyle(.plain)
+                            .accessibilityAddTraits(isChosen(option) ? [.isSelected] : [])
                         }
                     }
                     .padding(.horizontal, 2)
@@ -85,7 +112,7 @@ struct OnboardingView: View {
                 Button {
                     onComplete(
                         name.trimmingCharacters(in: .whitespaces),
-                        relationship,
+                        trimmedRelationship,
                         hasPermission
                     )
                 } label: {
