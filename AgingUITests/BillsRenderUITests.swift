@@ -20,8 +20,12 @@ final class BillsRenderUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Today"].waitForExistence(timeout: 10))
         attach(app, named: "1-today-with-bills")
 
+        // 10s, not 5: Today's nav bar paints before the seeded list does, so
+        // the chip row is still being built when this runs. The sibling test
+        // below already carries the longer wait for the same reason, and 5s
+        // here fails intermittently on a loaded machine.
         let bills = app.buttons["today.quick.bills"]
-        XCTAssertTrue(bills.waitForExistence(timeout: 5))
+        XCTAssertTrue(bills.waitForExistence(timeout: 10))
         bills.tap()
 
         XCTAssertTrue(app.navigationBars["Bills"].waitForExistence(timeout: 5))
