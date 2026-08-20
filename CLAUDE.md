@@ -87,6 +87,16 @@ App Store search. Everything in `aso-plan.md` about *what not to claim* still st
   a second answer to "when is she next seen". Reminders fire at 6pm the evening
   before, out of the same 64-request budget as doses and refills, behind the
   same per-person toggle.
+- **A dose reminder is one notification per person per dose time, not per
+  medication.** Per medication the request count grows with the drug list, and
+  three people on six medications each overflowed the device's 64 pending
+  requests, silently dropping the evening. Grouped, it grows with people x
+  distinct dose times. The identifier no longer names a medication, so
+  `DoseReminderScheduler.apply` diffs on the **body** too: adding a tablet to
+  the 8am slot has to rewrite the request already there. What still does not fit
+  is counted (`DevicePlan.droppedCount`) and printed under the reminders toggle,
+  because a caregiver who thinks a reminder is set when it is not is worse off
+  than one who knows.
 - **A medication is stopped, not deleted.** `Medication.stop()` clears it off
   the dose list, off the emergency card and out of the reminder budget while
   keeping the row and every `DoseLog` on it; `restart()` puts it back and

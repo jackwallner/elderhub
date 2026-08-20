@@ -120,7 +120,8 @@ struct DoseReminderTests {
         let context = makeContext()
         var people: [Person] = []
 
-        // 5 people x 5 medications x 3 times a day = 75 wanted, past the budget.
+        // Grouping does not remove the cap, it only moves it out of reach of a
+        // real family: this is 5 people on 25 distinct dose times each.
         for index in 0..<5 {
             let person = Person(name: "Person \(index)", relationship: "P\(index)")
             context.insert(person)
@@ -129,18 +130,21 @@ struct DoseReminderTests {
                     "Med \(index)-\(medIndex)",
                     for: person,
                     in: context,
-                    minutes: [8 * 60 + medIndex, 13 * 60 + medIndex, 20 * 60 + medIndex]
+                    minutes: [8 * 60 + medIndex, 13 * 60 + medIndex, 20 * 60 + medIndex,
+                              15 * 60 + medIndex, 17 * 60 + medIndex]
                 )
             }
             people.append(person)
         }
 
-        let specs = DoseReminderPlanner.requests(for: people, on: day(2026, 7, 15), calendar: calendar)
+        let plan = DoseReminderPlanner.plan(for: people, on: day(2026, 7, 15), calendar: calendar)
 
-        #expect(specs.count == DoseReminderPlanner.limit)
-        #expect(specs.count < DoseReminderPlanner.deviceLimit)
+        #expect(plan.scheduled.count == DoseReminderPlanner.limit)
+        #expect(plan.scheduled.count < DoseReminderPlanner.deviceLimit)
+        // The overflow is counted rather than silently discarded.
+        #expect(plan.droppedCount == 125 - DoseReminderPlanner.limit)
         // Nothing is scheduled twice under the same identifier.
-        #expect(Set(specs.map(\.identifier)).count == specs.count)
+        #expect(Set(plan.scheduled.map(\.identifier)).count == plan.scheduled.count)
     }
 
     @Test func capIsStableAcrossTwoCallsWithIdenticalInput() {
@@ -155,7 +159,8 @@ struct DoseReminderTests {
                     "Med \(index)-\(medIndex)",
                     for: person,
                     in: context,
-                    minutes: [8 * 60 + medIndex, 13 * 60 + medIndex, 20 * 60 + medIndex]
+                    minutes: [8 * 60 + medIndex, 13 * 60 + medIndex, 20 * 60 + medIndex,
+                              15 * 60 + medIndex, 17 * 60 + medIndex]
                 )
             }
             people.append(person)
@@ -188,17 +193,111 @@ struct DoseReminderTests {
 
     // MARK: Identity and copy
 
-    @Test func identifierEncodesMedicationTimeAndWeekday() {
+    @Test func identifierEncodesPersonTimeAndWeekday() {
         let context = makeContext()
         let person = Person(name: "Eleanor", relationship: "Mom")
         context.insert(person)
-        let med = medication("Metformin", for: person, in: context, minutes: [8 * 60 + 30], weekdays: [2])
+        medication("Metformin", for: person, in: context, minutes: [8 * 60 + 30], weekdays: [2])
 
         let specs = DoseReminderPlanner.requests(for: [person], on: day(2026, 7, 15), calendar: calendar)
 
         #expect(specs.count == 1)
-        #expect(specs[0].identifier == "dose-\(med.id.uuidString)-510-2")
+        #expect(specs[0].identifier == "dose-\(person.id.uuidString)-510-2")
         #expect(specs[0].identifier.hasPrefix(ReminderSpec.identifierPrefix))
+    }
+
+    // MARK: One request per dose time
+
+    @Test func medicationsSharingATimeShareOneReminder() {
+        let context = makeContext()
+        let person = Person(name: "Eleanor", relationship: "Mom")
+        context.insert(person)
+        medication("Metformin", for: person, in: context, minutes: [8 * 60])
+        medication("Warfarin", for: person, in: context, minutes: [8 * 60])
+        medication("Atorvastatin", for: person, in: context, minutes: [8 * 60, 20 * 60])
+
+        let specs = DoseReminderPlanner.requests(for: [person], on: day(2026, 7, 15), calendar: calendar)
+        let morning = specs.first { $0.hour == 8 }
+
+        // Three medications at 8am is one buzz, not three, and one request out
+        // of the device budget instead of three.
+        #expect(specs.count == 2)
+        #expect(morning?.medicationNames.count == 3)
+        #expect(morning?.title == "Time for 3 doses")
+        #expect(morning?.body == "Eleanor: Atorvastatin 500 mg, Metformin 500 mg and 1 more")
+    }
+
+    @Test func twoMedicationsAtOneTimeAreBothNamed() {
+        let context = makeContext()
+        let person = Person(name: "Eleanor", relationship: "Mom")
+        context.insert(person)
+        medication("Metformin", for: person, in: context, minutes: [8 * 60])
+        medication("Warfarin", for: person, in: context, minutes: [8 * 60])
+
+        let specs = DoseReminderPlanner.requests(for: [person], on: day(2026, 7, 15), calendar: calendar)
+
+        #expect(specs.count == 1)
+        #expect(specs[0].body == "Eleanor: Metformin 500 mg and Warfarin 500 mg")
+    }
+
+    @Test func twoPeopleAtTheSameTimeStayTwoReminders() {
+        let context = makeContext()
+        let mom = Person(name: "Eleanor", relationship: "Mom")
+        let dad = Person(name: "Frank", relationship: "Dad")
+        context.insert(mom)
+        context.insert(dad)
+        medication("Metformin", for: mom, in: context, minutes: [8 * 60])
+        medication("Warfarin", for: dad, in: context, minutes: [8 * 60])
+
+        let specs = DoseReminderPlanner.requests(for: [mom, dad], on: day(2026, 7, 15), calendar: calendar)
+
+        // Grouping is per person. "Eleanor and Frank" in one notification would
+        // name neither record to open.
+        #expect(specs.count == 2)
+        #expect(Set(specs.map(\.personID)) == [mom.id, dad.id])
+    }
+
+    @Test func aDailyAndAWeeklyMedicationAtOneTimeStaySeparate() {
+        let context = makeContext()
+        let person = Person(name: "Eleanor", relationship: "Mom")
+        context.insert(person)
+        medication("Metformin", for: person, in: context, minutes: [8 * 60])
+        medication("Alendronate", for: person, in: context, minutes: [8 * 60], weekdays: [2])
+
+        let specs = DoseReminderPlanner.requests(for: [person], on: day(2026, 7, 15), calendar: calendar)
+
+        // Expanding the daily one across seven weekdays to merge them would
+        // cost seven requests to save one.
+        #expect(specs.count == 2)
+        #expect(specs.contains { $0.weekday == nil && $0.medicationNames == ["Metformin 500 mg"] })
+        #expect(specs.contains { $0.weekday == 2 && $0.medicationNames == ["Alendronate 500 mg"] })
+    }
+
+    @Test func aRealisticThreePersonFamilyFitsInTheBudget() {
+        let context = makeContext()
+        var people: [Person] = []
+
+        // The case §21 called out: three people, six medications each, three
+        // times a day. Per medication that is 54 dose requests before refills
+        // and appointments; grouped it is 9.
+        for index in 0..<3 {
+            let person = Person(name: "Person \(index)", relationship: "P\(index)")
+            context.insert(person)
+            for medIndex in 0..<6 {
+                medication(
+                    "Med \(index)-\(medIndex)",
+                    for: person,
+                    in: context,
+                    minutes: [8 * 60, 13 * 60, 20 * 60]
+                )
+            }
+            people.append(person)
+        }
+
+        let plan = DoseReminderPlanner.plan(for: people, on: day(2026, 7, 15), calendar: calendar)
+
+        #expect(plan.scheduled.count == 9)
+        #expect(plan.droppedCount == 0)
     }
 
     @Test func bodyNamesThePersonAndUsesNoEmDash() {

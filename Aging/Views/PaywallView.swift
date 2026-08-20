@@ -136,9 +136,18 @@ struct PaywallView: View {
 
                     // Three rows, not a feature catalogue: this screen has to
                     // reach the plan cards above the fold on the smallest phone.
+                    //
+                    // Every row has to be a thing this purchase actually buys.
+                    // "No seat fees" was here and is not one: siblings join a
+                    // free circle without paying too, so selling it as a Plus
+                    // benefit is charging for something already given away, and
+                    // a reader who works that out stops believing the other two
+                    // rows. It still belongs in Settings and on the site as the
+                    // reassurance it is. What a second person really unlocks is
+                    // the Everyone view, which does not exist below two.
                     VStack(alignment: .leading, spacing: 14) {
                         benefit("person.2", "Keep care records for Mom, Dad, a partner, or anyone else")
-                        benefit("person.badge.plus", "Invite as many family helpers as you need, with no seat fees")
+                        benefit("sun.max", "One Today screen that answers for everyone, not one person at a time")
                         benefit("checkmark.seal", "Every care feature is included for every person")
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
