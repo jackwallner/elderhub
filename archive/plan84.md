@@ -603,7 +603,7 @@ curl -sS "https://api.supabase.com/v1/projects/$AGING_SUPABASE_PROJECT_REF/secre
      -H "Authorization: Bearer $AGING_SUPABASE_ACCESS_TOKEN"           # []
 
 # RevenueCat offerings are correctly configured (this one is good news)
-curl -s -H "Authorization: Bearer appl_dvyPWLaZxKyjLUrFVzDynNGjVGb" -H "X-Platform: iOS" \
+curl -s -H "Authorization: Bearer $REVENUECAT_PUBLIC_APP_KEY" -H "X-Platform: iOS" \
      "https://api.revenuecat.com/v1/subscribers/probe/offerings"
 
 # The site the App Store points at
