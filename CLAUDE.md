@@ -101,6 +101,48 @@ App Store search. Everything in `aso-plan.md` about *what not to claim* still st
   nurse as a daily one. The medication row, the emergency card and the exported
   one-pager all read the one label; empty `weekdays` means every day and prints
   nothing.
+- `Services/TodayDigest.swift` — what is outstanding for each person right now,
+  as pure functions over the models. **The Today tab and the Care tab rows both
+  render this one type**, so "2 due" cannot mean two things on two screens. It
+  also owns the single refill rule (`runningLow`), which `TodayView` used to
+  keep its own copy of. `statusLine` deliberately distinguishes "Nothing
+  recorded yet" (a record with no medications) from "Nothing due today" (a day
+  already dealt with): collapsing those tells a caregiver their setup is
+  finished and their morning is clear when neither is true. Every line is a
+  statement about a list, never an assessment of anyone (I6).
+- **Today has an Everyone mode, and it only exists at two people or more.** A
+  solo caregiver sees exactly the screen they always have: no header, no picker,
+  no aggregate. With more than one person the default scope is `.everyone`,
+  because opening on one of them is how Dad's overdue 8am dose stayed invisible
+  to somebody looking at Mom. Everyone mode is not the per-person screen
+  repeated N times: the setup checklist and quick-action row are per-person jobs
+  and stay there, doses and tasks are actionable in place (having to switch
+  person to tick off Dad's tablet is the problem being fixed), and refills and
+  bills are counts because they are errands for later in the week. People with
+  nothing outstanding are listed under "Nothing due today" rather than dropped —
+  a person who vanishes off the daily screen reads as a record that has gone
+  missing.
+- **Reminders route to the person they name.** Every dose, refill and
+  appointment request carries `personID` in `userInfo`;
+  `NotificationService.didReceive` puts it on `NotificationRoute.shared` and
+  Today consumes it. Before this there was no `didReceive` handler at all, so
+  tapping "Dad: Warfarin" opened wherever the app was left, which with two
+  people is the wrong record about half the time.
+- **Access inside a circle is per-recipient (migration 0018).**
+  `group_members.access_scope` is `all` (default) or `listed`, and
+  `recipient_access` holds what `listed` means. Default is unrestricted, so
+  applying 0018 hid nothing anyone could already read. `visible_recipient_ids()`
+  is **parameterless on purpose**: a security-definer function taking row values
+  cannot be wrapped in `(select ...)` and so runs once per row, while a
+  parameterless one hoists to an initPlan and runs once per statement, which
+  makes the scoped policies cheaper than the unscoped ones they replaced. Owners
+  are never restrictable (the RPC raises *and* the function ignores the flag for
+  them). `care_recipients` is the one table whose select policy asks
+  `is_unrestricted_staff()` directly rather than naming its own id, because
+  `visible_recipient_ids()` is `stable` and cannot see the row a `RETURNING`
+  clause just inserted. Restricting someone also purges what their phone already
+  downloaded (`GroupService.applySelfAccess`), with `context.delete` and **never**
+  `tombstone()`: losing access to Dad's record must not delete Dad's record (I5).
 - `Services/CareOverview.swift` — the feature catalog (`CareFeature`: title, blurb,
   symbol, colour), the per-tile count lines, and `SetupChecklist`. One list, read by
   the person hub, the Today quick actions and the People rows, so a feature cannot

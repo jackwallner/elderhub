@@ -13,10 +13,43 @@ struct GroupMember: Identifiable, Sendable, Equatable {
     var role: GroupRole
     var joinedAt: Date
     var isSelf: Bool
+    /// Which of the circle's people this member can read (migration 0018).
+    ///
+    /// Default is `.all`, which is what every member had before the column
+    /// existed and what a sibling should keep having. `.listed` is a deliberate
+    /// act by the owner, for the neighbour who helps with Mom and has no reason
+    /// to be reading Dad's bills.
+    var accessScope: MemberAccessScope = .all
+    /// The recipient ids this member was granted, meaningful only when
+    /// `accessScope == .listed`.
+    var visibleRecipientIDs: Set<UUID> = []
+
+    /// Owners are unrestricted whatever the stored flag says, and the RPC
+    /// refuses to set one. Mirrored here so the UI does not offer a control
+    /// the server will reject (the enforcement is the policy, never this).
+    var canBeRestricted: Bool { role == .caregiver }
 
     var resolvedName: String {
         if isSelf { return displayName.isEmpty ? "You" : "\(displayName) (you)" }
         return displayName.isEmpty ? "Family member" : displayName
+    }
+}
+
+/// Whether a member sees the whole circle or a named list of it.
+///
+/// A string, cast at the boundary, matching `group_members.access_scope`. An
+/// unknown value falls back to `.all` for the same reason every other enum in
+/// this app does: a row written by a newer client must not make an older one
+/// hide records it should be showing.
+enum MemberAccessScope: String, Sendable, CaseIterable {
+    case all
+    case listed
+
+    init(rawValue: String) {
+        switch rawValue {
+        case "listed": self = .listed
+        default: self = .all
+        }
     }
 }
 
@@ -330,18 +363,62 @@ final class GroupService {
             var user_id: UUID
             var role: String
             var joined_at: Date
+            var access_scope: String?
             var profiles: ProfileRow?
         }
 
+        struct GrantRow: Decodable {
+            var user_id: UUID
+            var care_recipient_id: UUID
+        }
+
+        // Two selects, newest first. `access_scope` only exists once migration
+        // 0018 has been applied, and PostgREST answers a select naming an
+        // unknown column by failing the whole request: without the fallback, a
+        // client that shipped ahead of the migration would show an empty family
+        // rather than a family with no restrictions. Costs one extra round trip
+        // exactly once, on a database that is behind.
+        func fetchMembers() async throws -> [MemberRow] {
+            do {
+                return try await client
+                    .from("group_members")
+                    .select("user_id, role, joined_at, access_scope, profiles(display_name)")
+                    .eq("group_id", value: groupID)
+                    .is("removed_at", value: nil)
+                    .order("joined_at", ascending: true)
+                    .execute()
+                    .value
+            } catch {
+                log.notice("access_scope not present, reading members without it: \(error.localizedDescription)")
+                return try await client
+                    .from("group_members")
+                    .select("user_id, role, joined_at, profiles(display_name)")
+                    .eq("group_id", value: groupID)
+                    .is("removed_at", value: nil)
+                    .order("joined_at", ascending: true)
+                    .execute()
+                    .value
+            }
+        }
+
         do {
-            let rows: [MemberRow] = try await client
-                .from("group_members")
-                .select("user_id, role, joined_at, profiles(display_name)")
+            let rows: [MemberRow] = try await fetchMembers()
+
+            // Fetched separately rather than as an embedded resource: the grant
+            // table is empty for every circle that has never restricted anyone,
+            // which is almost all of them, so this is one cheap request that
+            // usually returns nothing.
+            let grants: [GrantRow] = (try? await client
+                .from("recipient_access")
+                .select("user_id, care_recipient_id")
                 .eq("group_id", value: groupID)
-                .is("removed_at", value: nil)
-                .order("joined_at", ascending: true)
                 .execute()
-                .value
+                .value) ?? []
+
+            var grantsByUser: [UUID: Set<UUID>] = [:]
+            for grant in grants {
+                grantsByUser[grant.user_id, default: []].insert(grant.care_recipient_id)
+            }
 
             members = rows.map {
                 GroupMember(
@@ -349,10 +426,13 @@ final class GroupService {
                     displayName: $0.profiles?.display_name ?? "",
                     role: GroupRole(rawValue: $0.role) ?? .caregiver,
                     joinedAt: $0.joined_at,
-                    isSelf: $0.user_id == me
+                    isSelf: $0.user_id == me,
+                    accessScope: MemberAccessScope(rawValue: $0.access_scope ?? "all"),
+                    visibleRecipientIDs: grantsByUser[$0.user_id] ?? []
                 )
             }
             cacheMembers(members, groupID: groupID)
+            applySelfAccess(members.first { $0.isSelf }, groupID: groupID)
         } catch {
             // The cached list loaded at launch stays on screen. A failed
             // request is not evidence that the family shrank.
@@ -497,6 +577,37 @@ final class GroupService {
         }
     }
 
+    /// Set which of the circle's people one member may read.
+    ///
+    /// Owner-only, and the server says so too: this call is a convenience for
+    /// the Sharing screen, not the enforcement. Passing `.all` clears every
+    /// grant that member had, so lifting a restriction is one call rather than
+    /// a list the caller has to reconstruct.
+    func setAccess(
+        for memberID: UUID,
+        scope: MemberAccessScope,
+        recipientIDs: Set<UUID> = []
+    ) async throws {
+        guard let groupID = activeGroupID else { throw GroupServiceError.noGroup }
+
+        // Every RPC parameter is text and cast inside (D11).
+        var params: [String: AnyJSON] = [
+            "p_group_id": .string(groupID.uuidString),
+            "p_user_id": .string(memberID.uuidString),
+            "p_scope": .string(scope.rawValue)
+        ]
+        params["p_recipient_ids"] = scope == .listed
+            ? .array(recipientIDs.map { .string($0.uuidString) })
+            : .null
+
+        do {
+            try await client.rpc("set_member_access", params: params).execute()
+            await loadMembers()
+        } catch {
+            throw GroupServiceError.server(error.localizedDescription)
+        }
+    }
+
     func revokeInviteCode(_ code: String) async throws {
         do {
             try await client
@@ -600,6 +711,51 @@ final class GroupService {
 
     /// Drops the membership cache and the shared record, leaving the device with
     /// nothing it is no longer entitled to hold.
+    /// What this device is allowed to see, once the owner has narrowed it.
+    ///
+    /// Nil means unrestricted, which is every member of every circle until
+    /// somebody deliberately changes it.
+    private(set) var selfVisibleRecipientIDs: Set<UUID>?
+
+    /// Keep the local mirror inside the boundary the server is now enforcing.
+    ///
+    /// Restricting a member stops the server *returning* rows for the people
+    /// they can no longer see, but the pull is incremental: absence from a page
+    /// is not a delete signal, so anything already synced would sit on their
+    /// phone indefinitely, readable offline, after their access was removed.
+    /// A restriction that only applies to rows you have not downloaded yet is
+    /// not a restriction.
+    ///
+    /// `context.delete`, never `tombstone()`. This is the same local forget
+    /// `forgetGroupLocally` performs and for the same reason: a tombstone is a
+    /// synced instruction to destroy the row for the whole family, and losing
+    /// your access to Dad's record must never delete Dad's record (I5).
+    private func applySelfAccess(_ me: GroupMember?, groupID: UUID) {
+        let previous = selfVisibleRecipientIDs
+        let current: Set<UUID>? = me?.accessScope == .listed ? (me?.visibleRecipientIDs ?? []) : nil
+        selfVisibleRecipientIDs = current
+
+        guard previous != current else { return }
+
+        if let current {
+            for person in ((try? context.fetch(FetchDescriptor<Person>())) ?? [])
+            where person.groupID == groupID && !current.contains(person.id) {
+                // Local-only records are never touched: a private record that
+                // was never in the circle is not the circle's to withdraw.
+                context.delete(person)
+            }
+        }
+
+        // The pull cursor is a high-water mark on `updated_at`, so rows that
+        // existed before a restriction was lifted would never be re-fetched.
+        // Resetting it makes the next sync re-read the circle from the start,
+        // which is cheap at family scale and correct in both directions.
+        for cursor in (try? context.fetch(FetchDescriptor<SyncCursor>())) ?? [] {
+            context.delete(cursor)
+        }
+        try? context.save()
+    }
+
     func forgetGroupLocally() {
         if let activeGroupID {
             UserDefaults.standard.removeObject(forKey: transparencyKey(for: activeGroupID))

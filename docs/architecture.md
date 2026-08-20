@@ -101,6 +101,8 @@ breaks one of these, the change is wrong.
 | D30 | Entitlement is group-scoped, held in a single `group_billing` row fed by a RevenueCat webhook | The adult child pays; nobody else should have to. No per-member fan-out to drift | 03 §6, modified, see §9 |
 | D31 | Free tier: one care recipient, unlimited members on that recipient | Siblings are not "extra users"; the second parent is still the paywall | 03 §6 |
 | D32 | Subject may log doses for their own linked recipient only | A parent who can press a proof-of-life button can tap "took my pills"; the alternative is the family phoning to ask | §13 Q1 |
+| D34 | Per-recipient access is a per-member flag (`group_members.access_scope`) plus a grant table (`recipient_access`), defaulting to unrestricted | D5 always said the roles grow "additively into per-recipient grants". A backfilled grant row per (member x recipient) has to stay correct forever after; the flag means the common case writes no rows. Default `all` so applying 0018 hides nothing anyone could already read | §21 |
+| D35 | Visibility is read through parameterless `visible_recipient_ids()`, used as `col in (select ...)` | A security-definer function taking row values cannot be wrapped in `(select ...)` and so runs per row. Parameterless, it hoists to an initPlan and runs once per statement. Supabase benchmarks this exact rewrite at 9,000ms -> 20ms, so the scoped policies are cheaper than the unscoped ones they replace | §21 |
 | D33 | Not available in EU/UK storefronts | Article 9 special-category data about third parties who never consented, plus DSR and Article 27 obligations a solo developer cannot run | §13 Q3 |
 
 ---
@@ -841,3 +843,110 @@ neither of. It reseeds with new ids every launch: the pool devices keep their
 store between runs, so a circle carried over would leave the previous run's
 tasks still assigned to this run's reader and no test could assert that nothing
 is.
+
+
+---
+
+## 21. Two people, actually (2026-08-19)
+
+The pitch says "every feature is free for one person; Plus adds everyone else
+you look after to the same care circle". Reading the code against that sentence,
+the data layer held up and the daily surface did not.
+
+**What was already right.** `Person` is the root aggregate and it is held
+consistently: every feature view takes `let person: Person`, so no screen leaks
+one person's records into another's. `DoseReminderPlanner.requests(for people:)`
+already looped every person and stamped the name on each reminder.
+`CareSearch` already swept the whole family in one pass. Check-in was already
+keyed per `personID`.
+
+**What was wrong, and why it mattered more than it looked.**
+
+* **Today could only answer for one person.** It rendered
+  `content(for: selectedPerson)`, with a switcher buried in the toolbar menu. A
+  caregiver looking at Mom had no way to know Dad's 8am dose was still unticked.
+  The tab whose entire job is "what is left today" could not answer it for the
+  family being sold to.
+* **The one screen showing both people said nothing about either.** The
+  `PeopleView` row read "Mother · 4 medications". That is an inventory count,
+  not a status.
+* **Notification taps went nowhere.** `NotificationService` implemented
+  `willPresent` and not `didReceive`, so tapping "Dad: Warfarin" opened the app
+  wherever it was last left. Invisible at one person; wrong about half the time
+  at two.
+* **Every member of a circle could read every recipient in it.** This is the
+  one that is a boundary rather than a papercut. `is_group_staff(group_id)` was
+  the whole test, which was correct while a circle held one person and stops
+  being correct the moment the product invites you to add a second. The
+  neighbour helping with Mom could read Dad's medications, bills and notes.
+
+### The access model (migration 0018)
+
+`group_members.access_scope` is `all` (default) or `listed`; `recipient_access`
+holds the grants that `listed` means. A flag plus a grant table rather than a
+backfill, because a backfill has to be maintained forever after: every recipient
+added to a circle would need fan-out rows for every existing member, and one
+miss is a sibling who silently cannot see Dad.
+
+`visible_recipient_ids()` takes no parameters, which is the load-bearing detail
+and the reason this is faster than what it replaced. See D35.
+
+Owners are never restrictable, enforced twice: `set_member_access` raises, and
+`visible_recipient_ids()` treats an owner as unrestricted whatever the flag
+says. An owner locked out of their own circle has no recovery path.
+
+**`care_recipients` is the one table that cannot phrase its own visibility in
+terms of `visible_recipient_ids()`.** That function is `stable`, so it reads the
+statement-start snapshot and cannot see a row the same statement just inserted;
+PostgREST puts `RETURNING` on every write, so a select policy written that way
+fails every "add a person" call with an RLS violation. The first draft of 0018
+had exactly that bug and `lifecycle_test.sql` caught it. It asks
+`is_unrestricted_staff(group_id)` directly instead, which is not a loosening:
+an unrestricted member sees the whole circle by definition.
+
+**Restricting someone also has to clear what their phone already downloaded.**
+The pull is incremental and absence from a page is not a delete signal, so
+without `GroupService.applySelfAccess` a withdrawn record would sit readable
+offline forever. It uses `context.delete`, never `tombstone()`: a tombstone is a
+synced instruction to destroy the row for the whole family, and losing your
+access to Dad's record must never delete Dad's record (I5). The sync cursors are
+reset on any change to the visible set, so lifting a restriction re-fetches
+rather than leaving a hole under the high-water mark.
+
+### The daily surface
+
+`TodayDigest` is the counting, as pure functions over the models, in the same
+place and for the same reason as `ScheduleEngine` and `TaskPlanner`. Both the
+Today tab and the Care tab rows render it, so "2 due" cannot mean two things on
+two screens.
+
+**The selector only exists at two people or more.** A solo caregiver sees the
+screen they have always seen: no header, no picker, no aggregate. Everyone mode
+is the default once there is more than one person, because opening on one of
+them is how Dad's overdue dose stayed invisible.
+
+Everyone mode is deliberately not the single-person screen repeated N times. The
+setup checklist and the quick-action row are per-person jobs and stay there;
+what belongs on the aggregate is the work that is outstanding and a way into
+whoever it belongs to. Doses and tasks are actionable in place, because having
+to switch person to tick off Dad's tablet is the entire problem being fixed.
+Refills and bills are shown as counts, since they are errands for later in the
+week and spelling them out buries the doses that are for right now.
+
+People with nothing outstanding are listed under a "Nothing due today" heading
+rather than dropped. A person who silently vanishes off the daily screen reads
+as a record that has gone missing.
+
+`PersonDigest.statusLine` distinguishes two silences: "Nothing recorded yet" for
+a record with no medications in it, "Nothing due today" for a day already dealt
+with. Collapsing those would tell a caregiver their setup was finished and their
+morning was clear when neither was true. Both are statements about a list and
+never an assessment of anyone (I6).
+
+### Still open
+
+The reminder budget is still 63 requests shared across everyone
+(`DoseReminderPlanner.limit`), still capped by nearest fire time, and still
+silent about it. Three people with six medications each is past it. The cap
+degrades sensibly and rolls forward on every foreground, but nothing tells the
+user that the third person's evening doses stopped notifying.

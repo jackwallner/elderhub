@@ -130,6 +130,9 @@ final class SetupAndHandoverUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments += ["-uitest-wipe-store", "YES", "-seedDemo", "YES"]
         app.launch()
+        // `-seedDemo` seeds both Mom and Dad, so Today opens on the aggregate.
+        // Scope it to one of them: this bundle is testing a per-person screen.
+        selectPersonOnToday(app, named: "Eleanor Wallner")
         return app
     }
 

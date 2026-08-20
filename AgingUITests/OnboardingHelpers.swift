@@ -68,4 +68,24 @@ extension XCTestCase {
             app.swipeUp()
         }
     }
+
+    /// Scope the Today tab to one person.
+    ///
+    /// `-seedDemo` puts both Mom and Dad on the store, and Today opens on the
+    /// aggregate whenever a phone is tracking more than one person, so the
+    /// per-person chips and cards are not on screen until somebody is picked.
+    /// A no-op on a single-person store, where the picker does not exist at
+    /// all: the tests that walk through onboarding are testing exactly that
+    /// screen and must not be made to tap something a real solo caregiver
+    /// never sees.
+    @MainActor
+    func selectPersonOnToday(_ app: XCUIApplication, named name: String) {
+        let picker = app.buttons["today.person-picker"]
+        guard picker.waitForExistence(timeout: 5) else { return }
+        picker.tap()
+        let entry = app.buttons["today.person-option.\(name)"]
+        if entry.waitForExistence(timeout: 3) {
+            entry.tap()
+        }
+    }
 }

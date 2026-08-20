@@ -104,6 +104,9 @@ final class BillsRenderUITests: XCTestCase {
         // earlier run's store, so without this the shots are of the old app.
         app.launchArguments += ["-uitest-wipe-store", "YES", "-seedDemo", "YES"]
         app.launch()
+        // `-seedDemo` seeds both Mom and Dad, so Today opens on the aggregate.
+        // Scope it to one of them: this bundle is testing a per-person screen.
+        selectPersonOnToday(app, named: "Eleanor Wallner")
         return app
     }
 

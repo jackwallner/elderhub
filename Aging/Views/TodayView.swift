@@ -12,7 +12,7 @@ struct TodayView: View {
     @Environment(AppNavigator.self) private var navigator
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
-    @State private var selectedPersonID: UUID?
+    @State private var scopeSelection: TodayScope?
     @State private var quickAction: QuickAction?
     @State private var isEditingDetails = false
     @State private var isAddingMedication = false
@@ -20,6 +20,7 @@ struct TodayView: View {
     @State private var setupVersion = 0
     @State private var dismissedSteps: Set<SetupStep.Kind> = []
     @State private var destination: TodayDestination?
+    @State private var notificationRoute = NotificationRoute.shared
 
     /// The two big cards at the bottom. A `Button` driving one destination for
     /// the same reason the chips are: a `NavigationLink` wrapping a card draws
@@ -33,21 +34,60 @@ struct TodayView: View {
         var id: Self { self }
     }
 
-    /// Whoever was picked, otherwise the first person the family actually
-    /// shares. The fallback used to be `people.first`, which on a phone holding
-    /// both a private record and a joined circle could open Today on the
-    /// private one and leave it looking like the shared record everybody else
-    /// was reading. An explicit pick is always honoured; only the default is
-    /// opinionated.
-    private var selectedPerson: Person? {
-        if let selectedPersonID, let picked = people.first(where: { $0.id == selectedPersonID }) {
-            return picked
-        }
+    /// Whose day this screen is showing.
+    ///
+    /// `.everyone` exists only once there is more than one person to look
+    /// after. A solo caregiver never sees it, never sees the picker, and gets
+    /// the screen they have always had: the aggregate is the answer to a
+    /// question they do not have.
+    private enum TodayScope: Hashable {
+        case everyone
+        case person(UUID)
+    }
+
+    /// Who a single-person phone opens on: the first person the family actually
+    /// shares. This used to be `people.first`, which on a phone holding both a
+    /// private record and a joined circle could open Today on the private one
+    /// and leave it looking like the shared record everybody else was reading.
+    /// Only the default is opinionated; an explicit pick always wins.
+    private var defaultPerson: Person? {
         if let activeGroupID = groups.activeGroupID,
            let shared = people.first(where: { $0.groupID == activeGroupID }) {
             return shared
         }
         return people.first
+    }
+
+    /// The resolved scope, falling back rather than trusting the stored one.
+    ///
+    /// A stored pick can name a person who has since been deleted or who was
+    /// never on this device, and `.everyone` is meaningless once a circle is
+    /// back down to one person, so both are re-checked against the current
+    /// list every time.
+    private var scope: TodayScope {
+        switch scopeSelection {
+        case .person(let id) where people.contains(where: { $0.id == id }):
+            return .person(id)
+        case .everyone where people.count > 1:
+            return .everyone
+        default:
+            break
+        }
+        // With more than one person, the honest answer to "what is left today"
+        // spans all of them. Opening on one of them is how Dad's overdue 8am
+        // dose stayed invisible to someone looking at Mom.
+        if people.count > 1 { return .everyone }
+        if let defaultPerson { return .person(defaultPerson.id) }
+        return .everyone
+    }
+
+    /// The person every sheet, destination and quick action hangs off. Nil in
+    /// Everyone mode, where those are not offered: a quick action needs to know
+    /// whose record it is writing to, and guessing is how the wrong parent gets
+    /// a blood pressure reading.
+    private var selectedPerson: Person? {
+        guard case .person(let id) = scope else { return nil }
+        return people.first { $0.id == id }
     }
 
     /// True for a row that is not part of the circle this device belongs to.
@@ -61,14 +101,16 @@ struct TodayView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if let person = selectedPerson {
-                    content(for: person)
-                } else {
+                if people.isEmpty {
                     ContentUnavailableView(
                         "No one added yet",
                         systemImage: "person.badge.plus",
                         description: Text("Add someone on the Care tab.")
                     )
+                } else if case .everyone = scope {
+                    everyoneContent
+                } else if let person = selectedPerson {
+                    content(for: person)
                 }
             }
             .navigationTitle("Today")
@@ -104,8 +146,33 @@ struct TodayView: View {
                 }
             }
         }
-        .onAppear { refreshSetupVisibility() }
-        .onChange(of: selectedPersonID) { _, _ in refreshSetupVisibility() }
+        .onAppear {
+            applyPendingNotificationRoute()
+            refreshSetupVisibility()
+        }
+        .onChange(of: scopeSelection) { _, _ in refreshSetupVisibility() }
+        .onChange(of: notificationRoute.pendingPersonID) { _, _ in
+            applyPendingNotificationRoute()
+        }
+    }
+
+    /// Honours a tapped reminder by scoping to the person it named.
+    ///
+    /// Consumed rather than observed, so the same tap cannot move someone off
+    /// the screen they deliberately opened later. Also checked on appear,
+    /// because a tap that arrives while another tab is showing fires no
+    /// `onChange` here.
+    private func applyPendingNotificationRoute() {
+        guard let pending = notificationRoute.pendingPersonID else { return }
+        guard people.contains(where: { $0.id == pending }) else {
+            // The reminder outlived the record: a person deleted on another
+            // device, or one this phone has not synced yet. Drop it rather than
+            // leaving it queued to fire on a later, unrelated appearance.
+            _ = notificationRoute.consume()
+            return
+        }
+        _ = notificationRoute.consume()
+        scopeSelection = .person(pending)
     }
 
     private func refreshSetupVisibility() {
@@ -120,20 +187,188 @@ struct TodayView: View {
 
     private var personMenu: some View {
         Menu {
+            Button {
+                scopeSelection = .everyone
+            } label: {
+                Label(
+                    "Everyone",
+                    systemImage: isEveryone ? "checkmark" : "person.2"
+                )
+            }
+
+            Divider()
+
             ForEach(people) { person in
                 Button {
-                    selectedPersonID = person.id
+                    scopeSelection = .person(person.id)
                 } label: {
                     Label(
                         isPrivate(person) ? "\(person.displayLabel) (only on this phone)" : person.displayLabel,
                         systemImage: person.id == selectedPerson?.id ? "checkmark" : "person"
                     )
                 }
+                // The person's name also appears as a section heading in
+                // Everyone mode, so a UI test matching on the label alone finds
+                // two elements and taps neither.
+                .accessibilityIdentifier("today.person-option.\(person.displayLabel)")
             }
         } label: {
-            Text(selectedPerson?.displayLabel ?? "Person")
+            Text(isEveryone ? "Everyone" : (selectedPerson?.displayLabel ?? "Person"))
                 .font(.subheadline.weight(.semibold))
         }
+        .accessibilityIdentifier("today.person-picker")
+    }
+
+    private var isEveryone: Bool {
+        if case .everyone = scope { return true }
+        return false
+    }
+
+    // MARK: - Everyone
+
+    /// Today across every person, grouped by person.
+    ///
+    /// Only reachable when there is more than one person, and deliberately not
+    /// a copy of the single-person screen repeated N times. The setup checklist
+    /// and the quick-action row are per-person jobs and stay on the per-person
+    /// screen; what belongs here is the work that is outstanding and a way into
+    /// whoever it belongs to. Doses and tasks are actionable in place, because
+    /// having to switch person to tick off Dad's tablet is the whole problem
+    /// this screen exists to fix.
+    private var everyoneContent: some View {
+        let digests = TodayDigest.build(for: people, on: Date())
+        let outstanding = digests.filter { !$0.isClear }
+        // Named `settled` and not `clear`: `clear(_:person:)` is the undo path
+        // for a dose a few lines below, and shadowing it here silently turns
+        // that call site into a reference to this array.
+        let settled = digests.filter(\.isClear)
+
+        return List {
+            Section {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(TodayDigest.headline(for: digests))
+                        .font(.title3.weight(.semibold))
+                    Text(peopleSummary)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 2)
+                .accessibilityIdentifier("today.everyone-headline")
+            }
+            .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+
+            ForEach(outstanding) { digest in
+                Section {
+                    ForEach(digest.pendingSlots) { slot in
+                        DoseRow(slot: slot, person: digest.person) { status in
+                            if let status {
+                                record(status, for: slot, person: digest.person)
+                            } else {
+                                clear(slot, person: digest.person)
+                            }
+                        }
+                    }
+
+                    ForEach(digest.tasksDue) { task in
+                        TodayTaskRow(task: task, isMine: isMine(task)) {
+                            task.markComplete(by: CareTaskAuthor.name(from: groups), in: context)
+                        }
+                    }
+
+                    ForEach(digest.appointments) { visit in
+                        AppointmentRow(visit: visit)
+                    }
+
+                    // Counts rather than rows: a refill and a bill are errands
+                    // for later in the week, and spelling them out here buries
+                    // the doses that are for right now.
+                    if !digest.runningLow.isEmpty || !digest.billsDue.isEmpty {
+                        Button {
+                            scopeSelection = .person(digest.person.id)
+                        } label: {
+                            Label(
+                                laterWorkLabel(for: digest),
+                                systemImage: "tray.full"
+                            )
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                } header: {
+                    personSectionHeader(for: digest)
+                }
+            }
+
+            // Named, not hidden. A person who silently vanishes off the daily
+            // screen reads as a record that has gone missing, and "nothing due"
+            // is the answer a caregiver came here for.
+            if !settled.isEmpty {
+                Section("Nothing due today") {
+                    ForEach(settled) { digest in
+                        Button {
+                            scopeSelection = .person(digest.person.id)
+                        } label: {
+                            HStack {
+                                Text(digest.person.displayLabel)
+                                    .font(.body.weight(.medium))
+                                Text(digest.statusLine)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.tertiary)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+    }
+
+    private var peopleSummary: String {
+        let count = people.count
+        return count == 1 ? "1 person" : "\(count) people"
+    }
+
+    private func laterWorkLabel(for digest: PersonDigest) -> String {
+        var parts: [String] = []
+        if !digest.runningLow.isEmpty {
+            parts.append(digest.runningLow.count == 1 ? "1 running low" : "\(digest.runningLow.count) running low")
+        }
+        if !digest.billsDue.isEmpty {
+            parts.append(digest.billsDue.count == 1 ? "1 bill due" : "\(digest.billsDue.count) bills due")
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    /// The person's name, as a way into their own screen. Tapping it switches
+    /// the scope rather than pushing, so the picker in the toolbar and the
+    /// heading agree about where you now are.
+    private func personSectionHeader(for digest: PersonDigest) -> some View {
+        Button {
+            scopeSelection = .person(digest.person.id)
+        } label: {
+            HStack(spacing: 6) {
+                Text(digest.person.displayLabel)
+                    .font(.subheadline.weight(.semibold))
+                if !digest.overdueSlots.isEmpty {
+                    Image(systemName: "exclamationmark.circle.fill")
+                        .foregroundStyle(.orange)
+                        .accessibilityLabel("overdue")
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
+            .textCase(nil)
+        }
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder
@@ -559,10 +794,7 @@ struct TodayView: View {
     /// A one-line row for a bill that is late or due this week: tick it off, or
     /// open the full list. Same shape and same reasoning as `TodayTaskRow`.
     private func runningLowMedications(for person: Person) -> [Medication] {
-        person.activeMedications.filter { medication in
-            guard let daysRemaining = medication.daysRemaining else { return false }
-            return daysRemaining <= Double(medication.refillThresholdDays)
-        }
+        TodayDigest.runningLow(for: person)
     }
 
     /// Whose errand this is. Only meaningful once someone else is in the circle;

@@ -97,6 +97,27 @@ extension NotificationService: UNUserNotificationCenterDelegate {
     ) async -> UNNotificationPresentationOptions {
         [.banner, .sound, .list]
     }
+
+    /// A tap opens the person the reminder was about.
+    ///
+    /// This handler did not exist, so every dose, refill and appointment
+    /// reminder opened the app on whatever record was last selected. The body
+    /// has always said whose dose it is ("Dad: Warfarin"); the app just did not
+    /// act on it.
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse
+    ) async {
+        // Pull the one value out before hopping: `userInfo` is
+        // [AnyHashable: Any] and so not Sendable, and sending it across the
+        // actor boundary is a data race the compiler correctly refuses.
+        let raw = response.notification.request.content
+            .userInfo[NotificationRoute.personKey] as? String
+        guard let personID = raw.flatMap(UUID.init(uuidString:)) else { return }
+        await MainActor.run {
+            NotificationRoute.shared.route(to: personID)
+        }
+    }
 }
 
 /// APNs hands the device token to the app delegate and nowhere else, so SwiftUI

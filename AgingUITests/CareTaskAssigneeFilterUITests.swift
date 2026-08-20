@@ -69,6 +69,11 @@ final class CareTaskAssigneeFilterUITests: XCTestCase {
     // MARK: Helpers
 
     private func openTasks(_ app: XCUIApplication) {
+        // A `-seedDemo` bundle earlier in the run can leave a two-person store
+        // behind (`-uitest-reset` clears onboarding, not the store), and Today
+        // opens on the aggregate whenever there is more than one person. A
+        // no-op when this device really does hold one.
+        selectPersonOnToday(app, named: "Eleanor Wallner")
         let medications = app.buttons["today.medications"]
         scrollToHittable(medications, in: app)
         XCTAssertTrue(medications.waitForExistence(timeout: 10))

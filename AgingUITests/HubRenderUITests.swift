@@ -26,6 +26,10 @@ final class HubRenderUITests: XCTestCase {
         app.launch()
 
         XCTAssertTrue(app.navigationBars["Today"].waitForExistence(timeout: 10))
+        // `-seedDemo` seeds both Mom and Dad, so Today opens on the aggregate.
+        // Scope it to one of them: this bundle is testing a per-person screen.
+        selectPersonOnToday(app, named: "Eleanor Wallner")
+
         let medical = app.buttons["today.quick.medical"]
         XCTAssertTrue(medical.waitForExistence(timeout: 5))
         attach(app, named: "1-today-quick-actions")
@@ -100,6 +104,9 @@ final class HubRenderUITests: XCTestCase {
         app.launch()
 
         XCTAssertTrue(app.navigationBars["Today"].waitForExistence(timeout: 10))
+        // `-seedDemo` seeds both Mom and Dad, so Today opens on the aggregate.
+        // Scope it to one of them: this bundle is testing a per-person screen.
+        selectPersonOnToday(app, named: "Eleanor Wallner")
         XCTAssertTrue(app.buttons["today.quick.medications"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["today.quick.notes"].exists)
         attach(app, named: "today-accessibility-text")
@@ -113,6 +120,10 @@ final class HubRenderUITests: XCTestCase {
         app.launch()
 
         XCTAssertTrue(app.navigationBars["Today"].waitForExistence(timeout: 10))
+        // `-seedDemo` seeds both Mom and Dad, so Today opens on the aggregate.
+        // Scope it to one of them: this bundle is testing a per-person screen.
+        selectPersonOnToday(app, named: "Eleanor Wallner")
+
         let appointments = app.staticTexts["Appointments"]
         scrollToHittable(appointments, in: app)
         XCTAssertTrue(appointments.exists)
