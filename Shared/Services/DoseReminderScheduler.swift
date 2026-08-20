@@ -215,7 +215,15 @@ actor DoseReminderScheduler {
         // reminders left behind.
         let refillSpecs = RefillReminderPlanner.requests(for: enabled, on: now)
         let refillBudget = max(0, DoseReminderPlanner.limit - specs.count)
-        await shared.applyRefills(Array(refillSpecs.prefix(refillBudget)))
+        let refills = Array(refillSpecs.prefix(refillBudget))
+        await shared.applyRefills(refills)
+
+        // Appointments come last out of the same budget. They are the rarest of
+        // the three and the ones a caregiver is least likely to have twenty of,
+        // so taking whatever is left over costs nothing in practice.
+        let appointmentSpecs = AppointmentReminderPlanner.requests(for: enabled, on: now)
+        let appointmentBudget = max(0, DoseReminderPlanner.limit - specs.count - refills.count)
+        await shared.applyAppointments(Array(appointmentSpecs.prefix(appointmentBudget)))
     }
 
     func apply(_ specs: [ReminderSpec]) async {
@@ -315,6 +323,54 @@ actor DoseReminderScheduler {
 
         log.info("Refill reminders: \(desired.count) wanted, \(added) added, \(stale.count) removed")
     }
+
+    /// One local, non-repeating notification per upcoming appointment, fired
+    /// the evening before. Same diff, same permission rule, its own identifier
+    /// prefix.
+    func applyAppointments(_ specs: [AppointmentReminderSpec]) async {
+        let center = UNUserNotificationCenter.current()
+        let pending = await center.pendingNotificationRequests()
+            .map(\.identifier)
+            .filter { $0.hasPrefix(AppointmentReminderSpec.identifierPrefix) }
+
+        guard await NotificationService.shared.isAuthorized() else {
+            if !pending.isEmpty {
+                center.removePendingNotificationRequests(withIdentifiers: pending)
+            }
+            return
+        }
+
+        let desired = Dictionary(specs.map { ($0.identifier, $0) }, uniquingKeysWith: { first, _ in first })
+        let existing = Set(pending)
+
+        let stale = existing.subtracting(desired.keys)
+        if !stale.isEmpty {
+            center.removePendingNotificationRequests(withIdentifiers: Array(stale))
+        }
+
+        var added = 0
+        for (identifier, spec) in desired where !existing.contains(identifier) {
+            let content = UNMutableNotificationContent()
+            content.title = "Appointment tomorrow"
+            content.body = spec.body
+            content.sound = .default
+
+            let request = UNNotificationRequest(
+                identifier: identifier,
+                content: content,
+                trigger: UNCalendarNotificationTrigger(dateMatching: spec.dateComponents, repeats: false)
+            )
+
+            do {
+                try await center.add(request)
+                added += 1
+            } catch {
+                log.error("Could not schedule \(identifier): \(error.localizedDescription)")
+            }
+        }
+
+        log.info("Appointment reminders: \(desired.count) wanted, \(added) added, \(stale.count) removed")
+    }
 }
 
 // MARK: - Refill spec
@@ -392,5 +448,104 @@ enum RefillReminderPlanner {
 
     private static func isEligible(_ medication: Medication) -> Bool {
         medication.deletedAt == nil && medication.isActive
+    }
+}
+
+// MARK: - Appointment spec
+
+/// One upcoming appointment worth a reminder the evening before.
+///
+/// The evening before, not two hours before: a 9am appointment reminded at 7am
+/// is a reminder that arrives after the useful decisions (who is driving, is
+/// the list printed) have already been missed. Non-repeating, like a refill
+/// reminder, and recomputed on every foreground.
+struct AppointmentReminderSpec: Hashable, Sendable, Identifiable {
+    static let identifierPrefix = "appointment-"
+
+    let visitID: UUID
+    let personName: String
+    let what: String
+    let timeLabel: String
+    let dateComponents: DateComponents
+
+    var id: String { identifier }
+
+    var identifier: String {
+        "\(Self.identifierPrefix)\(visitID.uuidString)"
+    }
+
+    /// "Mom: cardiology tomorrow at 9:30 AM". States the fact and stops: it
+    /// never says what happens if the appointment is missed (1.4.1).
+    var body: String {
+        let event = timeLabel.isEmpty
+            ? "\(what) tomorrow"
+            : "\(what) tomorrow at \(timeLabel)"
+        return personName.isEmpty ? event : "\(personName): \(event)"
+    }
+}
+
+/// Turns upcoming appointments into reminder specs. Pure, main-actor only
+/// because SwiftData models are.
+enum AppointmentReminderPlanner {
+
+    /// 6pm the evening before: late enough to be after the working day, early
+    /// enough to still do something about it.
+    static let notificationHour = 18
+
+    /// Every appointment reminder that should exist for `people`. An
+    /// appointment already in the past gets nothing, and neither does one whose
+    /// reminder time has itself already gone by: iOS drops a calendar trigger
+    /// dated in the past, and re-adding it on every foreground would churn the
+    /// diff forever.
+    @MainActor
+    static func requests(
+        for people: [Person],
+        on date: Date = Date(),
+        calendar: Calendar = .current
+    ) -> [AppointmentReminderSpec] {
+        // Kept with the appointment's own date so the soonest survive the cap,
+        // the way dose specs are ordered by next fire time. Sorting by
+        // identifier alone would have let a UUID decide which of a family's
+        // appointments got a reminder.
+        var dated: [(Date, AppointmentReminderSpec)] = []
+
+        for person in people where person.deletedAt == nil {
+            for visit in person.upcomingVisits(asOf: date) {
+                guard
+                    let dayBefore = calendar.date(byAdding: .day, value: -1, to: visit.date),
+                    let fireDate = calendar.date(
+                        bySettingHour: notificationHour, minute: 0, second: 0, of: dayBefore
+                    ),
+                    fireDate > date
+                else { continue }
+
+                dated.append((
+                    visit.date,
+                    AppointmentReminderSpec(
+                        visitID: visit.id,
+                        personName: person.displayLabel,
+                        what: what(visit),
+                        timeLabel: visit.timeLabel(calendar: calendar),
+                        dateComponents: calendar.dateComponents(
+                            [.year, .month, .day, .hour, .minute], from: fireDate
+                        )
+                    )
+                ))
+            }
+        }
+
+        // Ties break on the identifier so the same input always yields the same
+        // list and the diff settles instead of churning on every foreground.
+        return dated
+            .sorted { $0.0 != $1.0 ? $0.0 < $1.0 : $0.1.identifier < $1.1.identifier }
+            .map(\.1)
+    }
+
+    /// Whatever the family actually typed, in the order that identifies the
+    /// appointment on a lock screen.
+    private static func what(_ visit: Visit) -> String {
+        let candidates = [visit.resolvedProviderName, visit.specialty, visit.reason]
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+        return candidates.first { !$0.isEmpty } ?? "an appointment"
     }
 }

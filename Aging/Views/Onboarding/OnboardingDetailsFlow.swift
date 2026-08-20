@@ -168,7 +168,7 @@ struct OnboardingDetailsFlow: View {
         case .contact: return "Who should be called first?"
         case .medication: return "Add the first medication"
         case .providers: return "Doctor and pharmacy"
-        case .reminders: return "Dose reminders"
+        case .reminders: return "Reminders"
         case .family: return "Anyone else helping?"
         }
     }
@@ -188,7 +188,7 @@ struct OnboardingDetailsFlow: View {
         case .providers:
             return "The surgery and the pharmacy, so nobody has to look up a number twice."
         case .reminders:
-            return "This phone buzzes at each dose time for \(who). Each phone is set separately."
+            return "This phone buzzes at each dose time for \(who), and the evening before an appointment. Each phone is set separately."
         case .family:
             return "A brother, sister or partner sees the same record on their own phone. Helpers are free."
         }
@@ -281,7 +281,7 @@ struct OnboardingDetailsFlow: View {
             }
 
         case .reminders:
-            Toggle("Remind me at each dose time", isOn: $remindersOn)
+            Toggle("Remind me about doses and appointments", isOn: $remindersOn)
                 .font(.body)
 
         case .family:

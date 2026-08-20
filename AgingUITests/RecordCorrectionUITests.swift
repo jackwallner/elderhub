@@ -55,15 +55,42 @@ final class RecordCorrectionUITests: XCTestCase {
 
         XCTAssertTrue(app.navigationBars["Today"].waitForExistence(timeout: 10))
         openVisits(app)
-        XCTAssertTrue(app.navigationBars["Visits"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Appointments"].waitForExistence(timeout: 5))
 
-        let firstVisit = app.cells.element(boundBy: 0)
-        XCTAssertTrue(firstVisit.waitForExistence(timeout: 5))
-        firstVisit.tap()
+        // A past visit by name, not the first cell: the first cell is now the
+        // upcoming appointment, which opens as "Appointment".
+        let visit = app.staticTexts["Three month check"].firstMatch
+        XCTAssertTrue(visit.waitForExistence(timeout: 5))
+        visit.tap()
 
         XCTAssertTrue(app.navigationBars["Visit"].waitForExistence(timeout: 5))
         XCTAssertFalse((app.textFields["Reason for visit"].value as? String ?? "").isEmpty)
         attach(app, named: "3-visit-editor-populated")
+    }
+
+    /// The claim this screen now makes: an appointment nobody has been to yet
+    /// can be entered, and it comes back under Upcoming rather than into the
+    /// history.
+    func testAnAppointmentCanBeAddedAndReadsAsUpcoming() {
+        let app = launchSeeded()
+
+        XCTAssertTrue(app.navigationBars["Today"].waitForExistence(timeout: 10))
+        openVisits(app)
+        XCTAssertTrue(app.navigationBars["Appointments"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Upcoming"].waitForExistence(timeout: 5))
+
+        app.navigationBars["Appointments"].buttons["visits.add"].tap()
+        app.buttons["Add an appointment"].tap()
+
+        XCTAssertTrue(app.navigationBars["New Appointment"].waitForExistence(timeout: 5))
+        let reason = app.textFields["Reason for visit"]
+        XCTAssertTrue(reason.waitForExistence(timeout: 5))
+        reason.tap()
+        reason.typeText("Cardiology review")
+        app.navigationBars["New Appointment"].buttons["Save"].tap()
+
+        XCTAssertTrue(app.staticTexts["Cardiology review"].waitForExistence(timeout: 5))
+        attach(app, named: "3b-appointment-added")
     }
 
     /// A blank sheet must not be savable. A date-only visit and an untouched
@@ -74,8 +101,9 @@ final class RecordCorrectionUITests: XCTestCase {
 
         XCTAssertTrue(app.navigationBars["Today"].waitForExistence(timeout: 10))
         openVisits(app)
-        XCTAssertTrue(app.navigationBars["Visits"].waitForExistence(timeout: 5))
-        app.navigationBars["Visits"].buttons.element(boundBy: 1).tap()
+        XCTAssertTrue(app.navigationBars["Appointments"].waitForExistence(timeout: 5))
+        app.navigationBars["Appointments"].buttons["visits.add"].tap()
+        app.buttons["Log a past visit"].tap()
 
         XCTAssertTrue(app.navigationBars["Log Visit"].waitForExistence(timeout: 5))
         let save = app.navigationBars["Log Visit"].buttons["Save"]

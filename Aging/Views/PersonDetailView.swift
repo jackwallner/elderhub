@@ -107,15 +107,17 @@ struct PersonDetailView: View {
 
             medicationsSection
 
+            stoppedMedicationsSection
+
             Section {
-                Toggle("Dose reminders", isOn: $remindersEnabled)
+                Toggle("Doses and appointments", isOn: $remindersEnabled)
                     .accessibilityIdentifier("person-detail.dose-reminders")
             } header: {
                 Text("Reminders")
             } footer: {
                 // Set per device on purpose: a sibling who wants no 8am ping
                 // should not have to argue with whoever set the schedule.
-                Text("Notifies this phone at each scheduled dose time for \(person.displayLabel). Reminders are set on each device separately.")
+                Text("Notifies this phone at each scheduled dose time for \(person.displayLabel), and the evening before an appointment. Reminders are set on each device separately.")
             }
 
             tileSection(
@@ -218,6 +220,35 @@ struct PersonDetailView: View {
             .accessibilityIdentifier("person-detail.add-medication")
         } header: {
             Text("Medications")
+        }
+    }
+
+    /// Only ever drawn when something is in it. Stopped medications are
+    /// history, not a list anybody works from, and a permanent empty section
+    /// under the live one would read as though half the medications were
+    /// missing.
+    @ViewBuilder
+    private var stoppedMedicationsSection: some View {
+        let stopped = person.stoppedMedications
+        if !stopped.isEmpty {
+            Section {
+                ForEach(stopped) { med in
+                    Button {
+                        editingMedication = med
+                    } label: {
+                        MedicationRow(medication: med)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("person-detail.stopped-medication.\(med.id.uuidString)")
+                }
+                .onDelete { offsets in
+                    requestMedicationDeletion(of: stopped, at: offsets)
+                }
+            } header: {
+                Text("No longer taking")
+            } footer: {
+                Text("Off the dose list and off the emergency card. Their recorded doses are still in the history.")
+            }
         }
     }
 
@@ -403,7 +434,10 @@ struct PersonDetailView: View {
     /// the dose history logged against it and, in a family group, takes it off
     /// every other phone too.
     private func requestMedicationDeletion(at offsets: IndexSet) {
-        let meds = person.activeMedications
+        requestMedicationDeletion(of: person.activeMedications, at: offsets)
+    }
+
+    private func requestMedicationDeletion(of meds: [Medication], at offsets: IndexSet) {
         let doomed = offsets.compactMap { meds.indices.contains($0) ? meds[$0] : nil }
         guard !doomed.isEmpty else { return }
 
@@ -454,14 +488,19 @@ private struct MedicationRow: View {
 
     private var subtitle: String {
         var parts: [String] = []
-        if medication.isAsNeeded {
-            parts.append("As needed")
-        } else if !medication.scheduleMinutes.isEmpty {
+        // First, because it is the fact that changes what the rest of the row
+        // means. A stopped medication still lists its old schedule, and the row
+        // has to say that nobody is following it.
+        if !medication.isActive {
             parts.append(
-                medication.scheduleMinutes.sorted()
-                    .map { ScheduleEngine.timeLabel(forMinutes: $0) }
-                    .joined(separator: ", ")
+                medication.endDate.map { "Stopped \($0.formatted(date: .abbreviated, time: .omitted))" }
+                    ?? "Stopped"
             )
+        } else if medication.isAsNeeded {
+            parts.append("As needed")
+        } else if !medication.scheduleLabel.isEmpty {
+            // Days included: see `Medication.scheduleLabel`.
+            parts.append(medication.scheduleLabel)
         }
         if !medication.purpose.isEmpty {
             parts.append(medication.purpose)

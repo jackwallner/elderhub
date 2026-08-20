@@ -78,12 +78,16 @@ enum TimelineBuilder {
         tasks: [CareTask] = [],
         checkIns: [CheckInRecord] = [],
         medications: [Medication] = [],
-        doseLogs: [DoseLog] = []
+        doseLogs: [DoseLog] = [],
+        now: Date = Date()
     ) -> [TimelineEntry] {
         var entries: [TimelineEntry] = []
 
+        // History only. A visit dated ahead is an appointment nobody has been
+        // to yet (`Visit.isUpcoming`), and putting it at the top of a
+        // reverse-chronological history says it happened.
         entries += visits
-            .filter { $0.deletedAt == nil }
+            .filter { $0.deletedAt == nil && !$0.isUpcoming(asOf: now) }
             .map { visit in
                 TimelineEntry(
                     date: visit.date,

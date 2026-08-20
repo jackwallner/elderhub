@@ -101,6 +101,29 @@ final class Person {
         visits.filter { $0.deletedAt == nil }
     }
 
+    /// Appointments still to come, soonest first. The one thing a caregiver
+    /// asks a "visits" screen that a reverse-chronological log cannot answer.
+    func upcomingVisits(asOf now: Date = Date()) -> [Visit] {
+        liveVisits.filter { $0.isUpcoming(asOf: now) }.sorted { $0.date < $1.date }
+    }
+
+    /// Everything already been to, most recent first.
+    func pastVisits(asOf now: Date = Date()) -> [Visit] {
+        liveVisits.filter { !$0.isUpcoming(asOf: now) }.sorted { $0.date > $1.date }
+    }
+
+    /// What Today shows. A week, for the same reason `TaskPlanner.dueNow` only
+    /// shows work that is due: a daily screen carrying next month's audiology
+    /// appointment is a daily screen people stop reading.
+    func appointmentsDue(
+        within days: Int = 7,
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> [Visit] {
+        guard let horizon = calendar.date(byAdding: .day, value: days, to: now) else { return [] }
+        return upcomingVisits(asOf: now).filter { $0.date <= horizon }
+    }
+
     var liveVitals: [VitalReading] {
         vitals.filter { $0.deletedAt == nil }
     }
@@ -139,6 +162,15 @@ final class Person {
 
     var activeMedications: [Medication] {
         liveMedications.filter(\.isActive).sorted { $0.name < $1.name }
+    }
+
+    /// Stopped, not deleted. A drug the doctor took her off belongs off the
+    /// emergency card and off the dose list, and still belongs in the record:
+    /// "she came off warfarin in June" is an answer somebody will need, and
+    /// deleting the row (the only way to clear a medication until now) threw it
+    /// away along with every dose ever logged against it.
+    var stoppedMedications: [Medication] {
+        liveMedications.filter { !$0.isActive }.sorted { $0.name < $1.name }
     }
 
     /// The name they were entered under, everywhere.
@@ -280,6 +312,40 @@ final class Medication {
     /// "Lisinopril 10 mg" — the line that goes on a printed list.
     var displayName: String {
         strength.isEmpty ? name : "\(name) \(strength)"
+    }
+
+    /// The schedule as one phrase: "Mon, Wed, Fri · 8:00 AM, 8:00 PM".
+    ///
+    /// One function because three screens print this line (the medication row,
+    /// the emergency card and the exported one-pager) and they were each
+    /// composing it themselves. All three omitted the days, so a tablet taken
+    /// once a week read on every one of them as a tablet taken every day,
+    /// which is the single worst thing this list can get wrong.
+    ///
+    /// Empty for an as-needed medication and for one with no times yet: the
+    /// callers each have their own words for those.
+    var scheduleLabel: String {
+        guard !isAsNeeded, !scheduleMinutes.isEmpty else { return "" }
+        let times = scheduleMinutes.sorted()
+            .map { ScheduleEngine.timeLabel(forMinutes: $0) }
+            .joined(separator: ", ")
+        let days = ScheduleEngine.weekdayLabel(for: weekdays)
+        return days.isEmpty ? times : "\(days) · \(times)"
+    }
+
+    /// Comes off the list, keeps its history. The end date is what the
+    /// Timeline reads to say when it stopped.
+    func stop(on date: Date = Date()) {
+        isActive = false
+        endDate = date
+    }
+
+    /// Back on the list. The end date goes with it: a medication that is being
+    /// taken has not stopped, and leaving the date behind would put a
+    /// "Medication stopped" entry in the Timeline for a drug she is on.
+    func restart() {
+        isActive = true
+        endDate = nil
     }
 
     func isScheduled(on date: Date, calendar: Calendar = .current) -> Bool {
@@ -517,6 +583,80 @@ final class Visit {
         self.reason = reason
         self.person = person
         self.createdAt = Date()
+    }
+
+    /// A visit dated later than now is an appointment nobody has been to yet.
+    ///
+    /// The same row, read forwards. There is no `isAppointment` column and
+    /// there should not be one: the date is already the fact, a second flag
+    /// could disagree with it, and every appointment becomes a past visit at a
+    /// moment nothing is running to flip a boolean.
+    func isUpcoming(asOf now: Date = Date()) -> Bool {
+        date > now
+    }
+
+    /// Whether this row carries a time of day worth showing.
+    ///
+    /// Two conditions, and the second is the load-bearing one. A date-only
+    /// picker does not zero the clock, so every visit logged before
+    /// appointments existed carries whatever time of day it happened to be
+    /// written up at: showing it would print "Dr Chen, 5:04 PM" for an
+    /// appointment nobody has ever known the time of. Only something still to
+    /// come has a time anybody chose, and only that is shown. Saving a past
+    /// visit now zeroes the clock, so those rows are cleaned up as they are
+    /// touched.
+    func hasTimeOfDay(calendar: Calendar = .current, asOf now: Date = Date()) -> Bool {
+        guard isUpcoming(asOf: now) else { return false }
+        return calendar.component(.hour, from: date) != 0
+            || calendar.component(.minute, from: date) != 0
+    }
+
+    /// "Tue 24 Sep" or "Tue 24 Sep at 9:30 AM".
+    ///
+    /// Formatted through the calendar it was asked about rather than through
+    /// the ambient one, so "was a time recorded" and "what time is that" cannot
+    /// answer in two different time zones.
+    func dateLabel(calendar: Calendar = .current) -> String {
+        date.formatted(
+            style(
+                date: .abbreviated,
+                time: hasTimeOfDay(calendar: calendar) ? .shortened : .omitted,
+                calendar: calendar
+            )
+        )
+    }
+
+    /// "9:30 AM", or empty when there is no chosen time to show.
+    func timeLabel(calendar: Calendar = .current) -> String {
+        guard hasTimeOfDay(calendar: calendar) else { return "" }
+        return date.formatted(style(date: .omitted, time: .shortened, calendar: calendar))
+    }
+
+    /// Whoever or whatever this row is about, in the order that identifies it:
+    /// the provider, then the specialty, then what it is for.
+    ///
+    /// A row titled "Visit" over its own date is what an appointment entered as
+    /// "Cardiology review" used to read as, because only the provider name was
+    /// ever considered.
+    func displayTitle(asOf now: Date = Date()) -> String {
+        let candidates = [resolvedProviderName, specialty, reason]
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+        if let first = candidates.first(where: { !$0.isEmpty }) { return first }
+        return isUpcoming(asOf: now) ? "Appointment" : "Visit"
+    }
+
+    private func style(
+        date: Date.FormatStyle.DateStyle,
+        time: Date.FormatStyle.TimeStyle,
+        calendar: Calendar
+    ) -> Date.FormatStyle {
+        Date.FormatStyle(
+            date: date,
+            time: time,
+            locale: calendar.locale ?? .autoupdatingCurrent,
+            calendar: calendar,
+            timeZone: calendar.timeZone
+        )
     }
 
     /// The linked `Provider`'s name if `providerID` still resolves to one on

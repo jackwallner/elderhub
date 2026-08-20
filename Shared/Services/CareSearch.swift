@@ -322,9 +322,12 @@ enum CareSearch {
         )
     }
 
+    /// Named for which side of now it sits on, so a result for something still
+    /// to come is not read as something already been to.
     private static func visitTitle(_ visit: Visit) -> String {
+        let noun = visit.isUpcoming() ? "Appointment" : "Visit"
         let name = visit.resolvedProviderName
-        return name.isEmpty ? "Visit" : "Visit: \(name)"
+        return name.isEmpty ? noun : "\(noun): \(name)"
     }
 
     private static func tokenize(_ query: String) -> [String] {

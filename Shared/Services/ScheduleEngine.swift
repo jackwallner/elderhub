@@ -88,6 +88,39 @@ enum ScheduleEngine {
         return date.formatted(date: .omitted, time: .shortened)
     }
 
+    /// How a `Medication.weekdays` list reads on a printed list: "" for every
+    /// day, "Mondays" for a single day, "Mon, Wed, Fri" otherwise.
+    ///
+    /// Empty is the model's "every day", and every day needs no words: a line
+    /// saying "Sun, Mon, Tue, Wed, Thu, Fri, Sat" beside four dose times is
+    /// noise on the one page somebody reads in a hurry. Seven days selected
+    /// means the same thing and reads the same way.
+    static func weekdayLabel(for weekdays: [Int], calendar: Calendar = .current) -> String {
+        let days = Set(weekdays.filter { (1...7).contains($0) })
+        guard !days.isEmpty, days.count < 7 else { return "" }
+
+        let ordered = orderedWeekdays(calendar: calendar).filter { days.contains($0) }
+        if ordered.count == 1, let only = ordered.first {
+            // "Mondays", not "Mon": a weekly tablet is the case this exists
+            // for, and the plural is what a person says out loud.
+            let symbols = calendar.weekdaySymbols
+            let name = symbols.indices.contains(only - 1) ? symbols[only - 1] : ""
+            return name.isEmpty ? "" : "\(name)s"
+        }
+
+        let short = calendar.shortWeekdaySymbols
+        return ordered
+            .compactMap { short.indices.contains($0 - 1) ? short[$0 - 1] : nil }
+            .joined(separator: ", ")
+    }
+
+    /// 1...7 starting at the calendar's own first weekday, so a Monday-first
+    /// locale never reads its own week back to front.
+    static func orderedWeekdays(calendar: Calendar = .current) -> [Int] {
+        let first = calendar.firstWeekday
+        return (0..<7).map { ((first - 1 + $0) % 7) + 1 }
+    }
+
     static func minutes(from date: Date, calendar: Calendar = .current) -> Int {
         let components = calendar.dateComponents([.hour, .minute], from: date)
         return (components.hour ?? 0) * 60 + (components.minute ?? 0)

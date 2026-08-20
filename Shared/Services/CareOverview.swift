@@ -35,7 +35,7 @@ enum CareFeature: String, CaseIterable, Identifiable, Sendable {
         case .medications: return "Medications"
         case .tasks: return "Tasks"
         case .vitals: return "Vitals"
-        case .visits: return "Visits"
+        case .visits: return "Appointments"
         case .providers: return "Providers"
         case .incidents: return "Symptoms"
         case .timeline: return "Timeline"
@@ -52,7 +52,7 @@ enum CareFeature: String, CaseIterable, Identifiable, Sendable {
         case .medications: return "pills.fill"
         case .tasks: return "checklist"
         case .vitals: return "heart.text.square.fill"
-        case .visits: return "stethoscope"
+        case .visits: return "calendar"
         case .providers: return "list.bullet.clipboard.fill"
         case .incidents: return "note.text"
         case .timeline: return "clock.arrow.circlepath"
@@ -72,7 +72,7 @@ enum CareFeature: String, CaseIterable, Identifiable, Sendable {
         case .medications: return "Doses, times and refills"
         case .tasks: return "Shared to-dos for the family"
         case .vitals: return "Blood pressure, weight, glucose"
-        case .visits: return "Notes from appointments"
+        case .visits: return "What's coming up, and what was said"
         case .providers: return "Doctors and pharmacies"
         case .incidents: return "Falls, symptoms, bad days"
         case .timeline: return "Everything, in order"
@@ -97,7 +97,7 @@ enum CareFeature: String, CaseIterable, Identifiable, Sendable {
         case .medications: return "Meds"
         case .tasks: return "Tasks"
         case .vitals: return "Log vitals"
-        case .visits: return "Visits"
+        case .visits: return "Appointments"
         case .providers: return "Doctors"
         case .incidents: return "Log a symptom"
         case .timeline: return "History"
@@ -241,6 +241,12 @@ enum CareOverview {
             return count == 1 ? "1 reading" : "\(count) readings"
 
         case .visits:
+            // The next appointment first. "4 visits" is a fact about a filing
+            // cabinet; "Next: Tue 24 Sep" is the thing somebody opened the tile
+            // to find out.
+            if let next = person.upcomingVisits(asOf: now).first {
+                return "Next: \(next.dateLabel())"
+            }
             let count = person.liveVisits.count
             guard count > 0 else { return "None yet" }
             return count == 1 ? "1 visit" : "\(count) visits"
@@ -372,8 +378,8 @@ enum SetupChecklist {
             ),
             SetupStep(
                 kind: .doseReminders,
-                title: "Turn on dose reminders",
-                detail: "This phone buzzes at each dose time",
+                title: "Turn on reminders",
+                detail: "Dose times, and the evening before an appointment",
                 symbol: "bell.badge.fill",
                 isDone: remindersEnabled
             ),
