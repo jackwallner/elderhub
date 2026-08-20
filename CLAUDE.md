@@ -74,6 +74,33 @@ App Store search. Everything in `aso-plan.md` about *what not to claim* still st
   Today is deliberately *not* filtered (it answers "what is left for her", not
   "what is left for me"); it marks the reader's own rows with "You" instead.
   Assignment still notifies nobody, and the editor footer still says so.
+- **An appointment is a `Visit` dated later than now.** There is no
+  `isAppointment` flag and there should not be one: a second field could
+  disagree with the date, and nothing is running at the moment an appointment
+  becomes a past visit to flip it. `Visit.isUpcoming`, `Person.upcomingVisits`
+  and `Person.pastVisits` are the only readings of that rule; Today shows the
+  next seven days (`appointmentsDue`), the Timeline shows history only, and a
+  time of day is stored only when one was actually chosen, because a visit
+  written up from memory a fortnight later must not print "3:47 PM"
+  (`Visit.hasTimeOfDay`). The older `Visit.nextAppointment` column is vestigial:
+  it was never written by any screen, and a second place to put a date would be
+  a second answer to "when is she next seen". Reminders fire at 6pm the evening
+  before, out of the same 64-request budget as doses and refills, behind the
+  same per-person toggle.
+- **A medication is stopped, not deleted.** `Medication.stop()` clears it off
+  the dose list, off the emergency card and out of the reminder budget while
+  keeping the row and every `DoseLog` on it; `restart()` puts it back and
+  clears `endDate`, which is what the Timeline reads to say when it stopped.
+  Deleting stays for a row entered by mistake, and its confirmation still says
+  what goes with it. Before this the only way to clear a drug was to delete it,
+  so "she came off warfarin in June" could not be recorded at all.
+- **`Medication.weekdays` has a UI, and every schedule is rendered by
+  `Medication.scheduleLabel`.** The column, the sync payload and the reminder
+  planner carried weekdays from the start while no editor could set one and no
+  screen printed one, so a weekly tablet was entered, displayed and handed to a
+  nurse as a daily one. The medication row, the emergency card and the exported
+  one-pager all read the one label; empty `weekdays` means every day and prints
+  nothing.
 - `Services/CareOverview.swift` — the feature catalog (`CareFeature`: title, blurb,
   symbol, colour), the per-tile count lines, and `SetupChecklist`. One list, read by
   the person hub, the Today quick actions and the People rows, so a feature cannot

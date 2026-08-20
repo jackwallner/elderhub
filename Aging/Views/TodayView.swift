@@ -28,6 +28,7 @@ struct TodayView: View {
     private enum TodayDestination: Hashable, Identifiable {
         case emergencyCard
         case fullRecord
+        case appointments
 
         var id: Self { self }
     }
@@ -81,6 +82,7 @@ struct TodayView: View {
                     switch target {
                     case .emergencyCard: EmergencyCardView(person: person)
                     case .fullRecord: PersonDetailView(person: person)
+                    case .appointments: VisitsView(person: person)
                     }
                 }
             }
@@ -142,6 +144,8 @@ struct TodayView: View {
         // "what's left" list stops being believed.
         let tasksDue = TaskPlanner.dueNow(person.liveTasks)
         let billsDue = BillPlanner.needingAttention(person.liveBills)
+        // A week out, no further: see `Person.appointmentsDue`.
+        let appointments = person.appointmentsDue()
 
         List {
             // First, not last. It used to sit under everything else on the
@@ -229,6 +233,24 @@ struct TodayView: View {
                         TodayTaskRow(task: task, isMine: isMine(task)) {
                             task.markComplete(by: CareTaskAuthor.name(from: groups), in: context)
                         }
+                    }
+                }
+            }
+
+            // Above the refill warning and below the errands, because an
+            // appointment is the one thing on this screen that happens whether
+            // or not anybody opens the app. It was previously nowhere: the app
+            // could hold next Tuesday's cardiology appointment and never
+            // mention it on the screen people open every morning.
+            if !appointments.isEmpty {
+                Section("Appointments") {
+                    ForEach(appointments) { visit in
+                        Button {
+                            destination = .appointments
+                        } label: {
+                            AppointmentRow(visit: visit)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -548,6 +570,68 @@ struct TodayView: View {
     private func isMine(_ task: CareTask) -> Bool {
         guard groups.hasOtherMembers else { return false }
         return TaskPlanner.isAssigned(task, to: groups.selfUserID, named: groups.selfDisplayName)
+    }
+}
+
+/// One upcoming appointment on the daily screen. Read-only: an appointment is
+/// not something you tick off, and the row exists to answer "is there anything
+/// this week", not to be edited from here.
+private struct AppointmentRow: View {
+    let visit: Visit
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "calendar")
+                .font(.title3)
+                .foregroundStyle(.secondary)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.body.weight(.medium))
+                if !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Spacer(minLength: 8)
+
+            Text(whenLabel)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.secondary)
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var title: String { visit.displayTitle() }
+
+    private var subtitle: String {
+        // Never the same string twice: the specialty is the title when there is
+        // no provider name, and repeating it underneath reads as a bug.
+        let parts = [visit.specialty, visit.reason]
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty && $0 != title }
+        return parts.joined(separator: " · ")
+    }
+
+    /// "Today", "Tomorrow", then the weekday. Inside a week nobody needs the
+    /// date to work out how far away it is, which is the whole reason this row
+    /// is on Today rather than only on the appointments screen.
+    private var whenLabel: String {
+        let calendar = Calendar.current
+        let time = visit.timeLabel(calendar: calendar)
+
+        let day: String
+        if calendar.isDateInToday(visit.date) {
+            day = "Today"
+        } else if calendar.isDateInTomorrow(visit.date) {
+            day = "Tomorrow"
+        } else {
+            day = visit.date.formatted(.dateTime.weekday(.abbreviated))
+        }
+
+        return time.isEmpty ? day : "\(day) \(time)"
     }
 }
 

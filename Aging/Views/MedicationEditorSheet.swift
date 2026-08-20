@@ -25,10 +25,21 @@ struct MedicationEditorSheet: View {
     @State private var pharmacyID: UUID?
     @State private var isAsNeeded = false
     @State private var times: [Date] = [defaultTime()]
+    /// Every day until told otherwise, which is what the model's empty
+    /// `weekdays` means. Held as all seven rather than as an empty set so the
+    /// picker has something to draw and so "none selected" is never a state a
+    /// tap can reach.
+    @State private var selectedDays: Set<Int> = Set(1...7)
     @State private var trackRefills = false
     @State private var quantityRemaining: Double = 30
     @State private var unitsPerDose: Double = 1
     @State private var refillThresholdDays: Int = 7
+    /// Applied on Save like everything else on this sheet, so Cancel means
+    /// cancel. Stopping used to have no representation at all: the only way to
+    /// clear a medication off the list was to delete it, which took every dose
+    /// ever logged against it with it.
+    @State private var isStopped = false
+    @State private var stoppedOn: Date?
     @State private var didLoad = false
 
     var body: some View {
@@ -73,6 +84,14 @@ struct MedicationEditorSheet: View {
                         } label: {
                             Label("Add a time", systemImage: "plus")
                         }
+
+                        // Weekly bisphosphonates, methotrexate, the Monday
+                        // water tablet: the model, the sync and the reminders
+                        // have always carried `weekdays`, and there was no way
+                        // to type one in. Every such medication had to be
+                        // entered as a daily one, which put it on the list a
+                        // nurse reads as a daily one.
+                        WeekdayPicker(selection: $selectedDays)
                     }
                 } header: {
                     Text("Schedule")
@@ -83,6 +102,15 @@ struct MedicationEditorSheet: View {
                     // first is better than silently changing what was typed.
                     if hasDuplicateTimes {
                         Text("Two of these times are the same. They will be saved as one dose.")
+                            .foregroundStyle(.orange)
+                    } else if !isAsNeeded, times.isEmpty {
+                        // Deleting the last time used to save a medication that
+                        // was neither timed nor as-needed: it appeared on no
+                        // day's dose list, printed with no times, and silently
+                        // acquired an 8:00 AM the next time the sheet was
+                        // opened. It is saved as as-needed instead, and said so
+                        // before the tap rather than after.
+                        Text("With no times, this is saved as an as-needed medication.")
                             .foregroundStyle(.orange)
                     }
                 }
@@ -124,6 +152,28 @@ struct MedicationEditorSheet: View {
                         .lineLimit(2...4)
                 }
 
+                if medication != nil {
+                    Section {
+                        // Text only. A `Label` here draws its symbol in the
+                        // accent colour beside red text, which reads as two
+                        // controls rather than one.
+                        if isStopped {
+                            Button("Taking this again") { isStopped = false }
+                        } else {
+                            Button("Stop taking this", role: .destructive) {
+                                isStopped = true
+                            }
+                        }
+                    } footer: {
+                        if isStopped {
+                            Text(stoppedFooter)
+                                .foregroundStyle(.orange)
+                        } else {
+                            Text("Takes it off the dose list and off the emergency card, and keeps every dose already recorded.")
+                        }
+                    }
+                }
+
                 Section {
                     ProviderPickerField(
                         title: "Linked prescriber", person: person,
@@ -157,6 +207,13 @@ struct MedicationEditorSheet: View {
         Set(times.map { ScheduleEngine.minutes(from: $0) }).sorted()
     }
 
+    private var stoppedFooter: String {
+        guard let stoppedOn else {
+            return "Saved as stopped. It comes off the dose list and off the emergency card, and its recorded doses stay."
+        }
+        return "Stopped \(stoppedOn.formatted(date: .abbreviated, time: .omitted)). It is off the dose list and off the emergency card, and its recorded doses stay."
+    }
+
     private var hasDuplicateTimes: Bool {
         !isAsNeeded && scheduleMinutes.count != times.count
     }
@@ -178,6 +235,11 @@ struct MedicationEditorSheet: View {
         if !medication.scheduleMinutes.isEmpty {
             times = medication.scheduleMinutes.sorted().map(Self.time(fromMinutes:))
         }
+        // Empty on the model is every day, which is all seven here.
+        let saved = Set(medication.weekdays.filter { (1...7).contains($0) })
+        selectedDays = saved.isEmpty ? Set(1...7) : saved
+        isStopped = !medication.isActive
+        stoppedOn = medication.endDate
         // Read from the flag, not from the count. Deriving it from
         // `quantityRemaining > 0` meant a bottle that had just run out loaded
         // with the toggle off, so the user's next save silently discarded the
@@ -203,10 +265,18 @@ struct MedicationEditorSheet: View {
         target.providerID = providerID
         target.pharmacyID = pharmacyID
         target.instructions = instructions.trimmingCharacters(in: .whitespaces)
-        target.isAsNeeded = isAsNeeded
+        // A medication with no times cannot be a scheduled one, whatever the
+        // toggle says: see the footer above.
+        let savedAsNeeded = isAsNeeded || times.isEmpty
+        target.isAsNeeded = savedAsNeeded
         // Deduplicated: two identical times are one dose, not two, and a
         // schedule that says otherwise makes Today lie about what is left.
-        target.scheduleMinutes = isAsNeeded ? [] : scheduleMinutes
+        target.scheduleMinutes = savedAsNeeded ? [] : scheduleMinutes
+        // Empty means every day. Storing all seven would mean the same thing
+        // and would print a week's worth of day names on the emergency card.
+        target.weekdays = savedAsNeeded || selectedDays.count == 7
+            ? []
+            : selectedDays.sorted()
 
         target.tracksRefills = trackRefills
         if trackRefills {
@@ -218,6 +288,14 @@ struct MedicationEditorSheet: View {
             if target.lastFilledAt == nil { target.lastFilledAt = Date() }
         } else {
             target.quantityRemaining = 0
+        }
+
+        // Only on the change itself, so re-saving a medication stopped in June
+        // does not re-date it to today.
+        if isStopped, target.isActive {
+            target.stop()
+        } else if !isStopped, !target.isActive {
+            target.restart()
         }
 
         target.recordLocalChange(in: context)
@@ -233,6 +311,79 @@ struct MedicationEditorSheet: View {
         Calendar.current.date(
             bySettingHour: minutes / 60, minute: minutes % 60, second: 0, of: Date()
         ) ?? Date()
+    }
+}
+
+/// The seven-day repeat control, in the calendar's own week order.
+///
+/// One day can never be turned off on its own: a schedule with no days is not
+/// a schedule, and the model has no way to store one. Tapping the last
+/// remaining day does nothing, which is duller than an alert and cannot be got
+/// wrong.
+private struct WeekdayPicker: View {
+    @Binding var selection: Set<Int>
+
+    private var days: [Int] { ScheduleEngine.orderedWeekdays() }
+
+    private var summary: String {
+        let label = ScheduleEngine.weekdayLabel(for: Array(selection))
+        return label.isEmpty ? "Every day" : label
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Days")
+                Spacer()
+                Text(summary)
+                    .foregroundStyle(.secondary)
+            }
+
+            HStack(spacing: 6) {
+                ForEach(days, id: \.self) { day in
+                    let isOn = selection.contains(day)
+                    Button {
+                        toggle(day)
+                    } label: {
+                        Text(narrowSymbol(day))
+                            .font(.subheadline.weight(.medium))
+                            .frame(maxWidth: .infinity, minHeight: 34)
+                            .background(
+                                isOn ? Color.accentColor : Color.secondary.opacity(0.15),
+                                in: Circle()
+                            )
+                            .foregroundStyle(isOn ? Color.white : Color.primary)
+                    }
+                    // Without this every tap in the row activates the row
+                    // itself, so the first day tapped is the only one that
+                    // ever changes.
+                    .buttonStyle(.borderless)
+                    .accessibilityLabel(fullSymbol(day))
+                    .accessibilityValue(isOn ? "On" : "Off")
+                    .accessibilityIdentifier("medication-editor.weekday.\(day)")
+                }
+            }
+        }
+        .padding(.vertical, 2)
+    }
+
+    private func toggle(_ day: Int) {
+        if selection.contains(day) {
+            guard selection.count > 1 else { return }
+            selection.remove(day)
+        } else {
+            selection.insert(day)
+        }
+    }
+
+    private func narrowSymbol(_ day: Int) -> String {
+        let symbols = Calendar.current.veryShortWeekdaySymbols
+        return symbols.indices.contains(day - 1) ? symbols[day - 1] : ""
+    }
+
+    private func fullSymbol(_ day: Int) -> String {
+        let symbols = Calendar.current.weekdaySymbols
+        return symbols.indices.contains(day - 1) ? symbols[day - 1] : ""
     }
 }
 

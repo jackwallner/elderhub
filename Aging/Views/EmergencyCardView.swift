@@ -247,12 +247,10 @@ struct EmergencyCardView: View {
         var parts: [String] = []
         if med.isAsNeeded {
             parts.append("As needed")
-        } else if !med.scheduleMinutes.isEmpty {
-            parts.append(
-                med.scheduleMinutes.sorted()
-                    .map { ScheduleEngine.timeLabel(forMinutes: $0) }
-                    .joined(separator: ", ")
-            )
+        } else if !med.scheduleLabel.isEmpty {
+            // "Mondays · 8:00 AM". A weekly tablet that reads as a daily one is
+            // the worst thing this card can say.
+            parts.append(med.scheduleLabel)
         }
         if !med.purpose.isEmpty {
             parts.append("for \(med.purpose)")

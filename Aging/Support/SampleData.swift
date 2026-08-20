@@ -213,6 +213,23 @@ enum SampleData {
         hearingVisit.providerID = audiologist.id
         context.insert(hearingVisit)
 
+        // One appointment still to come, so the Upcoming section, the Today
+        // row and the "Next: ..." tile line all have something to show in a
+        // preview and in a screenshot.
+        let upcoming = Visit(
+            date: Calendar.current.date(
+                bySettingHour: 10, minute: 15, second: 0,
+                of: Calendar.current.date(byAdding: .day, value: 4, to: Date()) ?? Date()
+            ) ?? Date(),
+            provider: "Dr. Patel",
+            specialty: "Primary care",
+            reason: "Blood pressure review",
+            person: mom
+        )
+        upcoming.notes = "Ask whether the morning dose can move later."
+        upcoming.providerID = primaryCare.id
+        context.insert(upcoming)
+
         let hearingEvent = CareEvent(
             kind: .symptom,
             occurredAt: Calendar.current.date(byAdding: .day, value: -45, to: Date()) ?? Date(),

@@ -98,9 +98,10 @@ enum MedListExporter {
         if !med.form.rawValue.isEmpty, med.form != .other {
             parts.append(med.form.label.lowercased())
         }
-        if !med.isAsNeeded, !med.scheduleMinutes.isEmpty {
-            let times = med.scheduleMinutes.sorted().map { ScheduleEngine.timeLabel(forMinutes: $0) }
-            parts.append(times.joined(separator: ", "))
+        // Days and times both, from the one place all three renderings of a
+        // schedule now come from.
+        if !med.scheduleLabel.isEmpty {
+            parts.append(med.scheduleLabel)
         }
         if !med.purpose.isEmpty {
             parts.append("for \(med.purpose)")

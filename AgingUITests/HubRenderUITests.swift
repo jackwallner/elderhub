@@ -105,6 +105,53 @@ final class HubRenderUITests: XCTestCase {
         attach(app, named: "today-accessibility-text")
     }
 
+    /// The two things the daily screen had no way to say: there is an
+    /// appointment this week, and this tablet is only taken on some days.
+    func testTodayShowsTheWeeksAppointmentsAndTheMedicationEditorCanSayWhichDays() {
+        let app = XCUIApplication()
+        app.launchArguments += ["-uitest-wipe-store", "YES", "-seedDemo", "YES"]
+        app.launch()
+
+        XCTAssertTrue(app.navigationBars["Today"].waitForExistence(timeout: 10))
+        let appointments = app.staticTexts["Appointments"]
+        scrollToHittable(appointments, in: app)
+        XCTAssertTrue(appointments.exists)
+        attach(app, named: "7-today-appointments")
+
+        // Straight into a medication, where the schedule now has days and the
+        // list now has a way off it that is not deletion.
+        app.buttons["Care"].tap()
+        let person = app.cells.element(boundBy: 0)
+        XCTAssertTrue(person.waitForExistence(timeout: 5))
+        person.tap()
+
+        let row = app.buttons.containing(.staticText, identifier: "Lisinopril 10 mg").element
+        scrollToHittable(row, in: app)
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        row.tap()
+
+        XCTAssertTrue(app.navigationBars["Edit Medication"].waitForExistence(timeout: 5))
+        let monday = app.buttons["medication-editor.weekday.2"]
+        XCTAssertTrue(monday.waitForExistence(timeout: 5))
+        attach(app, named: "8-medication-editor-days")
+
+        // Every day until a day is switched off, and the last one on can never
+        // be switched off.
+        XCTAssertTrue(app.staticTexts["Every day"].exists)
+        for day in [1, 3, 4, 5, 6, 7] {
+            app.buttons["medication-editor.weekday.\(day)"].tap()
+        }
+        XCTAssertTrue(app.staticTexts["Mondays"].waitForExistence(timeout: 5))
+        monday.tap()
+        XCTAssertTrue(app.staticTexts["Mondays"].exists)
+        attach(app, named: "8a-medication-editor-weekly")
+
+        let stop = app.buttons["Stop taking this"]
+        scrollToHittable(stop, in: app)
+        XCTAssertTrue(stop.exists)
+        attach(app, named: "9-medication-editor-stop")
+    }
+
     private func scrollToHittable(_ element: XCUIElement, in app: XCUIApplication) {
         for _ in 0..<8 where !element.isHittable {
             app.swipeUp()
