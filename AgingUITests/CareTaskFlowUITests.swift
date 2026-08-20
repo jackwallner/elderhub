@@ -91,8 +91,11 @@ final class CareTaskFlowUITests: XCTestCase {
         attach(app, named: "4-task-editor")
         app.buttons["Save"].tap()
 
+        // Ten, not five: saving dismisses a sheet and rebuilds the list, and on
+        // a loaded machine that has run over five seconds without anything
+        // being wrong.
         let row = app.staticTexts[title]
-        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
         // The row's short form. "every 3 months" was longer than most task
         // titles, which is why `shortLabel` exists.
         XCTAssertTrue(

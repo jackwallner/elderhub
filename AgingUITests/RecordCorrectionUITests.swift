@@ -144,7 +144,14 @@ final class RecordCorrectionUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Today"].waitForExistence(timeout: 10))
         app.buttons["Care"].tap()
 
+        // The Care list opens with the search bar scrolled up under the title,
+        // so it is not in the hierarchy at all until the list is pulled down.
+        // A person opening the tab does the same thing by reflex; the test has
+        // to do it explicitly.
         let field = app.searchFields.element(boundBy: 0)
+        if !field.waitForExistence(timeout: 3) {
+            app.collectionViews.element(boundBy: 0).swipeDown()
+        }
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         field.tap()
         // "Marta" rather than "gate": the seeded note stopped modelling a gate

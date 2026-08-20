@@ -5,8 +5,16 @@ import UserNotifications
 
 // MARK: - Spec
 
-/// One local notification we want iOS to be holding: a single medication, at a
-/// single time of day, on a single weekday (or every day).
+/// One local notification we want iOS to be holding: everything a person has
+/// due at a single time of day, on a single weekday (or every day).
+///
+/// One request per *dose time*, not per medication. Per medication is what this
+/// was, and it is what put a three-parent family past the device's 64 pending
+/// requests: the count grew with medications x times x weekdays, so the
+/// furthest-out reminders were silently never scheduled. Grouping makes it grow
+/// with people x distinct dose times instead, which no realistic family gets
+/// near. It is also the better notification: five buzzes at 8am, one per
+/// tablet, is worse than one that says how many are due.
 ///
 /// A value type on purpose. Everything that is hard about reminders (which
 /// medications qualify, how a weekday list expands, which ones survive the 64
@@ -18,14 +26,15 @@ struct ReminderSpec: Hashable, Sendable, Identifiable {
     /// never touch the check-in reminder.
     static let identifierPrefix = "dose-"
 
-    let medicationID: UUID
     /// Carried so a tap can open the right person. Two parents produce two
     /// lock-screen reminders a minute apart, and before this the app opened
     /// wherever it was left, which with a circle of two is the wrong record
     /// about half the time.
     let personID: UUID
     let personName: String
-    let medicationName: String
+    /// Every medication due at this time, sorted, so identical input always
+    /// produces an identical request.
+    let medicationNames: [String]
     let hour: Int
     let minute: Int
     /// `Calendar`'s 1-indexed, Sunday-first weekday. Nil means every day.
@@ -33,22 +42,48 @@ struct ReminderSpec: Hashable, Sendable, Identifiable {
 
     var id: String { identifier }
 
-    /// `dose-<medID>-<minutes>-<weekday>`, with `0` (not a valid `Calendar`
+    /// `dose-<personID>-<minutes>-<weekday>`, with `0` (not a valid `Calendar`
     /// weekday) standing in for every day. Derived entirely from the schedule,
     /// so rescheduling identical input produces identical identifiers and the
     /// diff is a no-op.
+    ///
+    /// Deliberately *not* keyed on the medications in the group: adding a
+    /// tablet to an 8am slot has to update the reminder already sitting there
+    /// rather than add a second one. That is why the scheduler diffs on the
+    /// body as well as the identifier.
     var identifier: String {
-        "\(Self.identifierPrefix)\(medicationID.uuidString)-\(hour * 60 + minute)-\(weekday ?? 0)"
+        "\(Self.identifierPrefix)\(personID.uuidString)-\(hour * 60 + minute)-\(weekday ?? 0)"
+    }
+
+    /// Says how many, so the count on the lock screen matches what the app will
+    /// show when it opens. Never says anything about the consequence of
+    /// missing them (1.4.1).
+    var title: String {
+        medicationNames.count > 1 ? "Time for \(medicationNames.count) doses" : "Time for a dose"
     }
 
     /// Deliberately says whose dose it is. Every other med reminder on the App
     /// Store is single-user; "Mom: Metformin 500 mg" is the whole difference on
     /// a lock screen holding reminders for two parents.
     ///
+    /// Two names in full, then a count. A body that lists six medications is
+    /// truncated by the system anyway, and truncation would cut it mid-drug.
+    ///
     /// States a fact and stops. It never says what happens if the dose is
     /// missed, which would be a claim about a medical outcome (1.4.1).
     var body: String {
-        personName.isEmpty ? medicationName : "\(personName): \(medicationName)"
+        let listed: String
+        switch medicationNames.count {
+        case 0:
+            listed = "a dose is due"
+        case 1:
+            listed = medicationNames[0]
+        case 2:
+            listed = "\(medicationNames[0]) and \(medicationNames[1])"
+        default:
+            listed = "\(medicationNames[0]), \(medicationNames[1]) and \(medicationNames.count - 2) more"
+        }
+        return personName.isEmpty ? listed : "\(personName): \(listed)"
     }
 
     var dateComponents: DateComponents {
@@ -79,6 +114,18 @@ enum DoseReminderPlanner {
     /// The most dose reminders we will ever have pending.
     static let limit = deviceLimit - reservedRequests
 
+    /// What the planner wanted, and what fits.
+    ///
+    /// `droppedCount` exists so the overflow can be *said out loud*. The cap
+    /// itself is unavoidable (the device limit is not ours), but a caregiver
+    /// whose evening reminders quietly stopped being scheduled has no way to
+    /// find that out, and a reminder you believe in that does not arrive is
+    /// worse than no reminder at all.
+    struct Plan: Sendable {
+        var scheduled: [ReminderSpec]
+        var droppedCount: Int
+    }
+
     /// Every reminder that should exist for `people`, capped and in fire order.
     ///
     /// `date` is "now": it decides which specs are nearest and therefore which
@@ -91,35 +138,70 @@ enum DoseReminderPlanner {
         on date: Date = Date(),
         calendar: Calendar = .current
     ) -> [ReminderSpec] {
-        var specs: [ReminderSpec] = []
+        plan(for: people, on: date, calendar: calendar).scheduled
+    }
+
+    /// The grouped, capped plan, plus how much of it did not fit.
+    @MainActor
+    static func plan(
+        for people: [Person],
+        on date: Date = Date(),
+        calendar: Calendar = .current
+    ) -> Plan {
+        // (person, time, weekday) -> the medications due then. A medication with
+        // no weekdays is every day and lands under `nil`; one restricted to
+        // Monday lands under Monday. The two are separate requests on purpose:
+        // merging them would mean expanding every daily medication across all
+        // seven weekdays, which costs seven requests to save one.
+        var grouped: [GroupKey: [String]] = [:]
+        var personNames: [UUID: String] = [:]
 
         for person in people where person.deletedAt == nil {
+            personNames[person.id] = person.displayLabel
+
             for medication in person.liveMedications where isEligible(medication, on: date, calendar: calendar) {
+                let name = medication.displayName
+
                 for minutes in medication.scheduleMinutes.sorted() {
-                    let hour = minutes / 60
-                    let minute = minutes % 60
                     let weekdays: [Int?] = medication.weekdays.isEmpty
                         ? [nil]
                         : medication.weekdays.sorted().map { $0 }
 
                     for weekday in weekdays {
-                        specs.append(
-                            ReminderSpec(
-                                medicationID: medication.id,
-                                personID: person.id,
-                        personName: person.displayLabel,
-                                medicationName: medication.displayName,
-                                hour: hour,
-                                minute: minute,
-                                weekday: weekday
-                            )
+                        let key = GroupKey(
+                            personID: person.id,
+                            hour: minutes / 60,
+                            minute: minutes % 60,
+                            weekday: weekday
                         )
+                        grouped[key, default: []].append(name)
                     }
                 }
             }
         }
 
-        return cap(specs, on: date, calendar: calendar)
+        let specs = grouped.map { key, names in
+            ReminderSpec(
+                personID: key.personID,
+                personName: personNames[key.personID] ?? "",
+                // Sorted and de-duplicated: two rows of the same drug at the
+                // same time is a data entry slip, not two tablets to announce.
+                medicationNames: Array(Set(names)).sorted(),
+                hour: key.hour,
+                minute: key.minute,
+                weekday: key.weekday
+            )
+        }
+
+        let kept = cap(specs, on: date, calendar: calendar)
+        return Plan(scheduled: kept, droppedCount: specs.count - kept.count)
+    }
+
+    private struct GroupKey: Hashable {
+        let personID: UUID
+        let hour: Int
+        let minute: Int
+        let weekday: Int?
     }
 
     /// A medication only earns a reminder if it is a live, timed prescription.
@@ -207,36 +289,73 @@ actor DoseReminderScheduler {
 
     private init() {}
 
-    /// The entry point every caller uses: read the people out of SwiftData on
-    /// the main actor, hand the resulting value types off it.
+    /// Everything this phone wants iOS to be holding, and how much of it did
+    /// not fit.
+    ///
+    /// One type built in one place, because `refresh` and the screen that tells
+    /// the user about the overflow have to agree: a warning computed a second
+    /// way is a warning that can be wrong.
+    struct DevicePlan: Sendable {
+        var doses: [ReminderSpec] = []
+        var refills: [RefillReminderSpec] = []
+        var appointments: [AppointmentReminderSpec] = []
+        /// Reminders the device budget had no room for, across all three kinds.
+        var droppedCount: Int = 0
+    }
+
+    /// Reads the people out of SwiftData on the main actor and works out what
+    /// should be pending. Pure apart from the fetch, so a screen can call it
+    /// just to ask whether anything is being dropped.
     @MainActor
-    static func refresh(in context: ModelContext, now: Date = Date()) async {
+    static func plan(in context: ModelContext, now: Date = Date()) -> DevicePlan {
         let people = (try? context.fetch(FetchDescriptor<Person>())) ?? []
         let enabled = people.filter { DoseReminderPreferences.isEnabled(personID: $0.id) }
-        let specs = DoseReminderPlanner.requests(for: enabled, on: now)
-        await shared.apply(specs)
+
+        let doses = DoseReminderPlanner.plan(for: enabled, on: now)
 
         // Refill reminders share this actor's notification center and the
         // same 64-request device budget, so they only get whatever dose
         // reminders left behind.
         let refillSpecs = RefillReminderPlanner.requests(for: enabled, on: now)
-        let refillBudget = max(0, DoseReminderPlanner.limit - specs.count)
+        let refillBudget = max(0, DoseReminderPlanner.limit - doses.scheduled.count)
         let refills = Array(refillSpecs.prefix(refillBudget))
-        await shared.applyRefills(refills)
 
         // Appointments come last out of the same budget. They are the rarest of
         // the three and the ones a caregiver is least likely to have twenty of,
         // so taking whatever is left over costs nothing in practice.
         let appointmentSpecs = AppointmentReminderPlanner.requests(for: enabled, on: now)
-        let appointmentBudget = max(0, DoseReminderPlanner.limit - specs.count - refills.count)
-        await shared.applyAppointments(Array(appointmentSpecs.prefix(appointmentBudget)))
+        let appointmentBudget = max(0, DoseReminderPlanner.limit - doses.scheduled.count - refills.count)
+        let appointments = Array(appointmentSpecs.prefix(appointmentBudget))
+
+        return DevicePlan(
+            doses: doses.scheduled,
+            refills: refills,
+            appointments: appointments,
+            droppedCount: doses.droppedCount
+                + (refillSpecs.count - refills.count)
+                + (appointmentSpecs.count - appointments.count)
+        )
+    }
+
+    /// The entry point every caller uses: plan on the main actor, hand the
+    /// resulting value types off it.
+    @MainActor
+    static func refresh(in context: ModelContext, now: Date = Date()) async {
+        let plan = plan(in: context, now: now)
+        await shared.apply(plan.doses)
+        await shared.applyRefills(plan.refills)
+        await shared.applyAppointments(plan.appointments)
     }
 
     func apply(_ specs: [ReminderSpec]) async {
         let center = UNUserNotificationCenter.current()
-        let pending = await center.pendingNotificationRequests()
-            .map(\.identifier)
-            .filter { $0.hasPrefix(ReminderSpec.identifierPrefix) }
+        // Bodies as well as identifiers: one request now covers every
+        // medication due at that time, so adding a tablet to the 8am slot has
+        // to rewrite the request already sitting there. Comparing identifiers
+        // alone would leave yesterday's wording pending forever.
+        let ours = await center.pendingNotificationRequests()
+            .filter { $0.identifier.hasPrefix(ReminderSpec.identifierPrefix) }
+        let pending = ours.map(\.identifier)
 
         // Permission can be revoked in Settings long after the toggles were set.
         // Clear ours out rather than leaving stale requests behind.
@@ -248,6 +367,10 @@ actor DoseReminderScheduler {
         }
 
         let desired = Dictionary(specs.map { ($0.identifier, $0) }, uniquingKeysWith: { first, _ in first })
+        let existingBodies = Dictionary(
+            ours.map { ($0.identifier, $0.content.body) },
+            uniquingKeysWith: { first, _ in first }
+        )
         let existing = Set(pending)
 
         let stale = existing.subtracting(desired.keys)
@@ -256,9 +379,11 @@ actor DoseReminderScheduler {
         }
 
         var added = 0
-        for (identifier, spec) in desired where !existing.contains(identifier) {
+        // Adding under an existing identifier replaces it, so a changed body
+        // needs no removal first.
+        for (identifier, spec) in desired where existingBodies[identifier] != spec.body {
             let content = UNMutableNotificationContent()
-            content.title = "Time for a dose"
+            content.title = spec.title
             content.body = spec.body
             content.sound = .default
             content.userInfo = [NotificationRoute.personKey: spec.personID.uuidString]

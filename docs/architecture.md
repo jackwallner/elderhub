@@ -103,6 +103,7 @@ breaks one of these, the change is wrong.
 | D32 | Subject may log doses for their own linked recipient only | A parent who can press a proof-of-life button can tap "took my pills"; the alternative is the family phoning to ask | §13 Q1 |
 | D34 | Per-recipient access is a per-member flag (`group_members.access_scope`) plus a grant table (`recipient_access`), defaulting to unrestricted | D5 always said the roles grow "additively into per-recipient grants". A backfilled grant row per (member x recipient) has to stay correct forever after; the flag means the common case writes no rows. Default `all` so applying 0018 hides nothing anyone could already read | §21 |
 | D35 | Visibility is read through parameterless `visible_recipient_ids()`, used as `col in (select ...)` | A security-definer function taking row values cannot be wrapped in `(select ...)` and so runs per row. Parameterless, it hoists to an initPlan and runs once per statement. Supabase benchmarks this exact rewrite at 9,000ms -> 20ms, so the scoped policies are cheaper than the unscoped ones they replace | §21 |
+| D36 | One local notification per person per dose time, not per medication, and the leftover is counted and shown | The device holds 64 pending requests. Per medication the count grows with the drug list and a three-person family overflows it, losing the evening reminders silently. Grouped it grows with people x dose times, and `droppedCount` means the remainder is stated rather than guessed at | §21 |
 | D33 | Not available in EU/UK storefronts | Article 9 special-category data about third parties who never consented, plus DSR and Article 27 obligations a solo developer cannot run | §13 Q3 |
 
 ---
@@ -943,10 +944,41 @@ with. Collapsing those would tell a caregiver their setup was finished and their
 morning was clear when neither was true. Both are statements about a list and
 never an assessment of anyone (I6).
 
-### Still open
+### The reminder budget (closed)
 
-The reminder budget is still 63 requests shared across everyone
-(`DoseReminderPlanner.limit`), still capped by nearest fire time, and still
-silent about it. Three people with six medications each is past it. The cap
-degrades sensibly and rolls forward on every foreground, but nothing tells the
-user that the third person's evening doses stopped notifying.
+The budget is iOS's: 64 pending local notifications per app, one of them
+reserved for the check-in reminder, so 63 for everything this app schedules
+(`DoseReminderPlanner.limit`). Past it, iOS drops requests without a word.
+
+It used to be one request per (medication x time x weekday), which grows with
+the size of the family's drug list: three people on six medications taken three
+times a day is 54 dose requests before a single refill or appointment, and a
+weekday-restricted drug multiplies again. Everything past 63 was silently never
+scheduled, and the cap keeps the *soonest*, so what went missing was the
+evening.
+
+Two changes close it:
+
+1. **One request per person per dose time**, not per medication
+   (`ReminderSpec.medicationNames`). The count now grows with people x distinct
+   dose times: the same three-person family is 9 requests, and no realistic
+   family reaches 63. It is also the better notification, because five separate
+   buzzes at 8am, one per tablet, is worse than one saying three doses are due.
+   The identifier is `dose-<personID>-<minutes>-<weekday>` and no longer names a
+   medication, so the scheduler diffs on the **body** as well as the identifier:
+   adding a tablet to the 8am slot has to rewrite the request already sitting
+   there, and `center.add` under an existing identifier replaces it.
+
+   A daily medication and a Monday-only one at the same time stay two requests.
+   Merging them would mean expanding the daily one across seven weekdays, which
+   spends seven requests to save one.
+
+2. **The overflow is said out loud.** `DoseReminderPlanner.plan` returns
+   `droppedCount` alongside the specs, `DoseReminderScheduler.plan(in:)` totals
+   it across doses, refills and appointments, and the reminders section of
+   `PersonDetailView` prints it. The cap itself cannot be removed, but a
+   caregiver who believes a reminder is set when it is not is worse off than one
+   who knows it is queued.
+
+   Both the scheduler and that screen read the one `DevicePlan`, so the warning
+   cannot disagree with what was actually scheduled.

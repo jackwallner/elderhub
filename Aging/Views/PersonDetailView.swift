@@ -31,6 +31,9 @@ struct PersonDetailView: View {
     @State private var editingMedication: Medication?
     @State private var isEditingDetails = false
     @State private var remindersEnabled = false
+    /// Reminders this phone wants but has no room for. Read from the same plan
+    /// the scheduler applies, never counted a second way.
+    @State private var droppedReminders = 0
     @State private var setupHidden = false
     @State private var dismissedSteps: Set<SetupStep.Kind> = []
     @State private var pushed: CareFeature?
@@ -115,9 +118,20 @@ struct PersonDetailView: View {
             } header: {
                 Text("Reminders")
             } footer: {
-                // Set per device on purpose: a sibling who wants no 8am ping
-                // should not have to argue with whoever set the schedule.
-                Text("Notifies this phone at each scheduled dose time for \(person.displayLabel), and the evening before an appointment. Reminders are set on each device separately.")
+                VStack(alignment: .leading, spacing: 6) {
+                    // Set per device on purpose: a sibling who wants no 8am ping
+                    // should not have to argue with whoever set the schedule.
+                    Text("Notifies this phone at each scheduled dose time for \(person.displayLabel), and the evening before an appointment. Reminders are set on each device separately.")
+
+                    // The device holds 63 of ours at once and drops the rest
+                    // without a word. Saying so is the whole fix available:
+                    // the limit is iOS's, but a caregiver who thinks a reminder
+                    // is set when it is not is worse off than one who knows.
+                    if droppedReminders > 0 {
+                        Text("This phone holds \(DoseReminderPlanner.limit) reminders at a time and \(droppedReminders) more are waiting. The soonest are always the ones set, and opening Elderhub during the day moves the rest in.")
+                            .accessibilityIdentifier("person-detail.reminder-overflow")
+                    }
+                }
             }
 
             tileSection(
@@ -174,6 +188,7 @@ struct PersonDetailView: View {
         .recordDeletionConfirmation($pendingDeletion)
         .onAppear {
             remindersEnabled = DoseReminderPreferences.isEnabled(personID: person.id)
+            droppedReminders = DoseReminderScheduler.plan(in: context).droppedCount
             setupHidden = SetupCardPreferences.isHidden(personID: person.id)
             dismissedSteps = SetupStepPreferences.dismissed(personID: person.id)
         }
@@ -427,6 +442,7 @@ struct PersonDetailView: View {
                 }
             }
             await DoseReminderScheduler.refresh(in: context)
+            droppedReminders = DoseReminderScheduler.plan(in: context).droppedCount
         }
     }
 
