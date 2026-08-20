@@ -19,6 +19,11 @@ struct ReminderSpec: Hashable, Sendable, Identifiable {
     static let identifierPrefix = "dose-"
 
     let medicationID: UUID
+    /// Carried so a tap can open the right person. Two parents produce two
+    /// lock-screen reminders a minute apart, and before this the app opened
+    /// wherever it was left, which with a circle of two is the wrong record
+    /// about half the time.
+    let personID: UUID
     let personName: String
     let medicationName: String
     let hour: Int
@@ -101,7 +106,8 @@ enum DoseReminderPlanner {
                         specs.append(
                             ReminderSpec(
                                 medicationID: medication.id,
-                                personName: person.displayLabel,
+                                personID: person.id,
+                        personName: person.displayLabel,
                                 medicationName: medication.displayName,
                                 hour: hour,
                                 minute: minute,
@@ -255,6 +261,7 @@ actor DoseReminderScheduler {
             content.title = "Time for a dose"
             content.body = spec.body
             content.sound = .default
+            content.userInfo = [NotificationRoute.personKey: spec.personID.uuidString]
 
             let request = UNNotificationRequest(
                 identifier: identifier,
@@ -305,6 +312,7 @@ actor DoseReminderScheduler {
             let content = UNMutableNotificationContent()
             content.title = "Refill soon"
             content.body = spec.body
+            content.userInfo = [NotificationRoute.personKey: spec.personID.uuidString]
             content.sound = .default
 
             let request = UNNotificationRequest(
@@ -353,6 +361,7 @@ actor DoseReminderScheduler {
             let content = UNMutableNotificationContent()
             content.title = "Appointment tomorrow"
             content.body = spec.body
+            content.userInfo = [NotificationRoute.personKey: spec.personID.uuidString]
             content.sound = .default
 
             let request = UNNotificationRequest(
@@ -383,6 +392,7 @@ struct RefillReminderSpec: Hashable, Sendable, Identifiable {
     static let identifierPrefix = "refill-"
 
     let medicationID: UUID
+    let personID: UUID
     let personName: String
     let medicationName: String
     let dateComponents: DateComponents
@@ -433,6 +443,7 @@ enum RefillReminderPlanner {
                 specs.append(
                     RefillReminderSpec(
                         medicationID: medication.id,
+                        personID: person.id,
                         personName: person.displayLabel,
                         medicationName: medication.displayName,
                         dateComponents: calendar.dateComponents(
@@ -463,6 +474,7 @@ struct AppointmentReminderSpec: Hashable, Sendable, Identifiable {
     static let identifierPrefix = "appointment-"
 
     let visitID: UUID
+    let personID: UUID
     let personName: String
     let what: String
     let timeLabel: String
@@ -523,6 +535,7 @@ enum AppointmentReminderPlanner {
                     visit.date,
                     AppointmentReminderSpec(
                         visitID: visit.id,
+                        personID: person.id,
                         personName: person.displayLabel,
                         what: what(visit),
                         timeLabel: visit.timeLabel(calendar: calendar),

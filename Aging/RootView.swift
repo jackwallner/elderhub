@@ -23,6 +23,7 @@ struct RootView: View {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @AppStorage("pendingInviteCode") private var pendingInviteCode = ""
     @State private var navigator = AppNavigator()
+    @State private var notificationRoute = NotificationRoute.shared
     @State private var authLinkError: String?
     @State private var onboardingSessionActive = false
 
@@ -68,6 +69,12 @@ struct RootView: View {
             await NotificationService.shared.registerIfAuthorized()
             await sync.syncNow()
             await DoseReminderScheduler.refresh(in: context)
+        }
+        .onChange(of: notificationRoute.pendingPersonID) { _, pending in
+            // Tapping "Dad: Warfarin" has to land on Today whatever tab the app
+            // was left on. Today itself consumes the id and switches person.
+            guard pending != nil else { return }
+            navigator.tab = .today
         }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }

@@ -442,10 +442,19 @@ private struct PersonRow: View {
         .padding(.vertical, 4)
     }
 
+    /// What is outstanding for this person, not how many rows they have.
+    ///
+    /// This used to read "Mother · 4 medications", which is an inventory count:
+    /// the one screen in the app that shows two people at once said nothing
+    /// about either of them. A caregiver could stand on this list with a dose
+    /// two hours overdue on the second row and see no sign of it.
+    ///
+    /// Read from `TodayDigest`, the same type the Today tab renders, so the two
+    /// screens cannot disagree about what "2 due" means.
     private var subtitle: String {
-        let count = person.activeMedications.count
-        let meds = count == 1 ? "1 medication" : "\(count) medications"
-        return person.relationship.isEmpty ? meds : "\(person.relationship) · \(meds)"
+        let status = TodayDigest.build(for: [person]).first?.statusLine ?? ""
+        if person.relationship.isEmpty { return status }
+        return status.isEmpty ? person.relationship : "\(person.relationship) · \(status)"
     }
 }
 

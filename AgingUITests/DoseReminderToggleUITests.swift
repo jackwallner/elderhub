@@ -23,6 +23,11 @@ final class DoseReminderToggleUITests: XCTestCase {
         // The Today tab now opens with a quick-action row and can carry a day's
         // worth of doses above this link, and a `List` does not render rows it
         // has not scrolled to, so this has to be scrolled into view first.
+        // A `-seedDemo` bundle earlier in the run can leave a two-person store
+        // behind (`-uitest-reset` clears onboarding, not the store), and Today
+        // opens on the aggregate whenever there is more than one person. A
+        // no-op when this device really does hold one.
+        selectPersonOnToday(app, named: "Eleanor Wallner")
         let medications = app.buttons["today.medications"]
         scrollToHittable(medications, in: app)
         XCTAssertTrue(medications.waitForExistence(timeout: 10))

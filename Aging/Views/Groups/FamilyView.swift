@@ -110,7 +110,7 @@ struct FamilyView: View {
                 }
             }
             .sheet(item: $memberUnderEdit) { member in
-                MemberSheet(member: member)
+                MemberSheet(member: member, people: circlePeople)
             }
             .alert("Group name", isPresented: $isRenaming) {
                 TextField("Family", text: $newName)
@@ -194,7 +194,7 @@ struct FamilyView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(member.resolvedName)
                                 .font(.body.weight(.medium))
-                            Text(member.role.label)
+                            Text(memberSubtitle(member))
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                         }
@@ -211,8 +211,23 @@ struct FamilyView: View {
         } header: {
             Text(groups.groupName.isEmpty ? "Care circle" : groups.groupName)
         } footer: {
-            Text("Helpers can see and update every person under Care. A person invited to their own record sees only themselves.")
+            Text(circlePeople.count > 1
+                 ? "Helpers can see and update everyone under Care unless you narrow it. A person invited to their own record sees only themselves."
+                 : "Helpers can see and update every person under Care. A person invited to their own record sees only themselves.")
         }
+    }
+
+    /// The role, plus who this member can actually see when that is not
+    /// everyone. Said on the row rather than only inside the sheet, because
+    /// "who can read Dad's records" is a question an owner should be able to
+    /// answer by looking at the list.
+    private func memberSubtitle(_ member: GroupMember) -> String {
+        guard member.accessScope == .listed else { return member.role.label }
+        let names = circlePeople
+            .filter { member.visibleRecipientIDs.contains($0.id) }
+            .map(\.displayLabel)
+        guard !names.isEmpty else { return "\(member.role.label) · no one yet" }
+        return "\(member.role.label) · \(names.joined(separator: ", ")) only"
     }
 
     private var inviteSection: some View {
@@ -388,6 +403,10 @@ private struct SharingConsentSheet: View {
 /// Role changes and removal, owner only.
 private struct MemberSheet: View {
     let member: GroupMember
+    /// The circle's people, so the access list can name them. Passed in rather
+    /// than queried again here so this sheet and the list behind it are looking
+    /// at exactly the same set.
+    let people: [Person]
 
     @Environment(GroupService.self) private var groups
     @Environment(\.dismiss) private var dismiss
@@ -395,6 +414,9 @@ private struct MemberSheet: View {
     @State private var errorMessage: String?
     @State private var isConfirmingRemoval = false
     @State private var isConfirmingTransfer = false
+    @State private var scope: MemberAccessScope = .all
+    @State private var granted: Set<UUID> = []
+    @State private var isSavingAccess = false
 
     var body: some View {
         NavigationStack {
@@ -424,6 +446,8 @@ private struct MemberSheet: View {
                     Text("Role")
                 }
 
+                accessSection
+
                 Section {
                     Button("Make organizer") { isConfirmingTransfer = true }
                 } footer: {
@@ -444,6 +468,10 @@ private struct MemberSheet: View {
             }
             .navigationTitle(member.resolvedName)
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                scope = member.accessScope
+                granted = member.visibleRecipientIDs
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") { dismiss() }
@@ -479,6 +507,90 @@ private struct MemberSheet: View {
         case .owner: return "Everything, including roles and billing."
         case .caregiver: return "Sees and edits everyone in the family."
         case .subject: return "Sees only their own list, and marks their own doses."
+        }
+    }
+
+    /// Who this member can read.
+    ///
+    /// Only shown when there is more than one person to divide up, and only for
+    /// a caregiver: an owner is never restrictable (the RPC refuses, so a
+    /// control here would be a button that fails), and a subject is scoped by
+    /// the record they are linked to rather than by this table.
+    ///
+    /// Default is everyone, and it stays everyone until someone deliberately
+    /// changes it. Narrowing is the exception, for the neighbour who helps with
+    /// Mom and has no reason to be reading Dad's bills or notes.
+    @ViewBuilder
+    private var accessSection: some View {
+        if member.canBeRestricted, people.count > 1 {
+            Section {
+                Picker("Can see", selection: $scope) {
+                    Text("Everyone").tag(MemberAccessScope.all)
+                    Text("Only some").tag(MemberAccessScope.listed)
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: scope) { _, newValue in
+                    // Starting from everyone ticked is the honest default: this
+                    // control narrows a permission they already have, so
+                    // opening it with nothing selected would misrepresent what
+                    // they can see right now.
+                    if newValue == .listed, granted.isEmpty {
+                        granted = Set(people.map(\.id))
+                    }
+                    Task { await saveAccess() }
+                }
+
+                if scope == .listed {
+                    ForEach(people) { person in
+                        accessRow(for: person)
+                    }
+                }
+            } header: {
+                Text("Can see")
+            } footer: {
+                Text(accessFooter)
+            }
+        }
+    }
+
+    private func accessRow(for person: Person) -> some View {
+        Button {
+            if granted.contains(person.id) {
+                granted.remove(person.id)
+            } else {
+                granted.insert(person.id)
+            }
+            Task { await saveAccess() }
+        } label: {
+            HStack {
+                Text(person.displayLabel)
+                Spacer()
+                if granted.contains(person.id) {
+                    Image(systemName: "checkmark").foregroundStyle(.tint)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .disabled(isSavingAccess)
+    }
+
+    private var accessFooter: String {
+        scope == .all
+            ? "\(member.resolvedName) can see and update everyone in this circle."
+            : "\(member.resolvedName) can only open the people ticked here. The database refuses them everything else, and their app clears what it already downloaded the next time it reaches the server."
+    }
+
+    private func saveAccess() async {
+        isSavingAccess = true
+        defer { isSavingAccess = false }
+        do {
+            try await groups.setAccess(for: member.id, scope: scope, recipientIDs: granted)
+        } catch {
+            errorMessage = error.localizedDescription
+            // Put the controls back to what the server still believes, so the
+            // screen never shows a restriction that was not applied.
+            scope = member.accessScope
+            granted = member.visibleRecipientIDs
         }
     }
 
