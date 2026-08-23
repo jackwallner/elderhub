@@ -982,3 +982,44 @@ The map should state that internal identifiers remain stable, customer-facing br
 - Screenshot, landing-page, and metadata experiments.
 
 The single most important validation is this: start as a local-only user, create one person, attempt to add a second person, and complete the full purchase, sign-in, group creation, restore, and second-device access sequence. Until that sequence is either blocked before purchase or reconciled end to end, Elderhub's most important monetization path is not proven safe.
+
+## Activity and success context, 2026-08-23
+
+Classification: **pre-launch or release pending**. Confidence: **medium**. Trend: **no ASC comparison displayed**.
+
+ASC release state: `iOS 1.0 Waiting for Review`. ASC evidence: [Analytics Overview](https://appstoreconnect.apple.com/apps/6796916172/analytics/overview?dateSpec=d90), selected range `dateSpec=d90`.
+RevenueCat evidence: [Project Overview](https://app.revenuecat.com/projects/9692114f/overview), production mode, selected range `Last 28 days, 2026-07-27 through 2026-08-23`.
+
+### Observed activity
+
+| Source | Metric | Value | Window or comparison |
+| --- | --- | ---: | --- |
+| ASC | first-time downloads | not available | 90-day Analytics Overview |
+| ASC | redownloads | not available | 90-day Analytics Overview |
+| ASC | conversion rate | not available | comparison not displayed |
+| ASC | proceeds | not available | 90-day Analytics Overview |
+| ASC | in-app purchases | not available | 90-day Analytics Overview |
+| RevenueCat | new customers | 0 | last 28 days |
+| RevenueCat | active customers | 42 | last 28 days |
+| RevenueCat | active trials | 0 | current total |
+| RevenueCat | active subscriptions | 0 | current total |
+| RevenueCat | MRR | $0 | current total |
+| RevenueCat | revenue | $0 | last 28 days |
+
+A missing value above means the source did not expose that metric in this read-only snapshot. It is not a zero.
+
+### Interpretation and implementation focus
+
+Elderhub is Waiting for Review with no ASC activity cards. RevenueCat shows 0 new customers but 42 active customers, which is compatible with historical, pre-release, or manually seeded activity and cannot be treated as current acquisition. Resolve the release and account-state path, then establish a clean baseline before interpreting the second-person and family-sharing funnel.
+
+The deterministic classifier recommends: Do not label the app dead. Finish the release path, then capture a clean post-launch baseline.
+
+- Join ASC first-time download, first launch, first value, paywall shown, offer loaded, trial started, trial canceled, trial converted, entitlement active, restore, and purchase failure events with the app version and build.
+- Keep ASC's 90-day acquisition and proceeds window separate from RevenueCat's 28-day customer and revenue window. Do not calculate a conversion rate by dividing values from different windows.
+- Use a mature trial cohort and a minimum sample before choosing a native paywall or onboarding A/B winner. Record the offering identifier, package, placement, experiment variant, and build.
+- Put the app's classification and the next baseline date in the release handoff so Cursor, Claude, and Codex do not optimize from an old qualitative audit.
+
+### Boundary on success or death
+
+This snapshot supports the label **pre-launch or release pending**, not a lifetime verdict. ASC has no distributed activity cards yet; RevenueCat shows no new customers in the current window. A later decision should include a clean 28-day RevenueCat trend, ASC acquisition and conversion trend, ratings and review count, crash and hang evidence, and a release-specific cohort.
+This dated section supersedes earlier statements in this file that per-app ASC or RevenueCat activity was unavailable as of 2026-08-23. Earlier statements remain historical evidence boundaries for their original audit pass.
