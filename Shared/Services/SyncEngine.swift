@@ -98,11 +98,18 @@ actor SyncEngine {
 
     private func pullAll(remote: any SyncRemote) async -> PullResult {
         var result = PullResult()
+        // The tables that finished this cycle with nothing left waiting. It is
+        // what tells a child with no parent apart from a child whose parent is
+        // never coming: see `parentState`.
+        var settledTables: Set<SyncEntity> = []
         // Parents before children, so a medication never arrives before the
         // person it belongs to.
         for entity in SyncEntity.pullOrder {
             do {
-                result.applied += try await pull(entity: entity, remote: remote)
+                let outcome = try await pull(entity: entity, remote: remote,
+                                             settledTables: settledTables)
+                result.applied += outcome.applied
+                if outcome.isComplete { settledTables.insert(entity) }
             } catch {
                 // Caught per entity, deliberately. One table the server is
                 // refusing today must not stop the other ten from arriving,
@@ -116,7 +123,17 @@ actor SyncEngine {
         return result
     }
 
-    private func pull(entity: SyncEntity, remote: any SyncRemote) async throws -> Int {
+    /// What one table's pull did, rather than only how much of it landed.
+    private struct EntityPull {
+        var applied = 0
+        /// Reached the end of the table with nothing deferred. Only then is a
+        /// missing parent proof that the parent does not exist.
+        var isComplete = false
+    }
+
+    private func pull(
+        entity: SyncEntity, remote: any SyncRemote, settledTables: Set<SyncEntity>
+    ) async throws -> EntityPull {
         var applied = 0
         var page = cursorPage(for: entity)
 
@@ -163,12 +180,19 @@ actor SyncEngine {
             var settled: (any SyncDTO)?
             var deferred = false
             for dto in batch {
-                guard apply(dto) else {
+                switch apply(dto, settledTables: settledTables) {
+                case .applied:
+                    settled = dto
+                    applied += 1
+                case .discarded:
+                    // The cursor may pass it: it was not written and it is not
+                    // going to be. Holding the page here would stop this table
+                    // forever over one row nothing can ever attach.
+                    settled = dto
+                case .deferred:
                     deferred = true
-                    break
                 }
-                settled = dto
-                applied += 1
+                if deferred { break }
             }
 
             if let last = settled, let updatedAt = last.updated_at {
@@ -180,21 +204,35 @@ actor SyncEngine {
                 setCursor(entity: entity, page: page)
             }
 
-            if deferred { break }
+            if deferred { return EntityPull(applied: applied, isComplete: false) }
             if batch.count < Self.pageSize { break }
         }
 
-        return applied
+        return EntityPull(applied: applied, isComplete: true)
     }
 
     // MARK: - Applying a pulled row
 
-    /// Writes one pulled row, or reports that it cannot be written yet.
-    ///
-    /// False means deferred, never failed: see `isDeferred`.
+    /// What happened to one pulled row.
+    private enum ApplyOutcome {
+        /// Written.
+        case applied
+        /// Not written, and never will be: its parent does not exist. The
+        /// cursor is free to pass it.
+        case discarded
+        /// Not written *yet*. The page stops here and the next cycle asks for
+        /// it again.
+        case deferred
+    }
+
+    /// Writes one pulled row, or says why it did not.
     @discardableResult
-    private func apply(_ dto: any SyncDTO) -> Bool {
-        guard !isDeferred(dto) else { return false }
+    private func apply(_ dto: any SyncDTO, settledTables: Set<SyncEntity>) -> ApplyOutcome {
+        switch parentState(of: dto, settledTables: settledTables) {
+        case .present: break
+        case .notYet: return .deferred
+        case .gone: return .discarded
+        }
         switch dto {
         case let dto as PersonDTO: applyPerson(dto)
         case let dto as MedicationDTO: applyMedication(dto)
@@ -211,43 +249,71 @@ actor SyncEngine {
         case let dto as CheckInSettingsDTO: applyCheckInSettings(dto)
         default: break
         }
-        return true
+        return .applied
     }
 
-    /// Whether this row is waiting on something the device has not been given
-    /// yet, and so must not be written at all.
+    /// Where the row this one hangs off has got to.
+    private enum ParentState {
+        /// On the phone, or this row has no parent to speak of.
+        case present
+        /// Not here, and the table that would carry it has not finished
+        /// arriving. Wait.
+        case notYet
+        /// Not here, and the table that would carry it *has* finished. The
+        /// parent does not exist, so neither should this.
+        case gone
+    }
+
+    /// Whether this row can be written yet, and if not, whether waiting helps.
     ///
     /// A child stored without its person is invisible: it belongs to no record,
-    /// no screen lists it, and nothing later puts it right, because the apply
-    /// path binds a parent only on the insert that creates the row. Two builds
-    /// shipped writing exactly that, so a phone whose person pull had failed
-    /// filled up with visits and tasks attached to nobody while its cursor
-    /// moved past them for good.
+    /// no screen lists it, and nothing later puts it right. Two builds shipped
+    /// writing exactly that, so a phone whose person pull had failed filled up
+    /// with visits and tasks attached to nobody while its cursor moved past
+    /// them for good.
     ///
-    /// Three cases are deliberately not deferred. A tombstone for a row this
-    /// device never had is already a no-op. A row already held is applied
-    /// whatever its parent looks like, so a phone carrying orphans from an
-    /// older build is not stalled by its own history. And `pullOrder` fetches
-    /// people before anything that hangs off one, so in a healthy cycle this
-    /// never fires.
-    private func isDeferred(_ dto: any SyncDTO) -> Bool {
-        guard dto.deleted_at == nil, !hasLocalRow(dto) else { return false }
+    /// The second half is the one that is easy to get wrong. Deleting a person
+    /// *tombstones* them, and a tombstone creates nothing locally, while their
+    /// medications and visits stay live rows on the server: nothing cascades a
+    /// tombstone down there. So "the parent is not on this phone" is two
+    /// different situations, and only one of them is worth waiting for.
+    /// `settledTables` tells them apart: `pullOrder` fetches people before
+    /// anything that hangs off one, so once `.person` has reached the end of
+    /// the table with nothing deferred, a person who is still missing is a
+    /// person who was deleted, and their leftover children are discarded rather
+    /// than waited on. Without that, one deleted parent stops its children's
+    /// table for good.
+    ///
+    /// Three cases never wait. A tombstone for a row this device never had is
+    /// already a no-op. A row already held is applied whatever its parent looks
+    /// like, so a phone carrying orphans from an older build is not stalled by
+    /// its own history, and `bindPerson` repairs it in passing. And a person,
+    /// a check-in and a check-in setting have no parent row to be missing.
+    private func parentState(
+        of dto: any SyncDTO, settledTables: Set<SyncEntity>
+    ) -> ParentState {
+        guard dto.deleted_at == nil, !hasLocalRow(dto) else { return .present }
+
+        let parent: (entity: SyncEntity, exists: Bool)
         switch dto {
-        case let dto as MedicationDTO: return !hasPerson(dto.care_recipient_id)
-        case let dto as DoseLogDTO: return !hasMedication(dto.medication_id)
-        case let dto as VisitDTO: return !hasPerson(dto.care_recipient_id)
-        case let dto as VitalDTO: return !hasPerson(dto.care_recipient_id)
-        case let dto as EmergencyContactDTO: return !hasPerson(dto.care_recipient_id)
-        case let dto as ProviderDTO: return !hasPerson(dto.care_recipient_id)
-        case let dto as CareEventDTO: return !hasPerson(dto.care_recipient_id)
-        case let dto as CareTaskDTO: return !hasPerson(dto.care_recipient_id)
-        case let dto as CareNoteDTO: return !hasPerson(dto.care_recipient_id)
-        case let dto as BillDTO: return !hasPerson(dto.care_recipient_id)
+        case let dto as MedicationDTO: parent = (.person, hasPerson(dto.care_recipient_id))
+        case let dto as DoseLogDTO: parent = (.medication, hasMedication(dto.medication_id))
+        case let dto as VisitDTO: parent = (.person, hasPerson(dto.care_recipient_id))
+        case let dto as VitalDTO: parent = (.person, hasPerson(dto.care_recipient_id))
+        case let dto as EmergencyContactDTO: parent = (.person, hasPerson(dto.care_recipient_id))
+        case let dto as ProviderDTO: parent = (.person, hasPerson(dto.care_recipient_id))
+        case let dto as CareEventDTO: parent = (.person, hasPerson(dto.care_recipient_id))
+        case let dto as CareTaskDTO: parent = (.person, hasPerson(dto.care_recipient_id))
+        case let dto as CareNoteDTO: parent = (.person, hasPerson(dto.care_recipient_id))
+        case let dto as BillDTO: parent = (.person, hasPerson(dto.care_recipient_id))
         // A person has no parent, and the two check-in types carry `personID`
         // as a plain column rather than a relationship, so neither can be
         // orphaned by arriving early.
-        default: return false
+        default: return .present
         }
+
+        if parent.exists { return .present }
+        return settledTables.contains(parent.entity) ? .gone : .notYet
     }
 
     private func hasPerson(_ id: UUID) -> Bool {
@@ -285,7 +351,7 @@ actor SyncEngine {
     /// so a child that arrived before its person was written with no person and
     /// stayed that way: `person.liveVisits` and its siblings cannot reach a
     /// parentless row, so no screen lists it, the emergency card does not print
-    /// it, and nothing later puts it right. `isDeferred` stops new ones being
+    /// it, and nothing later puts it right. `parentState` stops new ones being
     /// made; this repairs the ones already on the phone when they come round
     /// again.
     private func bindPerson(_ row: some PersonScoped, to recipientID: UUID) {

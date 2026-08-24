@@ -797,6 +797,39 @@ struct SyncEngineTests {
         #expect(visits.first??.uuidString == mom.id.uuidString)
     }
 
+    @Test("A visit left behind by a deleted person is discarded, not waited on forever")
+    func aChildOfADeletedPersonDoesNotStallItsTable() async throws {
+        let (engine, _) = makeEngine()
+        let remote = FakeRemote()
+        let group = UUID()
+        SyncEngine.resetParentlessRepairFlagForTesting()
+
+        // Deleting a person tombstones them, and nothing cascades a tombstone
+        // on the server, so their visits stay live rows pointing at a recipient
+        // that will never be written locally. Waiting for that person is
+        // waiting forever.
+        var mom = person("Mom", group: group, updated: Date(timeIntervalSince1970: 1_000))
+        mom.deleted_at = Date(timeIntervalSince1970: 1_500)
+        let orphan = visitDTO(reason: "Cardiology", notes: "", recipientID: mom.id,
+                              group: group, updated: Date(timeIntervalSince1970: 2_000))
+
+        let dad = person("Dad", group: group, updated: Date(timeIntervalSince1970: 3_000))
+        let live = visitDTO(reason: "Audiology", notes: "", recipientID: dad.id,
+                            group: group, updated: Date(timeIntervalSince1970: 4_000))
+
+        try await remote.seed([mom, dad])
+        try await remote.seed([orphan, live])
+
+        _ = await engine.sync(remote: remote, groupID: group)
+
+        // The leftover row is dropped and the cursor steps over it, so Dad's
+        // visit, which sorts after it, still arrives. Holding the page on the
+        // orphan would have stopped this table for good.
+        let parents = try await engine.visitParentsForTesting()
+        #expect(parents.count == 1)
+        #expect(parents.first??.uuidString == dad.id.uuidString)
+    }
+
     @Test("A row an older build left attached to nobody is repaired, not left invisible")
     func aParentlessRowFromAnOlderBuildIsRepaired() async throws {
         let (engine, _) = makeEngine()

@@ -291,7 +291,7 @@ Sunday-first numbering; empty means every day.
   insert.** `bindPerson` / `bindMedication` are called whether the row is new or
   already held, because a row attached to nobody is invisible forever: no
   `liveMedications`-style read can reach it, no screen lists it, and nothing
-  later puts it right. `SyncEngine.isDeferred` stops a new one being made (the
+  later puts it right. `SyncEngine.parentState` stops a new one being made (the
   page stops rather than skipping, so the cursor never passes an unwritten row),
   and `repairParentlessRowsIfNeeded` rewinds every pull cursor **once per
   install** for a store that already holds one, so build 27's orphans are
