@@ -40,6 +40,9 @@ actor SyncEngine {
     func sync(remote: any SyncRemote, groupID: UUID) async -> Outcome {
         var outcome = Outcome()
 
+        // Before anything is asked for, because it decides what to ask for.
+        repairParentlessRowsIfNeeded()
+
         // Pull and push are two independent halves, not a sequence. They used
         // to share one `do`, so a single failing table threw out of the pull
         // and the push was never attempted at all: a dose logged at a bedside
@@ -272,6 +275,91 @@ actor SyncEngine {
         }
     }
 
+    // MARK: - Binding a child to its parent
+
+    /// Attaches a pulled row to the person it belongs to, unless it is attached
+    /// already.
+    ///
+    /// Called on every apply, not only on the insert that creates the row, and
+    /// that is the whole point. Builds 26 and 27 bound a parent on insert only,
+    /// so a child that arrived before its person was written with no person and
+    /// stayed that way: `person.liveVisits` and its siblings cannot reach a
+    /// parentless row, so no screen lists it, the emergency card does not print
+    /// it, and nothing later puts it right. `isDeferred` stops new ones being
+    /// made; this repairs the ones already on the phone when they come round
+    /// again.
+    private func bindPerson(_ row: some PersonScoped, to recipientID: UUID) {
+        guard row.person == nil else { return }
+        row.person = fetchOne(Person.self, #Predicate { $0.id == recipientID })
+    }
+
+    /// The same rule one level down: a dose log hangs off a medication.
+    private func bindMedication(_ log: DoseLog, to medicationID: UUID) {
+        guard log.medication == nil else { return }
+        log.medication = fetchOne(Medication.self, #Predicate { $0.id == medicationID })
+    }
+
+    // MARK: - Repairing a store filled by an older build
+
+    /// Key for the one-time rewind. Version-named rather than generic, because
+    /// a future repair is a different question and must not be answered by this
+    /// one having already run.
+    private static let parentlessRepairKey = "sync.repair.parentlessRows.v1"
+
+    /// Offers the rows an older build orphaned one more chance to arrive.
+    ///
+    /// The pull loop catches per entity, so a `care_recipients` page that
+    /// failed to decode never stopped `visits` from landing. A phone that
+    /// joined a circle in that window wrote children attached to nobody *and*
+    /// moved its cursor past them, and a cursor is a high-water mark: those
+    /// rows are never offered again. Migration 0021 and `PostgrestCoding` stop
+    /// the decode failing; neither goes back for what was already lost.
+    ///
+    /// Nothing is deleted. A parentless row may be the only copy of something
+    /// somebody typed, and rewinding the cursor is enough on its own: the
+    /// server sends the rows again and `bindPerson` attaches them this time.
+    /// Local edits are still protected, because the re-pull goes through the
+    /// same conflict rules as any other.
+    ///
+    /// Runs once per install, and does nothing at all on a store that has no
+    /// parentless row, which is every store that never hit the bug.
+    private func repairParentlessRowsIfNeeded() {
+        let defaults = UserDefaults.standard
+        guard !defaults.bool(forKey: Self.parentlessRepairKey) else { return }
+
+        // Marked done only once the work is done, in both directions. Setting
+        // it first would spend the one attempt on a launch that was killed
+        // before the rewind landed, and this is the only attempt there is.
+        guard hasParentlessRow() else {
+            defaults.set(true, forKey: Self.parentlessRepairKey)
+            return
+        }
+        for entity in SyncEntity.allCases {
+            setCursor(entity: entity, page: nil)
+        }
+        try? modelContext.save()
+        defaults.set(true, forKey: Self.parentlessRepairKey)
+        log.notice("Rewound every pull cursor: this store holds rows with no parent.")
+    }
+
+    private func hasParentlessRow() -> Bool {
+        func anyParentless<T: PersistentModel & PersonScoped>(_ type: T.Type) -> Bool {
+            let rows = (try? modelContext.fetch(FetchDescriptor<T>())) ?? []
+            return rows.contains { $0.person == nil }
+        }
+        let doseLogs = (try? modelContext.fetch(FetchDescriptor<DoseLog>())) ?? []
+        return anyParentless(Medication.self)
+            || anyParentless(Visit.self)
+            || anyParentless(VitalReading.self)
+            || anyParentless(EmergencyContact.self)
+            || anyParentless(Provider.self)
+            || anyParentless(CareEvent.self)
+            || anyParentless(CareTask.self)
+            || anyParentless(CareNote.self)
+            || anyParentless(Bill.self)
+            || doseLogs.contains { $0.medication == nil }
+    }
+
     /// The conflict rule for records where two people can plausibly disagree.
     ///
     /// Last-writer-wins is not acceptable for a drug dosage or an allergy list.
@@ -357,14 +445,14 @@ actor SyncEngine {
                 return
             }
             write(dto, into: existing)
+            bindPerson(existing, to: dto.care_recipient_id)
         } else {
             guard dto.deleted_at == nil else { return }
             let medication = Medication(name: dto.name)
             medication.id = dto.id
             write(dto, into: medication)
-            let recipientID = dto.care_recipient_id
-            medication.person = fetchOne(Person.self, #Predicate { $0.id == recipientID })
             modelContext.insert(medication)
+            bindPerson(medication, to: dto.care_recipient_id)
         }
     }
 
@@ -418,6 +506,7 @@ actor SyncEngine {
             existing.groupID = dto.group_id
             existing.updatedAt = dto.updated_at ?? Date()
             existing.isDirty = false
+            bindMedication(existing, to: dto.medication_id)
         } else {
             guard dto.deleted_at == nil else { return }
             let log = DoseLog(scheduledAt: dto.scheduled_at)
@@ -429,9 +518,8 @@ actor SyncEngine {
             log.groupID = dto.group_id
             log.updatedAt = dto.updated_at ?? Date()
             log.isDirty = false
-            let medicationID = dto.medication_id
-            log.medication = fetchOne(Medication.self, #Predicate { $0.id == medicationID })
             modelContext.insert(log)
+            bindMedication(log, to: dto.medication_id)
         }
     }
 
@@ -449,11 +537,10 @@ actor SyncEngine {
         let visit = existing ?? {
             let new = Visit(date: dto.date)
             new.id = dto.id
-            let recipientID = dto.care_recipient_id
-            new.person = fetchOne(Person.self, #Predicate { $0.id == recipientID })
             modelContext.insert(new)
             return new
         }()
+        bindPerson(visit, to: dto.care_recipient_id)
         visit.date = dto.date
         visit.provider = dto.provider
         visit.providerID = dto.provider_id
@@ -481,11 +568,10 @@ actor SyncEngine {
         let reading = existing ?? {
             let new = VitalReading(kind: .bloodPressure, primaryValue: 0)
             new.id = dto.id
-            let recipientID = dto.care_recipient_id
-            new.person = fetchOne(Person.self, #Predicate { $0.id == recipientID })
             modelContext.insert(new)
             return new
         }()
+        bindPerson(reading, to: dto.care_recipient_id)
         reading.kindRaw = dto.kind
         reading.primaryValue = dto.primary_value
         reading.secondaryValue = dto.secondary_value
@@ -510,11 +596,10 @@ actor SyncEngine {
         let contact = existing ?? {
             let new = EmergencyContact(name: dto.name)
             new.id = dto.id
-            let recipientID = dto.care_recipient_id
-            new.person = fetchOne(Person.self, #Predicate { $0.id == recipientID })
             modelContext.insert(new)
             return new
         }()
+        bindPerson(contact, to: dto.care_recipient_id)
         contact.name = dto.name
         contact.relationship = dto.relationship
         contact.phone = dto.phone
@@ -541,11 +626,10 @@ actor SyncEngine {
         let provider = existing ?? {
             let new = Provider(name: dto.name)
             new.id = dto.id
-            let recipientID = dto.care_recipient_id
-            new.person = fetchOne(Person.self, #Predicate { $0.id == recipientID })
             modelContext.insert(new)
             return new
         }()
+        bindPerson(provider, to: dto.care_recipient_id)
         provider.name = dto.name
         provider.specialty = dto.specialty
         provider.phone = dto.phone
@@ -575,11 +659,10 @@ actor SyncEngine {
         let event = existing ?? {
             let new = CareEvent(kind: .other, occurredAt: dto.occurred_at)
             new.id = dto.id
-            let recipientID = dto.care_recipient_id
-            new.person = fetchOne(Person.self, #Predicate { $0.id == recipientID })
             modelContext.insert(new)
             return new
         }()
+        bindPerson(event, to: dto.care_recipient_id)
         event.kindRaw = dto.kind
         event.occurredAt = dto.occurred_at
         event.severity = dto.severity
@@ -621,14 +704,14 @@ actor SyncEngine {
                 return
             }
             write(dto, into: existing)
+            bindPerson(existing, to: dto.care_recipient_id)
         } else {
             guard dto.deleted_at == nil else { return }
             let task = CareTask(title: dto.title)
             task.id = dto.id
             write(dto, into: task)
-            let recipientID = dto.care_recipient_id
-            task.person = fetchOne(Person.self, #Predicate { $0.id == recipientID })
             modelContext.insert(task)
+            bindPerson(task, to: dto.care_recipient_id)
         }
     }
 
@@ -670,14 +753,14 @@ actor SyncEngine {
                 return
             }
             write(dto, into: existing)
+            bindPerson(existing, to: dto.care_recipient_id)
         } else {
             guard dto.deleted_at == nil else { return }
             let note = CareNote()
             note.id = dto.id
             write(dto, into: note)
-            let recipientID = dto.care_recipient_id
-            note.person = fetchOne(Person.self, #Predicate { $0.id == recipientID })
             modelContext.insert(note)
+            bindPerson(note, to: dto.care_recipient_id)
         }
     }
 
@@ -718,14 +801,14 @@ actor SyncEngine {
                 return
             }
             write(dto, into: existing)
+            bindPerson(existing, to: dto.care_recipient_id)
         } else {
             guard dto.deleted_at == nil else { return }
             let bill = Bill(payee: dto.payee)
             bill.id = dto.id
             write(dto, into: bill)
-            let recipientID = dto.care_recipient_id
-            bill.person = fetchOne(Person.self, #Predicate { $0.id == recipientID })
             modelContext.insert(bill)
+            bindPerson(bill, to: dto.care_recipient_id)
         }
     }
 
@@ -1334,14 +1417,14 @@ actor SyncEngine {
 
     // MARK: - Cursors
 
-    private func cursorPage(for entity: SyncEntity) -> SyncPage? {
+    func cursorPage(for entity: SyncEntity) -> SyncPage? {
         guard let cursor = cursor(for: entity),
               let updatedAt = cursor.lastUpdatedAt,
               let id = cursor.lastID else { return nil }
         return SyncPage(updatedAt: updatedAt, id: id)
     }
 
-    private func setCursor(entity: SyncEntity, page: SyncPage?) {
+    func setCursor(entity: SyncEntity, page: SyncPage?) {
         let record = cursor(for: entity) ?? {
             let new = SyncCursor(entityType: entity)
             modelContext.insert(new)

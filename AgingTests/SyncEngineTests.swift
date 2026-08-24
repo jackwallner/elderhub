@@ -764,6 +764,91 @@ struct SyncEngineTests {
         )
     }
 
+    // MARK: - Children that arrive before their parent
+
+    @Test("A visit whose person failed to arrive is not written attached to nobody")
+    func aChildIsDeferredRatherThanOrphaned() async throws {
+        let (engine, _) = makeEngine()
+        let remote = FakeRemote()
+        let group = UUID()
+        SyncEngine.resetParentlessRepairFlagForTesting()
+
+        // Exactly the shipped failure: `care_recipients` carried a bare date
+        // that the decoder refused, the pull loop caught it per entity, and
+        // `visits` landed anyway.
+        let mom = person("Mom", group: group, updated: Date())
+        try await remote.seed([mom])
+        try await remote.seed([visitDTO(reason: "Cardiology", notes: "", recipientID: mom.id,
+                                        group: group, updated: Date())])
+        await remote.setMissingTables([SyncEntity.person.rawValue])
+
+        _ = await engine.sync(remote: remote, groupID: group)
+
+        // Nothing was written, rather than something invisible being written.
+        #expect(try await engine.visitCountForTesting() == 0)
+
+        // And the cursor did not step over it, so the next cycle is offered it
+        // again. A high-water mark that moves past an unwritten row loses it.
+        await remote.setMissingTables([])
+        _ = await engine.sync(remote: remote, groupID: group)
+
+        let visits = try await engine.visitParentsForTesting()
+        #expect(visits.count == 1)
+        #expect(visits.first??.uuidString == mom.id.uuidString)
+    }
+
+    @Test("A row an older build left attached to nobody is repaired, not left invisible")
+    func aParentlessRowFromAnOlderBuildIsRepaired() async throws {
+        let (engine, _) = makeEngine()
+        let remote = FakeRemote()
+        let group = UUID()
+        SyncEngine.resetParentlessRepairFlagForTesting()
+
+        let mom = person("Mom", group: group, updated: Date(timeIntervalSince1970: 1_000))
+        let visit = visitDTO(reason: "Cardiology", notes: "Two stents",
+                             recipientID: mom.id, group: group,
+                             updated: Date(timeIntervalSince1970: 2_000))
+        try await remote.seed([mom])
+        try await remote.seed([visit])
+
+        // The state build 27 left behind: the row is on the phone with no
+        // person, and the cursor has already passed it, so nothing would ever
+        // offer it again.
+        try await engine.insertParentlessVisitForTesting(
+            id: visit.id, groupID: group, updatedAt: visit.updated_at ?? Date()
+        )
+        await engine.setCursorForTesting(
+            entity: .visit, updatedAt: visit.updated_at ?? Date(), id: visit.id
+        )
+        #expect(try await engine.visitParentsForTesting() == [UUID?.none])
+
+        _ = await engine.sync(remote: remote, groupID: group)
+
+        // One row still, now attached to the person it always belonged to.
+        let parents = try await engine.visitParentsForTesting()
+        #expect(parents.count == 1)
+        #expect(parents.first??.uuidString == mom.id.uuidString)
+    }
+
+    @Test("The rewind runs once, and never on a store that has no parentless row")
+    func theRepairDoesNotRewindAHealthyStore() async throws {
+        let (engine, _) = makeEngine()
+        let remote = FakeRemote()
+        let group = UUID()
+        SyncEngine.resetParentlessRepairFlagForTesting()
+
+        let mom = person("Mom", group: group, updated: Date())
+        try await remote.seed([mom])
+        _ = await engine.sync(remote: remote, groupID: group)
+
+        // A healthy store keeps the cursor it earned: the second cycle must not
+        // re-download the record every time the app opens.
+        let before = await engine.cursorIDForTesting(entity: .person)
+        #expect(before == mom.id)
+        _ = await engine.sync(remote: remote, groupID: group)
+        #expect(await engine.cursorIDForTesting(entity: .person) == mom.id)
+    }
+
     @Test("Adoption stamps a group onto local-only data and queues all of it")
     func adoptionQueuesEverything() async throws {
         let (engine, _) = makeEngine()
@@ -814,6 +899,40 @@ extension SyncEngine {
         modelContext.insert(person)
         try modelContext.save()
         return person.id
+    }
+
+    /// The one-time rewind is keyed in `UserDefaults`, which outlives a test.
+    static func resetParentlessRepairFlagForTesting() {
+        UserDefaults.standard.removeObject(forKey: "sync.repair.parentlessRows.v1")
+    }
+
+    func visitCountForTesting() throws -> Int {
+        try modelContext.fetchCount(FetchDescriptor<Visit>())
+    }
+
+    /// The person id of every visit, `nil` where the row is attached to nobody.
+    func visitParentsForTesting() throws -> [UUID?] {
+        try modelContext.fetch(FetchDescriptor<Visit>()).map { $0.person?.id }
+    }
+
+    /// A visit exactly as build 27 wrote one: real row, real id, no person.
+    func insertParentlessVisitForTesting(id: UUID, groupID: UUID, updatedAt: Date) throws {
+        let visit = Visit(reason: "Cardiology")
+        visit.id = id
+        visit.groupID = groupID
+        visit.updatedAt = updatedAt
+        visit.isDirty = false
+        modelContext.insert(visit)
+        try modelContext.save()
+    }
+
+    func setCursorForTesting(entity: SyncEntity, updatedAt: Date, id: UUID) {
+        setCursor(entity: entity, page: SyncPage(updatedAt: updatedAt, id: id))
+        try? modelContext.save()
+    }
+
+    func cursorIDForTesting(entity: SyncEntity) -> UUID? {
+        cursorPage(for: entity)?.id
     }
 
     func outboxCountForTesting() -> Int {
