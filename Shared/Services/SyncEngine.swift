@@ -152,12 +152,23 @@ actor SyncEngine {
 
             if batch.isEmpty { break }
 
+            // The last row actually written, which is as far as the cursor may
+            // move. A deferred row is not skipped: the page stops there and the
+            // next cycle asks for it again, because the cursor is a high-water
+            // mark and anything it passes is never offered to this device
+            // twice.
+            var settled: (any SyncDTO)?
+            var deferred = false
             for dto in batch {
-                apply(dto)
+                guard apply(dto) else {
+                    deferred = true
+                    break
+                }
+                settled = dto
                 applied += 1
             }
 
-            if let last = batch.last, let updatedAt = last.updated_at {
+            if let last = settled, let updatedAt = last.updated_at {
                 page = SyncPage(updatedAt: updatedAt, id: last.id)
                 // Advanced only from the server's own `updated_at`. Using the
                 // device clock here would let a phone that is a few minutes
@@ -166,6 +177,7 @@ actor SyncEngine {
                 setCursor(entity: entity, page: page)
             }
 
+            if deferred { break }
             if batch.count < Self.pageSize { break }
         }
 
@@ -174,7 +186,12 @@ actor SyncEngine {
 
     // MARK: - Applying a pulled row
 
-    private func apply(_ dto: any SyncDTO) {
+    /// Writes one pulled row, or reports that it cannot be written yet.
+    ///
+    /// False means deferred, never failed: see `isDeferred`.
+    @discardableResult
+    private func apply(_ dto: any SyncDTO) -> Bool {
+        guard !isDeferred(dto) else { return false }
         switch dto {
         case let dto as PersonDTO: applyPerson(dto)
         case let dto as MedicationDTO: applyMedication(dto)
@@ -190,6 +207,68 @@ actor SyncEngine {
         case let dto as CheckInDTO: applyCheckIn(dto)
         case let dto as CheckInSettingsDTO: applyCheckInSettings(dto)
         default: break
+        }
+        return true
+    }
+
+    /// Whether this row is waiting on something the device has not been given
+    /// yet, and so must not be written at all.
+    ///
+    /// A child stored without its person is invisible: it belongs to no record,
+    /// no screen lists it, and nothing later puts it right, because the apply
+    /// path binds a parent only on the insert that creates the row. Two builds
+    /// shipped writing exactly that, so a phone whose person pull had failed
+    /// filled up with visits and tasks attached to nobody while its cursor
+    /// moved past them for good.
+    ///
+    /// Three cases are deliberately not deferred. A tombstone for a row this
+    /// device never had is already a no-op. A row already held is applied
+    /// whatever its parent looks like, so a phone carrying orphans from an
+    /// older build is not stalled by its own history. And `pullOrder` fetches
+    /// people before anything that hangs off one, so in a healthy cycle this
+    /// never fires.
+    private func isDeferred(_ dto: any SyncDTO) -> Bool {
+        guard dto.deleted_at == nil, !hasLocalRow(dto) else { return false }
+        switch dto {
+        case let dto as MedicationDTO: return !hasPerson(dto.care_recipient_id)
+        case let dto as DoseLogDTO: return !hasMedication(dto.medication_id)
+        case let dto as VisitDTO: return !hasPerson(dto.care_recipient_id)
+        case let dto as VitalDTO: return !hasPerson(dto.care_recipient_id)
+        case let dto as EmergencyContactDTO: return !hasPerson(dto.care_recipient_id)
+        case let dto as ProviderDTO: return !hasPerson(dto.care_recipient_id)
+        case let dto as CareEventDTO: return !hasPerson(dto.care_recipient_id)
+        case let dto as CareTaskDTO: return !hasPerson(dto.care_recipient_id)
+        case let dto as CareNoteDTO: return !hasPerson(dto.care_recipient_id)
+        case let dto as BillDTO: return !hasPerson(dto.care_recipient_id)
+        // A person has no parent, and the two check-in types carry `personID`
+        // as a plain column rather than a relationship, so neither can be
+        // orphaned by arriving early.
+        default: return false
+        }
+    }
+
+    private func hasPerson(_ id: UUID) -> Bool {
+        fetchOne(Person.self, #Predicate { $0.id == id }) != nil
+    }
+
+    private func hasMedication(_ id: UUID) -> Bool {
+        fetchOne(Medication.self, #Predicate { $0.id == id }) != nil
+    }
+
+    private func hasLocalRow(_ dto: any SyncDTO) -> Bool {
+        let id = dto.id
+        switch dto {
+        case is MedicationDTO: return fetchOne(Medication.self, #Predicate { $0.id == id }) != nil
+        case is DoseLogDTO: return fetchOne(DoseLog.self, #Predicate { $0.id == id }) != nil
+        case is VisitDTO: return fetchOne(Visit.self, #Predicate { $0.id == id }) != nil
+        case is VitalDTO: return fetchOne(VitalReading.self, #Predicate { $0.id == id }) != nil
+        case is EmergencyContactDTO: return fetchOne(EmergencyContact.self, #Predicate { $0.id == id }) != nil
+        case is ProviderDTO: return fetchOne(Provider.self, #Predicate { $0.id == id }) != nil
+        case is CareEventDTO: return fetchOne(CareEvent.self, #Predicate { $0.id == id }) != nil
+        case is CareTaskDTO: return fetchOne(CareTask.self, #Predicate { $0.id == id }) != nil
+        case is CareNoteDTO: return fetchOne(CareNote.self, #Predicate { $0.id == id }) != nil
+        case is BillDTO: return fetchOne(Bill.self, #Predicate { $0.id == id }) != nil
+        default: return false
         }
     }
 
