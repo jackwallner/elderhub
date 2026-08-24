@@ -273,6 +273,20 @@ Sunday-first numbering; empty means every day.
   no billing check at any depth (`CheckInService` does not import `StoreService`),
   and nothing anywhere may claim to detect an emergency or summon help. Push copy is
   written in SQL (migration 0007) so it cannot drift per app version.
+- **No `date` column, ever. Every day-valued column is `timestamptz`
+  (migration 0021).** supabase-swift decodes every date with one strategy, and
+  that strategy only parses a full ISO8601 timestamp; PostgREST serialises a
+  `date` as a bare "1939-07-13", which fails it, and the error takes down the
+  whole page rather than the one field. One care recipient with a birthday meant
+  a joining phone pulled no people at all, and `medications.start_date` is
+  `not null`, so it pulled no medications either. It shipped because the only
+  phone holding a record was the one that typed it in: the push path never
+  decodes, so nothing exercised the pull until the first person accepted an
+  invitation and got an empty app. Values converted at **noon** UTC, because
+  midnight UTC read through a US calendar is the evening before and would move
+  every birthday back a day. `check_in_settings.last_escalated_on` stays a
+  `date`: `CheckInSettingsDTO` does not declare it, and Codable ignores a key no
+  field asks for.
 - **Every local write goes through `SyncableRecord`.** After a create or an edit,
   call `recordLocalChange()`; to delete, call `tombstone()`. Never `context.delete`
   a synced row: the push reads the row to build its DTO, so a row removed outright
