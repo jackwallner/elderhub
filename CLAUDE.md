@@ -138,6 +138,20 @@ App Store search. Everything in `aso-plan.md` about *what not to claim* still st
   Today consumes it. Before this there was no `didReceive` handler at all, so
   tapping "Dad: Warfarin" opened wherever the app was left, which with two
   people is the wrong record about half the time.
+- **One account, one circle, and `accept_invite` closes an untouched one for you
+  (migrations 0019, 0020).** Onboarding creates a circle for anyone who signs in
+  on the "Start a care record" path, so a joiner who did not happen to tap
+  "I have an invitation" first was refused with `already_in_group` and had
+  nowhere to go from that screen: the family could not get into the record. The
+  server now closes the caller's own circle and takes the invitation, but only
+  while they own it, nobody else is in it, and it holds nothing but the one
+  recipient onboarding created (tasks excepted). A circle with a medication,
+  visit, note or bill in it still gets the refusal and is closed deliberately
+  from Sharing, where the app says what goes with it. Nothing of theirs is
+  carried across: uploading the record they started into the circle they joined
+  would be a disclosure, not a migration (I5). Fixed on the server rather than
+  in the client because the build in the store prints the refusal with no way
+  past it.
 - **Access inside a circle is per-recipient (migration 0018).**
   `group_members.access_scope` is `all` (default) or `listed`, and
   `recipient_access` holds what `listed` means. Default is unrestricted, so
@@ -287,6 +301,16 @@ Sunday-first numbering; empty means every day.
   is live before the page is. It is what makes an invitation openable from a
   desktop client or a phone with no app; `elderhub://` alone never was. §17 of
   `docs/architecture.md` has the rest.
+- **The live 1.0 listing carries the pre-rename `jackwallner.github.io/medlist`
+  URLs, and ASC refuses to edit them while the version is Ready for Sale.**
+  `jackwallner/medlist` is a redirect-only repo standing those paths back up so
+  the shipped listing's Developer Website, Support and Privacy Policy links
+  resolve; it forwards to the `elderhub` pages and preserves the query string
+  so `/medlist/join.html?code=...` still works. **1.0.1 must upload the correct
+  metadata** (`fastlane/metadata/en-US/*_url.txt` already hold it, and the
+  description's privacy link with them). Do not rename the `elderhub` repo to
+  match the listing: the shipped binary's own links and every invitation ever
+  sent point at `/elderhub/`.
 - Not sold in the EU or UK (`scripts/asc-restrict-territories.py`).
 - Migrations are append-only once applied. Fix forward, never edit a shipped file.
   Apply them with `./scripts/db-apply.sh` **before** shipping the client that
