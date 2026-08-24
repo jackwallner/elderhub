@@ -79,7 +79,14 @@ enum InviteFailure: String, Sendable {
         case .rateLimited:
             return "Too many tries. Wait an hour and then try again."
         case .alreadyInGroup:
-            return "This account already belongs to a care circle. Add Mom, Dad, or a partner to that circle so the same family can help everyone."
+            // Only reachable now for a circle with a record in it: the server
+            // closes an untouched one and takes the invitation (0019, 0020).
+            // So the advice has to be the one that fits somebody who has
+            // already typed something in, and it has to name where to go. The
+            // version before this ended the screen with nothing to do next,
+            // and two of the first three people invited to a real circle
+            // stopped there.
+            return "This account already has a care circle with a record in it, and an account can be in one circle at a time. Open Sharing and leave your circle to use this code, or ask whoever invited you to join yours instead."
         }
     }
 }

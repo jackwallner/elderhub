@@ -331,6 +331,29 @@ extension CareTask: SyncableRecord { static var syncEntity: SyncEntity { .careTa
 extension CareNote: SyncableRecord { static var syncEntity: SyncEntity { .note } }
 extension Bill: SyncableRecord { static var syncEntity: SyncEntity { .bill } }
 
+// MARK: - Which record a row hangs off
+
+/// A row that belongs to exactly one `Person`.
+///
+/// Exists so the pull path has one rule for binding a child to its parent
+/// instead of nine copies of it. The rule is not only for the insert: a row
+/// already on the phone can be parentless, because two builds wrote children
+/// whose person had not arrived yet, and a parentless row is invisible
+/// forever. No screen lists it, and nothing else puts it right.
+protocol PersonScoped: AnyObject {
+    var person: Person? { get set }
+}
+
+extension Medication: PersonScoped {}
+extension Visit: PersonScoped {}
+extension VitalReading: PersonScoped {}
+extension EmergencyContact: PersonScoped {}
+extension Provider: PersonScoped {}
+extension CareEvent: PersonScoped {}
+extension CareTask: PersonScoped {}
+extension CareNote: PersonScoped {}
+extension Bill: PersonScoped {}
+
 @MainActor
 extension SyncableRecord {
     /// Call after any local create or edit. Saves the row before queueing it so

@@ -287,6 +287,18 @@ Sunday-first numbering; empty means every day.
   every birthday back a day. `check_in_settings.last_escalated_on` stays a
   `date`: `CheckInSettingsDTO` does not declare it, and Codable ignores a key no
   field asks for.
+- **A pulled child is bound to its parent on every apply, not just on the
+  insert.** `bindPerson` / `bindMedication` are called whether the row is new or
+  already held, because a row attached to nobody is invisible forever: no
+  `liveMedications`-style read can reach it, no screen lists it, and nothing
+  later puts it right. `SyncEngine.isDeferred` stops a new one being made (the
+  page stops rather than skipping, so the cursor never passes an unwritten row),
+  and `repairParentlessRowsIfNeeded` rewinds every pull cursor **once per
+  install** for a store that already holds one, so build 27's orphans are
+  offered again. That repair deletes nothing: a parentless row may be the only
+  copy of something somebody typed, and the re-pull goes through the same
+  conflict rules as any other. The `.v1` in the key is load-bearing, a later
+  repair is a different question.
 - **Every local write goes through `SyncableRecord`.** After a create or an edit,
   call `recordLocalChange()`; to delete, call `tombstone()`. Never `context.delete`
   a synced row: the push reads the row to build its DTO, so a row removed outright
