@@ -6,25 +6,25 @@
     <link rel="icon" type="image/png" sizes="256x256" href="icon_256.png" />
     <link rel="apple-touch-icon" href="icon_256.png" />
     <title>
-      Elderhub: Family Care Log - Shared Medication &amp; Medical Records for
-      iPhone
+      Elderhub: Family Care Log - Shared Family Care Record for iPhone
     </title>
     <meta
       name="description"
-      content="One shared record for the parent or partner you look after: medications, doses, allergies, doctor visits, readings and a daily check-in. Opens with no signal, and the whole family sees the same list."
+      content="One offline-first record for medications, appointments, readings, tasks, notes and bills, shared with family when you choose."
     />
     <link rel="canonical" href="https://jackwallner.com/ios/elderhub/" />
+    <meta name="apple-itunes-app" content="app-id=6796916172" />
     <meta
       name="keywords"
-      content="medication list, family medical records, medication tracker, pill schedule, emergency medical card, doctor visit notes, blood pressure log, daily check in, dementia, medical id, iPhone, private"
+      content="medication list, family medical records, medication tracker, pill schedule, emergency medical card, doctor visits, blood pressure log, daily check in, dementia, medical id, iPhone, private"
     />
     <meta
       property="og:title"
-      content="Elderhub: Family Care Log - One Record for the People You Look After"
+      content="Elderhub: Family Care Log - One Care Record for Your Family"
     />
     <meta
       property="og:description"
-      content="Medications, doses, allergies, visits and readings for a parent or partner, shared with your brothers and sisters. The emergency card opens with no signal."
+      content="Medications, doses, appointments, readings, tasks, notes and bills for the people you look after, shared with family when you choose."
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://jackwallner.com/ios/elderhub/" />
@@ -37,7 +37,7 @@
     <meta name="twitter:title" content="Elderhub: Family Care Log" />
     <meta
       name="twitter:description"
-      content="One shared record for the people you look after. Medications, visits, readings and a daily check-in, offline first."
+      content="One offline-first care record for medications, visits, readings, tasks, notes and bills, with optional family sharing."
     />
     <meta
       name="twitter:image"
@@ -55,7 +55,7 @@
             "@type": "Offer",
             "price": "0",
             "priceCurrency": "USD",
-            "description": "Free tier: one person with every feature, including medications, doses, visits, readings, tasks, emergency card and export"
+            "description": "Free tier: one care recipient with every feature, including medications, doses, visits, readings, tasks, notes, bills, check-in, emergency card and export"
           },
           {
             "@type": "Offer",
@@ -76,8 +76,9 @@
             "description": "Elderhub Plus Lifetime, additional people in the same care circle, one-time purchase"
           }
         ],
-        "description": "A shared medication and medical record for the parent or partner you look after. Medications with strength and schedule, doses marked on someone else's behalf, an offline emergency card, doctor visits, readings, shared tasks and an optional daily check-in. Every feature is free for one person, and Elderhub Plus adds more people to the same care circle.",
+        "description": "A shared care record for the people you look after. Keep medications, doses, appointments, providers, readings, symptoms, tasks, bills, notes, contacts, check-ins and history together. Every feature is free for one care recipient, and Elderhub Plus adds more people to the same care circle.",
         "url": "https://jackwallner.com/ios/elderhub/",
+        "downloadUrl": "https://apps.apple.com/us/app/elderhub-family-care-log/id6796916172",
         "screenshot": "https://jackwallner.github.io/elderhub/appstore-screenshot-01.png",
         "softwareVersion": "1.0.0",
         "author": {
@@ -529,31 +530,36 @@
     </style>
   </head>
   <body>
-    <!-- The app is not on the App Store yet. When the listing goes live, swap
-         both .download-btn spans and the .nav-link for the store URL, and add
-         <meta name="apple-itunes-app" content="app-id=6796916172"> plus a
-         JSON-LD downloadUrl. Never link a listing that does not exist. -->
     <nav>
       <div class="container">
         <a class="nav-brand" href="./">
           <img src="icon_256.png" alt="Elderhub" />
           <span>Elderhub</span>
         </a>
-        <a class="nav-link" href="support.html">Support</a>
+        <a
+          class="nav-link"
+          href="https://apps.apple.com/us/app/elderhub-family-care-log/id6796916172"
+          >Download</a
+        >
       </div>
     </nav>
 
     <section class="hero">
       <h1>One record for <span>the people you look after</span></h1>
       <p class="tagline">
-        Medications, doses, allergies, doctor visits and readings for a parent
-        or a partner, shared with your brothers, sisters and partner, so nobody
-        has to phone around to ask.
+        Medications, visits, readings, tasks, notes and bills for the people you
+        look after, with doses, reminders and the emergency card in the same
+        record.
       </p>
       <p class="platforms">
-        iPhone &middot; Works with no signal &middot; Shared with your family
+        iPhone &middot; iOS 17+ &middot; Works with no signal &middot; Optional
+        family sharing
       </p>
-      <span class="download-btn">Coming to the App Store</span>
+      <a
+        class="download-btn"
+        href="https://apps.apple.com/us/app/elderhub-family-care-log/id6796916172"
+        >Download on the App Store</a
+      >
     </section>
 
     <section class="showcase">
@@ -605,75 +611,76 @@
           <span class="label">Emergency card</span>
           <h3>One tap to hand it over</h3>
           <p>
-            Allergies, conditions, every active medication and the people to
-            call, in large type. A full copy lives on the phone, so it opens in
-            a waiting room with no bars.
+            Allergies, conditions, blood type, active medications, providers and
+            the people to call, in large type. A full copy lives on the phone,
+            so it opens in a waiting room with no bars.
           </p>
         </div>
         <div class="feature-card">
-          <span class="label">Medications</span>
+          <span class="label">Medications &amp; reminders</span>
           <h3>The list a doctor wants</h3>
           <p>
-            Name, strength, form, what it is for, who prescribed it, and the
-            instructions that matter. Not just an alarm.
+            Name, strength, form, purpose, prescriber, schedule, refill details
+            and dose reminders. Not just an alarm.
           </p>
         </div>
         <div class="feature-card">
-          <span class="label">Doses</span>
+          <span class="label">Dose history</span>
           <h3>Marked on someone's behalf</h3>
           <p>
             Log a dose as taken or skipped and the entry records who did it, so
-            two people helping never double up.
+            everyone can see what happened.
           </p>
         </div>
         <div class="feature-card">
-          <span class="label">Tasks</span>
-          <h3>Nobody calls twice</h3>
+          <span class="label">Medical record</span>
+          <h3>What is coming, what changed</h3>
           <p>
-            A shared list of the errands around a person. Two siblings ticking
-            off the same refill is agreement, not a conflict.
+            Appointments, providers, vitals, symptoms and health details stay
+            with the person they describe.
           </p>
         </div>
         <div class="feature-card">
-          <span class="label">Visits</span>
-          <h3>What the doctor said</h3>
+          <span class="label">Tasks &amp; bills</span>
+          <h3>The family can see what is handled</h3>
           <p>
-            The provider, the reason, the notes and the follow-up, written down
-            while it is fresh. Six weeks later you will not have to reconstruct
-            it.
+            Shared to-dos and bills with due dates, assignees, recurrence,
+            autopay and a record of what was marked done or paid.
           </p>
         </div>
         <div class="feature-card">
-          <span class="label">Check-in</span>
-          <h3>One large button</h3>
+          <span class="label">Notes &amp; contacts</span>
+          <h3>The details between screens</h3>
           <p>
-            Optional. If it is not pressed by the end of the window you agreed
-            together, everyone caring for them is told that no check-in
-            happened.
+            Free-form notes, emergency contacts and provider details stay with
+            the person's record, not in another chat thread.
           </p>
         </div>
         <div class="feature-card">
-          <span class="label">Share</span>
-          <h3>Plain text, anywhere</h3>
+          <span class="label">Timeline &amp; export</span>
+          <h3>History when you need it</h3>
           <p>
-            Send the one-pager into a message or an email, or print it for the
-            appointment. No app required at the other end.
+            See medication changes, visits, readings and check-ins in order,
+            then share a plain-text one-pager. No app required at the other end.
           </p>
         </div>
         <div class="feature-card">
-          <span class="label elderhub-pro">People &middot; Elderhub Plus</span>
-          <h3>Everyone you look after</h3>
+          <span class="label">Daily check-in</span>
+          <h3>A factual daily update</h3>
           <p>
-            Every feature is free for one person. Plus adds the second parent, a
-            partner, or anyone else in the same care circle.
+            Optional. A person taps once, and family members can see whether
+            today's check-in happened. It does not detect an emergency.
           </p>
         </div>
         <div class="feature-card">
-          <span class="label">Sharing</span>
-          <h3>Family joins free</h3>
+          <span class="label elderhub-pro"
+            >People &amp; sharing &middot; Elderhub Plus</span
+          >
+          <h3>One circle, no seat fees</h3>
           <p>
-            Invite helpers by email, link or code. There are no per-member seat
-            fees, and everyone keeps an offline copy.
+            Every feature is free for one care recipient. Plus adds more people
+            to the same care circle, and invited family members are always
+            included.
           </p>
         </div>
       </div>
@@ -689,12 +696,12 @@
         </div>
         <h2>Someone else's health information</h2>
         <p>
-          Most of what you type into Elderhub is about a person who is not
-          holding the phone, so it is treated that way. The record works on your
-          iPhone with no account at all. Sharing is opt-in: sign in with Apple,
-          choose who joins, and the database enforces per-row who can read what.
-          There is no advertising SDK, no behavioural analytics, and no location
-          code anywhere in the app. Nothing is sold.
+          Elderhub starts with a full record on this iPhone, so it remains
+          useful with no signal and no account. Sharing is opt-in: sign in with
+          Apple, choose who joins, and set which people's records each member
+          can see. Database rules enforce those choices. There is no advertising
+          SDK, no behavioral analytics, and no location tracking. Nothing is
+          sold.
         </p>
         <a href="privacy-policy.html">Privacy Policy &rarr;</a>
       </div>
@@ -714,21 +721,21 @@
               Elderhub assumes you are not.
             </p>
             <p>
-              If you help look after a parent or a spouse, the real list lives
-              in three places at once: some of it in your head, some on a scrap
-              of paper in a kitchen drawer, and some in whatever the pharmacy
-              printed out last spring. Then a nurse asks what she takes, and you
-              are guessing. Elderhub keeps one current list per person, so you
-              always have the answer, and so does your sister.
+              When a family looks after someone, medications, appointments,
+              readings, tasks, bills, notes and contacts end up spread across a
+              phone, a calendar, a text thread and a kitchen drawer. Elderhub
+              keeps one current care record per person, so the next person
+              helping has the same answer.
             </p>
           </div>
 
           <div class="more-info-section">
             <h3>Elderhub Plus</h3>
             <p>
-              Every feature is free for one person, including visits, readings
-              and export. Plus adds everyone else you look after to the same
-              care circle.
+              Every feature is free for one care recipient, including
+              medications, visits, readings, tasks, notes, bills, check-in,
+              emergency card and export. Plus adds additional care recipients to
+              the same care circle.
             </p>
             <p>
               <strong>One person pays.</strong> The purchase covers the whole
@@ -737,11 +744,11 @@
             </p>
             <p>
               <strong>Prices.</strong> Monthly, yearly, or a one-time lifetime
-              purchase are available, with a 1-week free trial on subscriptions.
-              Prices are shown in the app before you buy and vary by region.
-              Subscriptions renew automatically unless cancelled at least 24
-              hours before the period ends, and are managed in your Apple ID
-              settings.
+              purchase are available. Eligible new subscribers get a 1-week free
+              trial on subscriptions. Prices are shown in the app before you buy
+              and vary by region. Subscriptions renew automatically unless
+              cancelled at least 24 hours before the period ends, and are
+              managed in your Apple ID settings.
             </p>
           </div>
 
@@ -763,7 +770,8 @@
               <tr>
                 <td>Data</td>
                 <td>
-                  Typed in by hand; no Apple Health read, no connected monitors
+                  Typed in by hand; no Apple Health read, monitors, wearables or
+                  medical devices
                 </td>
               </tr>
               <tr>
@@ -776,7 +784,7 @@
                 <td>Sharing</td>
                 <td>
                   Sign in with Apple, email invitations and invite codes,
-                  per-row database policies
+                  per-recipient access controls
                 </td>
               </tr>
             </table>
@@ -800,10 +808,10 @@
               page.
             </p>
             <p>
-              <strong>Agreement is not a conflict.</strong> Two siblings ticking
-              off the same errand is the same intent twice, so the shared task
-              list merges it. Two people editing the same task's wording is a
-              real conflict, and that is handled separately.
+              <strong>Shared does not mean everything is exposed.</strong> A
+              family can work in one care circle while access follows the people
+              whose records are being kept. The app keeps those choices in its
+              access rules, not just in the buttons on screen.
             </p>
             <p>
               <strong>The check-in claims nothing.</strong> It reports that a
@@ -817,7 +825,7 @@
           <div class="more-info-section">
             <h3>Not a medical device</h3>
             <p>
-              Elderhub is an organisational tool. It does not diagnose, treat or
+              Elderhub is an organizational tool. It does not diagnose, treat or
               cure any condition, and it does not provide medical advice. Always
               follow the guidance of a licensed clinician. In an emergency, call
               your local emergency number.
@@ -829,10 +837,12 @@
 
     <section class="cta">
       <h2>One list, everyone looking after them</h2>
-      <p>
-        Free for the first person you look after. No account needed to start.
-      </p>
-      <span class="download-btn">Coming to the App Store</span>
+      <p>Free for the first care recipient. No account needed to start.</p>
+      <a
+        class="download-btn"
+        href="https://apps.apple.com/us/app/elderhub-family-care-log/id6796916172"
+        >Download on the App Store</a
+      >
     </section>
 
     <!-- The My Health My Data Act asks for the consumer-health-data link on the
