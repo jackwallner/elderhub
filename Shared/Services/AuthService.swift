@@ -61,6 +61,12 @@ final class AuthService {
             supabaseURL: SupabaseConfig.url,
             supabaseKey: SupabaseConfig.anonKey,
             options: SupabaseClientOptions(
+                db: SupabaseClientOptions.DatabaseOptions(
+                    // A `date` column decodes here too. See `PostgrestCoding`:
+                    // the SDK's own strategy rejects one, and a rejected field
+                    // fails the whole page rather than itself.
+                    decoder: PostgrestCoding.decoder()
+                ),
                 auth: SupabaseClientOptions.AuthOptions(
                     // Emit the stored session on launch even if it has expired,
                     // and refresh in the background. Without this the SDK awaits

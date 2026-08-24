@@ -1,1 +1,13 @@
+Everyone's day on one screen. With more than one person in your circle, Today now opens on all of them, so a missed morning dose is visible without switching records.
 
+Bills. Track what is owed and what has been paid, with recurring bills and autopay kept out of the overdue list.
+
+Appointments. A visit dated in the future is an appointment, listed on Today for the week ahead with a reminder the evening before.
+
+Medications you can pause. Stop a medication without deleting it, and keep every dose you logged. Weekly and other day-specific schedules are now shown everywhere the medication is.
+
+Choose who sees whom. Limit a family member to particular people in the circle, rather than all of them.
+
+Fixed: reminders are now grouped per person and time, so a long medication list no longer pushes the evening's reminders off the device. The app tells you if any do not fit.
+
+Fixed: joining a family circle now downloads the record. A date stored without a time of day could stop a newly joined phone from receiving anything at all.
