@@ -8,6 +8,8 @@ Medications you can pause. Stop a medication without deleting it, and keep every
 
 Choose who sees whom. Limit a family member to particular people in the circle, rather than all of them.
 
+Tap a reminder and it opens the person it names.
+
 Fixed: reminders are now grouped per person and time, so a long medication list no longer pushes the evening's reminders off the device. The app tells you if any do not fit.
 
-Fixed: joining a family circle now downloads the record. A date stored without a time of day could stop a newly joined phone from receiving anything at all.
+Fixed: joining a family circle now downloads the whole record. A birthday saved without a time of day could stop a newly joined phone from receiving anything at all, and a record now arrives in order rather than in pieces.
