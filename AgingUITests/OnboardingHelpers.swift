@@ -9,8 +9,12 @@ import XCTest
 /// file existing.
 extension XCTestCase {
 
-    /// Walks the fork, the sign-in skip, the name, every detail step and the
+    /// Walks the fork, the name, the sign-in skip, every detail step and the
     /// feature overview, and returns once the Today tab is up.
+    ///
+    /// The name comes *before* the sign-in step, which is the order 1.0.1 was
+    /// rejected for getting backwards: nothing may ask for a name on the screen
+    /// after Sign in with Apple (App Review 4.0).
     ///
     /// Every step is guarded: several callers launch onto a store that already
     /// has a person, where none of this appears.
@@ -21,16 +25,17 @@ extension XCTestCase {
             supporter.tap()
         }
 
-        let notNow = app.buttons["Not now"]
-        if notNow.waitForExistence(timeout: 5) {
-            notNow.tap()
-        }
-
         let nameField = app.textFields["Their name"]
         if nameField.waitForExistence(timeout: 5) {
             nameField.tap()
             nameField.typeText(name)
+            attest(app)
             app.buttons["Continue"].tap()
+        }
+
+        let notNow = app.buttons["Not now"]
+        if notNow.waitForExistence(timeout: 5) {
+            notNow.tap()
         }
 
         skipTheDetailsFlow(app)
@@ -39,6 +44,25 @@ extension XCTestCase {
         if openRecord.waitForExistence(timeout: 5) {
             openRecord.tap()
         }
+    }
+
+    /// Turns on the surrogate attestation, which gates Continue on the
+    /// supporter path. It used to appear only for someone already signed in,
+    /// which after the reorder would be nobody: this step now runs before the
+    /// account does.
+    @MainActor
+    func attest(_ app: XCUIApplication) {
+        let row = app.switches["onboarding.attestation"]
+        guard row.waitForExistence(timeout: 3) else { return }
+        guard (row.value as? String) != "1" else { return }
+
+        // The identifier is on the whole row, whose centre is the sentence, not
+        // the control. A SwiftUI `Toggle` outside a `List` only flips when the
+        // switch itself is hit, so tapping the row taps a piece of text and
+        // leaves Continue disabled.
+        let control = row.switches.firstMatch
+        if control.exists { control.tap() } else { row.tap() }
+        XCTAssertEqual(row.value as? String, "1", "The attestation toggle did not flip")
     }
 
     /// Skips every question in `OnboardingDetailsFlow`.

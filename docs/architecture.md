@@ -259,9 +259,11 @@ themselves as the care recipient, never shows an invite screen, and is a complet
 tracker.
 
 ### Supporter path
-Sign in, name the group, add the first care recipient. If that recipient will use the
-app, generate an invite code. If not (Dad, no phone), the attestation step from D28
-fires instead.
+Name the first care recipient, then sign in, then the skippable details flow. The
+circle is created after the sign-in and is still named after the person, because they
+exist by then. If that recipient will use the app, generate an invite code. If not
+(Dad, no phone), the attestation step from D28 fires instead. See §22 for why the
+sign-in is not first.
 
 ### Subject path
 Sign in, enter the invite code, then land on the transparency screen **before any data
@@ -982,3 +984,66 @@ Two changes close it:
 
    Both the scheduler and that screen read the one `DevicePlan`, so the warning
    cannot disagree with what was actually scheduled.
+
+---
+
+## 22. Nothing is asked for after Sign in with Apple (2026-08-27)
+
+1.0.1 was rejected under **Guideline 4.0 - Design**:
+
+> The app offers Sign in with Apple as a login option but does not follow the design
+> and user experience requirements for Sign in with Apple. Specifically, users are
+> required to provide their name and/or email address after using Sign in with Apple
+> even though that information is already provided by the Authentication Services
+> framework.
+
+The flow signed in at step two and put `OnboardingView` on the very next screen, with a
+required name field and a Continue button disabled until it was filled. On the solo
+path that field is headed "What should we call you?" and is literally the account
+holder's own name, which Apple had already handed over. On the supporter path it is the
+care recipient's name, which the guideline does not cover, but nothing on screen says
+so and a reviewer cannot tell the two apart.
+
+### The rule
+
+**No screen that follows the Apple button may ask for anything about the person
+signing in.** `SignInOrderUITests` holds it: it asserts that the sign-in step carries no
+text field of any kind, so an email box added there later fails the build rather than
+the submission.
+
+### What changed
+
+- `firstStep(for:)` sends the supporter and solo paths to `.namePerson`, and only the
+  join path to `.signIn`, because there is genuinely nothing to join without an
+  account. The account is now asked for **after** the record is named, which also puts
+  the app's value ahead of its one wall.
+- The circle moved out of `createFirstPerson` and into `attachGroupAndContinue`, which
+  runs on the sign-in completing. It is still named after the person ("Mom's care
+  circle"): they exist by then, which was the whole reason the two were ordered the
+  way they were. Skipping the sign-in still leaves a complete, working, local-only app
+  (I3).
+- `attachGroupAndContinue` refreshes group membership before deciding to create one.
+  Someone signing back in on a new phone already owns a circle, and the cache the
+  onboarding flow launched with predates that sign-in; the server refuses a second
+  circle, so without the refresh they got an error alert instead of their family's
+  record.
+- `SignInView` reports success twice (its completion handler and its own `isSignedIn`
+  observer) and `OnboardingFlow` watches the same flag, so `handleSignedIn` can fire
+  more than once for one sign-in. Setting a step is idempotent; creating a circle is
+  not. `isAttachingGroup` is set before the first `await`, which on the main actor is
+  enough.
+- `goBack()` discards the draft record when backing out of the sign-in step. The person
+  is created before the account now, so a Back that left it behind would produce a
+  second one on the way forward, and picking a different path at the fork would strand
+  a half-named person in the Care tab. This is the one place `context.delete` is right
+  rather than `tombstone()`: reaching that step means there is no account, so the row
+  has never been pushed anywhere.
+- The surrogate attestation is asked on the supporter path whether or not there is an
+  account. It used to be gated on being signed in, which after the reorder would mean
+  never.
+- `prepareAppleRequest` asks for `[.fullName, .email]` rather than the name alone. The
+  email rides in the id token and reaches Supabase without a field being put in front
+  of anyone. Apple returns either one only on the first authorization for an Apple ID,
+  which is why `completeAppleSignIn` still captures the name there or not at all.
+- `OnboardingView` takes a `suggestedName`, filled from `auth.displayName` on the solo
+  path, so a re-run from Settings never asks for a name Apple already gave us.

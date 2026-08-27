@@ -5,14 +5,21 @@ Family sharing is optional and uses Sign in with Apple, which is the only
 sign-in method the app offers. The shared copy is
 mirrored locally for offline use and syncs through Supabase when available.
 
+Sign in with Apple: the request asks for both the name and the email scope,
+and the app uses what Authentication Services returns. No screen after
+signing in asks for a name or an email address. The name asked for before
+sign-in belongs to the person being cared for (a parent or a spouse), not to
+the account holder, and it is asked before any account exists.
+
 Core flow:
-1. Launch and choose a path, then optionally skip sign-in
-2. Add a person and a medication with its strength and schedule
-3. Today tab lists that day's doses; tap Taken to log one
-4. Care tab holds each tracked person
-5. Emergency card renders a shareable plain-text summary
-6. Sharing tab offers account setup and invitations by email, link, or code
-7. To test Elderhub Plus, finish setup with one person, then open Care
+1. Launch, choose a path, and name the person you look after
+2. Optionally sign in with Apple to share the record, or tap Not now
+3. Add a medication with its strength and schedule
+4. Today tab lists that day's doses; tap Taken to log one
+5. Care tab holds each tracked person
+6. Emergency card renders a shareable plain-text summary
+7. Sharing tab offers account setup and invitations by email, link, or code
+8. To test Elderhub Plus, finish setup with one person, then open Care
    and tap Add person. The second-person action presents the paywall.
 
 Every feature is free for the first person. Elderhub Plus (IAP via

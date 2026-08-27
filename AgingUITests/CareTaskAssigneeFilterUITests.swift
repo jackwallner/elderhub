@@ -118,26 +118,10 @@ final class CareTaskAssigneeFilterUITests: XCTestCase {
         add(shot)
     }
 
+    /// The steps live in `OnboardingHelpers` rather than here, which is the
+    /// only reason the sign-in reorder did not have to be made in six places.
     private func completeOnboardingIfNeeded(_ app: XCUIApplication) {
-        let supporter = app.buttons["Start a care record"]
-        if supporter.waitForExistence(timeout: 5) {
-            supporter.tap()
-        }
-
-        let notNow = app.buttons["Not now"]
-        if notNow.waitForExistence(timeout: 5) {
-            notNow.tap()
-        }
-
-        let nameField = app.textFields["Their name"]
-        if nameField.waitForExistence(timeout: 5) {
-            nameField.tap()
-            nameField.typeText("Eleanor Wallner")
-            app.buttons["Continue"].tap()
-            skipTheDetailsFlow(app)
-            app.buttons["onboarding.open-record"].tap()
-        }
-
+        completeOnboarding(app)
         XCTAssertTrue(app.navigationBars["Today"].waitForExistence(timeout: 10))
     }
 

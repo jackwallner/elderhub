@@ -5,6 +5,11 @@ import SwiftUI
 struct OnboardingView: View {
     var isSolo: Bool = false
     var requiresAttestation: Bool = false
+    /// Prefilled into the name field when it is the *account holder* being
+    /// named, which is the solo path only. Sign in with Apple hands over a name
+    /// and the app must not ask for it a second time (App Review 4.0), so on a
+    /// re-run from Settings this arrives already filled in.
+    var suggestedName: String = ""
     let onComplete: (String, String, Bool) -> Void
 
     @State private var name = ""
@@ -47,7 +52,7 @@ struct OnboardingView: View {
 
                 Text(isSolo
                      ? "Your own list. You can add someone else later."
-                     : "Start with one person. You can add more later.")
+                     : "The person you look after, not your own account. You can add more later.")
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -100,6 +105,7 @@ struct OnboardingView: View {
                     }
                     .toggleStyle(.switch)
                     .padding(.top, 4)
+                    .accessibilityIdentifier("onboarding.attestation")
                 }
             }
             .padding(.horizontal, 28)
@@ -139,6 +145,7 @@ struct OnboardingView: View {
         }
         .onAppear {
             if isSolo { relationship = "Me" }
+            if name.isEmpty { name = suggestedName }
         }
     }
 }
