@@ -58,22 +58,10 @@ final class PaywallRenderUITests: XCTestCase {
         }
     }
 
+    /// The steps live in `OnboardingHelpers` rather than here, which is the
+    /// only reason the sign-in reorder did not have to be made in six places.
     private func completeOnboardingIfNeeded(_ app: XCUIApplication) {
-        let start = app.buttons["Start a care record"]
-        if start.waitForExistence(timeout: 5) {
-            start.tap()
-            app.buttons["Not now"].tap()
-        }
-
-        let nameField = app.textFields["Their name"]
-        guard nameField.waitForExistence(timeout: 10) else { return }
-
-        nameField.tap()
-        nameField.typeText("Eleanor Wallner")
-        app.buttons["Continue"].tap()
-        skipTheDetailsFlow(app)
-        app.buttons["onboarding.open-record"].tap()
-
+        completeOnboarding(app)
         XCTAssertTrue(app.navigationBars["Today"].waitForExistence(timeout: 10))
     }
 }

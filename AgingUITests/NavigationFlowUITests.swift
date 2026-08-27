@@ -63,12 +63,25 @@ final class NavigationFlowUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Keep track of myself"].exists)
 
         app.buttons["Start a care record"].tap()
-        app.buttons["Not now"].tap()
+
+        // The record is named before any account is asked for. 1.0.1 was
+        // rejected under Guideline 4.0 for the other order: a required name
+        // field on the screen straight after Sign in with Apple, which the
+        // Authentication Services framework has already provided.
         let name = app.textFields["Their name"]
         XCTAssertTrue(name.waitForExistence(timeout: 5))
         name.tap()
         name.typeText("Eleanor Wallner")
+        attest(app)
         app.buttons["Continue"].tap()
+
+        let notNow = app.buttons["Not now"]
+        XCTAssertTrue(notNow.waitForExistence(timeout: 5))
+        XCTAssertTrue(
+            app.buttons["Sign in with Apple"].exists,
+            "The sign-in step no longer follows the name step"
+        )
+        notNow.tap()
 
         // Every question is skippable, and the first thing this proves is that
         // Skip is reachable at all: a flow this long with a Skip below the fold

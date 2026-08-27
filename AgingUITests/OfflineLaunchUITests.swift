@@ -97,16 +97,19 @@ final class OfflineLaunchUITests: XCTestCase {
         }
         supporter.tap()
 
-        let notNow = app.buttons["Not now"]
-        if notNow.waitForExistence(timeout: 5) { notNow.tap() }
-
+        // The name is asked before the account, not after it (App Review 4.0).
         let nameField = app.textFields["Their name"]
         guard nameField.waitForExistence(timeout: 5) else {
             return existingPersonName(app)
         }
         nameField.tap()
         nameField.typeText("Eleanor Wallner")
+        attest(app)
         app.buttons["Continue"].tap()
+
+        let notNow = app.buttons["Not now"]
+        if notNow.waitForExistence(timeout: 5) { notNow.tap() }
+
         skipTheDetailsFlow(app)
         app.buttons["onboarding.open-record"].tap()
 

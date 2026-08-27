@@ -260,6 +260,14 @@ Sunday-first numbering; empty means every day.
   seekers and B2B agency software, so they buy wrong-intent installs and bad reviews.
 - Free keyword-field trophies, since the field costs nothing: the `dementia` cluster
   (diff 5-13, unowned) and `medical id`.
+- **Nothing may be asked for on a screen that follows Sign in with Apple.** 1.0.1 was
+  rejected under Guideline 4.0 for signing in and then showing a required name field on
+  the next screen. Onboarding now names the care recipient *before* the account
+  (`OnboardingFlow.firstStep(for:)`), the circle is created once sign-in completes
+  (`attachGroupAndContinue`, still named after the person), and `SignInOrderUITests`
+  asserts the sign-in step carries no text field at all. `prepareAppleRequest` asks for
+  `[.fullName, .email]`: whatever the framework gives us, the app must not ask for
+  again. `docs/architecture.md` §22.
 - **Compliance**: Medical category. Never claim to treat, cure or diagnose (App Review
   1.4.1). The disclaimer lives in `SettingsView` and on the emergency card, and both
   must stay. Submission is blocked until the Regulated Medical Device declaration is

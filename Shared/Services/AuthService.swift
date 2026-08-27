@@ -153,10 +153,16 @@ final class AuthService {
     /// Sign in with Apple remains the shortest path. Email codes are the
     /// fallback for people who do not use Apple sign-in or are opening a family
     /// invitation on a different Apple account.
+    ///
+    /// Both scopes are requested because the app must never ask for anything
+    /// Authentication Services already hands over (App Review 4.0). The name
+    /// fills the profile, and the email rides in the id token, so Supabase has
+    /// it without a single field being put in front of anyone. Apple returns
+    /// either one only on the very first authorization for this Apple ID.
     func prepareAppleRequest(_ request: ASAuthorizationAppleIDRequest) {
         let nonce = Self.randomNonceString()
         currentNonce = nonce
-        request.requestedScopes = [.fullName]
+        request.requestedScopes = [.fullName, .email]
         request.nonce = Self.sha256(nonce)
     }
 

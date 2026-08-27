@@ -43,6 +43,8 @@ struct OnboardingFlow: View {
     @State private var step: Step = .path
     @State private var path: Path = .supporter
     @State private var isWorking = false
+    /// Guards the one non-idempotent thing in this flow: creating the circle.
+    @State private var isAttachingGroup = false
     @State private var errorMessage: String?
     @State private var createdPersonName = ""
     @State private var createdPerson: Person?
@@ -53,22 +55,29 @@ struct OnboardingFlow: View {
             case .path:
                 PathPickerView { chosen in
                     path = chosen
-                    step = auth.isSignedIn ? next(after: .signIn) : .signIn
+                    step = firstStep(for: chosen)
                 }
 
             case .signIn:
                 SignInView(
                     purpose: signInPurpose,
-                    onSignedIn: { step = next(after: .signIn) },
+                    onSignedIn: { handleSignedIn() },
                     // Joining a family is the one path that cannot proceed
                     // without an account: there is nothing to join without one.
-                    onSkip: path == .subject ? nil : { step = next(after: .signIn) }
+                    onSkip: path == .subject ? nil : { step = .details }
                 )
 
             case .namePerson:
                 OnboardingView(
                     isSolo: path == .solo,
-                    requiresAttestation: path == .supporter && auth.isSignedIn
+                    // Asked on the supporter path whether or not there is an
+                    // account. It used to be gated on being signed in, which
+                    // after the reorder would mean never, since this step now
+                    // runs before the account does.
+                    requiresAttestation: path == .supporter,
+                    // Only ever the account holder's own name, and only on the
+                    // path that asks for it. Apple already gave it to us.
+                    suggestedName: path == .solo ? auth.displayName : ""
                 ) { name, relationship, attested in
                     Task {
                         await createFirstPerson(
@@ -118,7 +127,7 @@ struct OnboardingFlow: View {
         .overlay(alignment: .topLeading) {
             if canGoBack {
                 Button {
-                    step = .path
+                    goBack()
                 } label: {
                     Label("Back", systemImage: "chevron.left")
                         .font(.subheadline.weight(.semibold))
@@ -152,7 +161,7 @@ struct OnboardingFlow: View {
         .onChange(of: initialInviteCode) { _, _ in adoptInviteCode() }
         .onChange(of: auth.isSignedIn) { _, signedIn in
             guard signedIn, step == .signIn else { return }
-            step = next(after: .signIn)
+            handleSignedIn()
         }
     }
 
@@ -191,37 +200,118 @@ struct OnboardingFlow: View {
         }
     }
 
-    private func next(after step: Step) -> Step {
+    /// Only the join path signs in first, because there is nothing to join
+    /// without an account. Everywhere else the record is named first and the
+    /// account is offered after it: that is what keeps a name field off the
+    /// screen that follows Sign in with Apple (App Review 4.0, which rejected
+    /// 1.0.1 for exactly that), and it puts the app's value before its wall.
+    private func firstStep(for path: Path) -> Step {
         switch path {
+        case .subject: return auth.isSignedIn ? .joinCode : .signIn
         case .supporter, .solo: return .namePerson
-        case .subject: return .joinCode
         }
     }
 
-    /// Creates the first recipient, then the group named after them, then adopts
-    /// everything already on the device into it. Group creation deliberately
-    /// comes second so the family is called "Mom's family" rather than "Family".
+    /// `SignInView` reports a success twice: once from its completion handler
+    /// and once from its own `isSignedIn` observer, and this view watches the
+    /// same flag. Setting the step is idempotent; creating a circle is not,
+    /// hence the flag inside `attachGroupAndContinue`.
+    private func handleSignedIn() {
+        guard step == .signIn else { return }
+        switch path {
+        case .subject:
+            step = .joinCode
+        case .supporter, .solo:
+            Task { await attachGroupAndContinue() }
+        }
+    }
+
+    /// Back out of the sign-in step takes the draft record with it, or walking
+    /// forward again leaves two of them and picking a different path at the
+    /// fork strands a half-named person in the Care tab. This is the one place
+    /// `context.delete` is right rather than `tombstone()`: reaching this step
+    /// means there is no account, so the row has never been pushed anywhere and
+    /// holds nothing but the name just typed.
+    private func goBack() {
+        if step == .signIn, !auth.isSignedIn, let draft = createdPerson {
+            context.delete(draft)
+            try? context.save()
+            createdPerson = nil
+            createdPersonName = ""
+        }
+        step = .path
+    }
+
+    /// Creates the first recipient. The circle comes later, once there is an
+    /// account to own it, and is still named after this person ("Mom's care
+    /// circle") because they exist by then.
     private func createFirstPerson(name: String, relationship: String, attested: Bool) async {
         isWorking = true
         defer { isWorking = false }
 
         let isSelf = path == .solo || relationship.lowercased() == "me"
-        let existing = (try? context.fetchCount(FetchDescriptor<Person>())) ?? 0
-        let person = Person(
-            name: name,
-            relationship: relationship,
-            colorIndex: existing,
-            isSelf: isSelf
-        )
-        if attested { person.surrogateAttestedAt = Date() }
-        context.insert(person)
+
+        // Reuse the draft when this step is answered a second time, so a Back
+        // and a second run forward cannot leave two records behind.
+        let person: Person
+        if let draft = createdPerson {
+            person = draft
+            person.name = name
+            person.relationship = relationship
+            person.isSelf = isSelf
+        } else {
+            let existing = (try? context.fetchCount(FetchDescriptor<Person>())) ?? 0
+            person = Person(
+                name: name,
+                relationship: relationship,
+                colorIndex: existing,
+                isSelf: isSelf
+            )
+            context.insert(person)
+        }
+        if attested, person.surrogateAttestedAt == nil { person.surrogateAttestedAt = Date() }
         try? context.save()
 
-        // No account means no group, and that is a complete, working app (I3).
-        // The Sharing tab offers an account again whenever they want it.
+        createdPersonName = person.displayLabel
+        createdPerson = person
+
         if auth.isSignedIn {
+            await attachGroupAndContinue()
+        } else {
+            // No account means no group, and that is a complete, working app
+            // (I3). The sign-in step that follows can be skipped outright.
+            step = .signIn
+        }
+    }
+
+    /// Creates the circle for a record that already exists, then adopts
+    /// everything on the device into it.
+    private func attachGroupAndContinue() async {
+        guard !isAttachingGroup else { return }
+        isAttachingGroup = true
+        isWorking = true
+        defer {
+            isWorking = false
+            isAttachingGroup = false
+        }
+
+        if auth.isSignedIn, let person = createdPerson {
+            // Someone signing back in on a new phone already owns a circle, and
+            // the cache this view was launched with predates that sign-in. Ask
+            // before assuming there is none: the server refuses a second one.
+            await groups.refresh()
             do {
-                let groupID = try await groups.createGroup(named: groupName(for: name, isSelf: isSelf))
+                let groupID: UUID
+                if let existing = groups.activeGroupID {
+                    // Signing back into an account that already owns a circle:
+                    // this record joins it rather than starting a second one,
+                    // which the server would refuse anyway.
+                    groupID = existing
+                } else {
+                    groupID = try await groups.createGroup(
+                        named: groupName(for: person.name, isSelf: person.isSelf)
+                    )
+                }
                 await sync.adoptLocalData(into: groupID)
             } catch {
                 // The person is already saved locally and the app is fully
@@ -232,8 +322,6 @@ struct OnboardingFlow: View {
             }
         }
 
-        createdPersonName = person.displayLabel
-        createdPerson = person
         step = .details
     }
 
