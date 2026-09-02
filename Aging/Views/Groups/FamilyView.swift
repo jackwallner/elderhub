@@ -414,6 +414,7 @@ private struct MemberSheet: View {
     @State private var errorMessage: String?
     @State private var isConfirmingRemoval = false
     @State private var isConfirmingTransfer = false
+    @State private var pendingRole: GroupRole?
     @State private var scope: MemberAccessScope = .all
     @State private var granted: Set<UUID> = []
     @State private var isSavingAccess = false
@@ -424,7 +425,16 @@ private struct MemberSheet: View {
                 Section {
                     ForEach([GroupRole.caregiver, GroupRole.subject], id: \.self) { option in
                         Button {
-                            Task { await change(to: option) }
+                            // Asked, like the two actions below it in this same
+                            // sheet. Demoting a caregiver to subject takes the
+                            // rest of the family off their phone (the client
+                            // purges what they had already pulled, and RLS
+                            // stops the rest), and it did that on a single tap
+                            // on a list row while "Make organizer" and "Remove
+                            // from the group" both stopped to ask. The person
+                            // who finds out is not the one tapping.
+                            guard option != member.role else { return }
+                            pendingRole = option
                         } label: {
                             HStack {
                                 VStack(alignment: .leading, spacing: 2) {
@@ -487,6 +497,25 @@ private struct MemberSheet: View {
                 }
             } message: {
                 Text("They lose access straight away. Anything they entered stays in the family record.")
+            }
+            .confirmationDialog(
+                pendingRole.map { "Change \(member.resolvedName) to \($0.label)?" } ?? "Change role?",
+                isPresented: Binding(
+                    get: { pendingRole != nil },
+                    set: { if !$0 { pendingRole = nil } }
+                ),
+                titleVisibility: .visible
+            ) {
+                Button("Change") {
+                    guard let option = pendingRole else { return }
+                    pendingRole = nil
+                    Task { await change(to: option) }
+                }
+                Button("Cancel", role: .cancel) { pendingRole = nil }
+            } message: {
+                Text(pendingRole == .subject
+                     ? "They will see only their own list on their own phone, and everyone else's records come off it."
+                     : "They will see and be able to edit everyone in the family.")
             }
             .confirmationDialog(
                 "Make \(member.resolvedName) the organizer?",

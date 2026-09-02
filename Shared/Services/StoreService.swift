@@ -157,6 +157,30 @@ final class StoreService: NSObject {
     private(set) var plans: [PlanOption] = []
     private(set) var isLoading: Bool = false
 
+    /// Why the last load produced no plans, or nil if it produced some.
+    ///
+    /// Only logged before, which made the paywall's one empty branch mean two
+    /// opposite things: "the prices are a moment away" and "the store could not
+    /// be reached and never will be on its own". It rendered a bare spinner for
+    /// both, so a failure was an animation that never stopped. That matters
+    /// more here than in most apps, because this one is built to be opened with
+    /// no signal, so the failing case is ordinary rather than exotic. The
+    /// paywall now reads this to decide between waiting and offering a retry.
+    private(set) var loadFailure: String?
+
+    /// Whether a load has ever finished. Without it the paywall cannot tell
+    /// "about to start" from "tried and failed", and the failure state flashes
+    /// up for a frame before the first attempt has even run.
+    private(set) var hasAttemptedLoad: Bool = false
+
+    /// True only for the honest in-between: nothing to show yet, and either a
+    /// load is running or the first one has not started.
+    var isLoadingPlans: Bool { plans.isEmpty && (isLoading || !hasAttemptedLoad) }
+
+    /// True when an attempt has finished and left the sheet with nothing to
+    /// sell. Retry is the only useful thing to offer here.
+    var hasNoPlans: Bool { plans.isEmpty && hasAttemptedLoad && !isLoading }
+
     /// Whether *this* Apple ID would actually be granted each product's
     /// introductory offer. A trial already used on the account is still
     /// advertised by the product, so without this the paywall promises a free
@@ -211,7 +235,10 @@ final class StoreService: NSObject {
         }
 
         isLoading = true
-        defer { isLoading = false }
+        defer {
+            isLoading = false
+            hasAttemptedLoad = true
+        }
 
         guard isConfigured else {
             // Simulator: no RevenueCat, so fall back to StoreKit Testing products.
@@ -220,6 +247,7 @@ final class StoreService: NSObject {
             return
         }
 
+        loadFailure = nil
         do {
             let info = try await Purchases.shared.customerInfo()
             apply(info)
@@ -238,8 +266,17 @@ final class StoreService: NSObject {
                 )
             }
             .sorted { ProProduct.order(for: $0.id) < ProProduct.order(for: $1.id) }
+
+            // A load that succeeds and returns nothing is still a failure from
+            // the reader's side: the sheet is open and has nothing to sell. It
+            // happens when the offering is misconfigured, which no amount of
+            // waiting fixes, so it must not be left looking like loading.
+            if plans.isEmpty {
+                loadFailure = "No plans came back from the App Store."
+            }
         } catch {
             log.error("refresh failed: \(error.localizedDescription, privacy: .public)")
+            loadFailure = error.localizedDescription
         }
         await refreshIntroEligibility()
     }
@@ -286,6 +323,7 @@ final class StoreService: NSObject {
     /// Populates `plans` from the local `.storekit` catalog. Only ever runs when
     /// RevenueCat is not configured, i.e. on the simulator.
     private func loadStoreKitTestingPlans() async {
+        loadFailure = nil
         do {
             let products = try await Product.products(for: ProProduct.all)
             let order = ProProduct.all
@@ -303,8 +341,12 @@ final class StoreService: NSObject {
                         trialDays: PlanOption.freeTrialDays(from: $0.subscription?.introductoryOffer)
                     )
                 }
+            if plans.isEmpty {
+                loadFailure = "No plans came back from the App Store."
+            }
         } catch {
             log.error("StoreKit Testing load failed: \(error.localizedDescription, privacy: .public)")
+            loadFailure = error.localizedDescription
         }
     }
 

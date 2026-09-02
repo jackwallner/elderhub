@@ -21,6 +21,7 @@ struct CareTasksView: View {
     @State private var editingTask: CareTask?
     @State private var showDone = false
     @State private var scope: TaskScope = .everyone
+    @State private var pendingDeletion: PendingRecordDeletion?
 
     /// Deliberately not persisted. A filter that survives relaunch is a filter
     /// people forget is on, and the failure it produces here is a sibling
@@ -110,7 +111,7 @@ struct CareTasksView: View {
                                 .contentShape(Rectangle())
                                 .onTapGesture { editingTask = task }
                         }
-                        .onDelete { offsets in delete(section.tasks, at: offsets) }
+                        .onDelete { offsets in requestDeletion(of: section.tasks, at: offsets) }
                     }
                 }
             }
@@ -121,7 +122,7 @@ struct CareTasksView: View {
                         ForEach(done) { task in
                             DoneRow(task: task) { task.markIncomplete(in: context) }
                         }
-                        .onDelete { offsets in delete(done, at: offsets) }
+                        .onDelete { offsets in requestDeletion(of: done, at: offsets) }
                     }
                 } header: {
                     Button {
@@ -159,6 +160,7 @@ struct CareTasksView: View {
         .sheet(item: $editingTask) { task in
             CareTaskEditorSheet(person: person, task: task)
         }
+        .recordDeletionConfirmation($pendingDeletion)
     }
 
     private func complete(_ task: CareTask) {
@@ -170,11 +172,36 @@ struct CareTasksView: View {
         return TaskPlanner.isAssigned(task, to: groups.selfUserID, named: groups.selfDisplayName)
     }
 
-    /// Tombstones rather than hard-deletes: a row that only disappears locally
-    /// would never be pushed, so the delete would live and die on this phone.
-    private func delete(_ tasks: [CareTask], at offsets: IndexSet) {
-        for index in offsets {
-            tasks[index].tombstone(in: context)
+    /// Asks first, like every other list in the app.
+    ///
+    /// This was the one editable list that tombstoned on the swipe alone.
+    /// Bills, visits, vitals, notes, providers and care events all go through
+    /// `recordDeletionConfirmation`; tasks did not, and the row a mis-swipe
+    /// removed went from every phone in the circle at once. The tap target that
+    /// opens the editor is the same row, which makes a stray horizontal drag
+    /// the likeliest way to hit it.
+    private func requestDeletion(of tasks: [CareTask], at offsets: IndexSet) {
+        let doomed = offsets.compactMap { tasks.indices.contains($0) ? tasks[$0] : nil }
+        guard !doomed.isEmpty else { return }
+
+        let title = doomed.count == 1
+            ? "Remove \(doomed[0].title.isEmpty ? "this task" : doomed[0].title)?"
+            : "Remove \(doomed.count) tasks?"
+        let detail = doomed.count == 1
+            ? "The task and anything noted on it go with it."
+            : "They and anything noted on them go with them."
+
+        pendingDeletion = PendingRecordDeletion(
+            title: title,
+            message: PendingRecordDeletion.message(detail, isShared: groups.activeGroupID != nil),
+            confirmLabel: "Remove"
+        ) {
+            // Tombstones rather than hard-deletes: a row that only disappears
+            // locally would never be pushed, so the delete would live and die
+            // on this phone.
+            for task in doomed {
+                task.tombstone(in: context)
+            }
         }
     }
 }
@@ -183,10 +210,12 @@ struct CareTasksView: View {
 
 /// Whose name goes on a task this device writes.
 ///
-/// A solo caregiver with no group has no member list and no name to use, and
-/// "You" is what the rest of the app already writes in that case
-/// (`CareEventsView`, `TodayView`). Once a family exists, the real name is
-/// used, because "You" on a sibling's phone names the wrong person.
+/// A solo caregiver with no group has no member list and no name to use, so
+/// "You" is the fallback: with nobody else to read it, it names the right
+/// person. Once a family exists the real name is used, because "You" is a
+/// synced string and on a sibling's phone it names whoever is holding it. Every
+/// authored row in the app resolves its name through here, `CareEventsView`
+/// included, so the two cannot drift apart again.
 enum CareTaskAuthor {
     @MainActor
     static func name(from groups: GroupService) -> String {

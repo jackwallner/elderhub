@@ -12,6 +12,7 @@ struct SettingsView: View {
     @Environment(GroupService.self) private var groups
     @Environment(SyncCoordinator.self) private var sync
     @Environment(DeviceModeService.self) private var deviceMode
+    @Environment(\.openURL) private var openURL
 
     @State private var showPaywall = false
     @State private var isDeletingAccount = false
@@ -20,6 +21,7 @@ struct SettingsView: View {
     @State private var setupPerson: Person?
     @State private var isSettingPIN = false
     @State private var isConfirmingHandover = false
+    @State private var isAskingForReview = false
 
     private var isUnlocked: Bool { store.isPro || groups.hasPlus }
 
@@ -72,6 +74,8 @@ struct SettingsView: View {
                 syncSection
                 privacySection
 
+                feedbackSection
+
                 Section {
                     Button("Restore purchases") {
                         Task { await restore() }
@@ -123,6 +127,20 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $isSettingPIN) {
                 SetCaregiverPINSheet()
+            }
+            .sheet(isPresented: $isAskingForReview) {
+                ReviewPromptSheet { outcome in
+                    switch outcome {
+                    case .notNow:
+                        ReviewPrompt.markAsked()
+                    case .wantsToRate:
+                        ReviewPrompt.markSettled()
+                        openURL(AppStoreReviewLinks.writeReviewURL)
+                    case .sendingFeedback:
+                        ReviewPrompt.markSettled()
+                        openSupportMail()
+                    }
+                }
             }
             .confirmationDialog(
                 handoverCandidates.count > 1 ? "Who is holding the phone?" : "Hand this phone over?",
@@ -326,12 +344,68 @@ struct SettingsView: View {
                 }
                 .disabled(sync.isSyncing)
             } else {
-                Text("You are not signed in. Everything stays on this phone.")
+                // A statement with nothing to do about it was the whole of this
+                // branch, and Settings is where people look for a backup. The
+                // only sign-in in the app lived behind the **Sharing** tab, so
+                // a solo caregiver with no siblings had no reason ever to open
+                // the one screen that offered it, and kept a parent's entire
+                // medical record on a single phone with no copy of it
+                // anywhere. Sharing is not the point being made here; not
+                // losing the list is.
+                Text("Everything is saved on this phone, and nowhere else. If you lose the phone, the record goes with it.")
                     .foregroundStyle(.secondary)
+                NavigationLink {
+                    BackUpSignInView()
+                } label: {
+                    Label("Sign in to back this up", systemImage: "icloud.and.arrow.up")
+                }
+                .accessibilityIdentifier("settings.sign-in")
             }
         } header: {
             Text("Account")
+        } footer: {
+            if !auth.isSignedIn {
+                Text("Signing in backs up the record and lets you bring it back on a new phone. It adds nobody to it: sharing with family is a separate step on the Sharing tab.")
+            }
         }
+    }
+
+    /// Rating and feedback, said plainly and reachable on purpose.
+    ///
+    /// The app had neither: no rating request anywhere, and support was a link
+    /// to a web page. In a category whose whole shelf is decided by rating
+    /// count, that is not a missing nicety. A deliberate tap here is never
+    /// gated by the passive prompt's eligibility rules: somebody who came
+    /// looking for this has already decided.
+    private var feedbackSection: some View {
+        Section {
+            Button {
+                isAskingForReview = true
+            } label: {
+                Label("Rate Elderhub", systemImage: "star")
+            }
+            .accessibilityIdentifier("settings.rate")
+
+            Button {
+                openSupportMail()
+            } label: {
+                Label("Email us about a problem", systemImage: "envelope")
+            }
+            .accessibilityIdentifier("settings.contact")
+        } header: {
+            Text("Feedback")
+        } footer: {
+            Text("The email arrives with your app version and whether sync is working, and nothing at all from the care record.")
+        }
+    }
+
+    private func openSupportMail() {
+        guard let url = SupportMail.url(
+            personCount: people.count,
+            isSignedIn: auth.isSignedIn,
+            lastSyncedAt: sync.lastSyncedAt
+        ) else { return }
+        openURL(url)
     }
 
     private var privacySection: some View {
@@ -351,6 +425,22 @@ struct SettingsView: View {
         } header: {
             Text("Privacy")
         }
+    }
+}
+
+/// Sign in reached from Settings rather than from onboarding or Sharing.
+///
+/// It pops itself once the account exists, so the reader lands back on the
+/// Account section and sees "Signed in as" and a sync time, which is the
+/// confirmation they came for. Left pushed, the same screen just sits there
+/// still saying "Keep your list safe" with no sign it worked.
+private struct BackUpSignInView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        SignInView(purpose: .backUp) { dismiss() }
+            .navigationTitle("Back Up")
+            .navigationBarTitleDisplayMode(.inline)
     }
 }
 

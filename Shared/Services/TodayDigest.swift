@@ -133,16 +133,32 @@ enum TodayDigest {
     ///
     /// Leads with overdue when there is any, because that is the only number on
     /// the screen that means "this should already have happened".
+    ///
+    /// It has to agree with `isClear`, which is what decides whether a person
+    /// is listed as outstanding below it. This counted doses and tasks only,
+    /// while `isClear` also counts appointments, refills and bills, so a family
+    /// whose only outstanding thing was a bill got the headline "Nothing due
+    /// today" printed directly above a section listing that bill. A screen
+    /// contradicting itself in two adjacent lines is worse than either line
+    /// alone, and refills and bills are common enough that this was not an
+    /// exotic case. They are summarised rather than enumerated, matching how
+    /// the rows below treat them: errands for later in the week, not doses.
     @MainActor
     static func headline(for digests: [PersonDigest]) -> String {
         let overdue = digests.reduce(0) { $0 + $1.overdueSlots.count }
         let due = digests.reduce(0) { $0 + $1.upcomingSlots.count }
         let tasks = digests.reduce(0) { $0 + $1.tasksDue.count }
+        let appointments = digests.reduce(0) { $0 + $1.appointments.count }
+        let errands = digests.reduce(0) { $0 + $1.runningLow.count + $1.billsDue.count }
 
         var parts: [String] = []
         if overdue > 0 { parts.append(overdue == 1 ? "1 dose overdue" : "\(overdue) doses overdue") }
         if due > 0 { parts.append(due == 1 ? "1 dose due" : "\(due) doses due") }
         if tasks > 0 { parts.append(tasks == 1 ? "1 task" : "\(tasks) tasks") }
+        if appointments > 0 {
+            parts.append(appointments == 1 ? "1 appointment" : "\(appointments) appointments")
+        }
+        if errands > 0 { parts.append(errands == 1 ? "1 to sort out" : "\(errands) to sort out") }
 
         guard !parts.isEmpty else { return "Nothing due today" }
         return parts.joined(separator: " · ")

@@ -25,6 +25,12 @@ struct CheckInHomeView: View {
     @Environment(DeviceModeService.self) private var deviceMode
 
     @State private var justPressed = false
+
+    /// The check-in glyph and its caption, in points that grow with the
+    /// reader's text setting. Starting values are the ones this button always
+    /// had, so nothing changes for someone on the default size.
+    @ScaledMetric(relativeTo: .largeTitle) private var glyphSize: CGFloat = 74
+    @ScaledMetric(relativeTo: .largeTitle) private var captionSize: CGFloat = 32
     @State private var showTransparency = false
     @State private var showEmergencyCard = false
     @State private var isUnlocking = false
@@ -158,15 +164,26 @@ struct CheckInHomeView: View {
             withAnimation(.spring(duration: 0.35)) { justPressed = true }
         } label: {
             VStack(spacing: 14) {
+                // Both of these scale with the reader's text size now. A bare
+                // `.font(.system(size:))` does not: only the `TextStyle`
+                // overload and `@ScaledMetric` follow the system setting, so
+                // this was the one control in the app that stayed exactly the
+                // same size however far the person it was drawn for had turned
+                // their text up. It is the button for someone with poor
+                // eyesight, on the screen that is their whole app.
                 Image(systemName: done ? "checkmark.circle.fill" : "hand.wave.fill")
-                    .font(.system(size: 74, weight: .medium))
+                    .font(.system(size: glyphSize, weight: .medium))
                 Text(done ? "You checked in" : "I'm OK today")
-                    .font(.system(size: 32, weight: .bold))
+                    .font(.system(size: captionSize, weight: .bold))
                     .multilineTextAlignment(.center)
+                    .minimumScaleFactor(0.6)
             }
             .foregroundStyle(.white)
             .frame(maxWidth: .infinity)
-            .frame(height: 260)
+            // A floor, not a fixed height: at an accessibility text size the
+            // label needs the room, and a fixed 260 clipped it.
+            .frame(minHeight: 260)
+            .padding(.vertical, 20)
             .background(done ? Color.green : Color.accentColor, in: RoundedRectangle(cornerRadius: 28))
         }
         .buttonStyle(.plain)
@@ -243,17 +260,71 @@ private struct SubjectDoseRow: View {
             Spacer()
 
             if let status = slot.status {
-                Text(status.label)
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(status == .taken ? .green : .secondary)
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(status.label)
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(status == .taken ? .green : .secondary)
+                    // A way back, in the one place in the app that had none.
+                    //
+                    // The caregiver's row hides undo behind a swipe, which is
+                    // already too well hidden there; here there was no undo at
+                    // any gesture. A mistap by the person this screen is for
+                    // wrote a dose that never happened, took a tablet off the
+                    // count on hand, and left them looking at a screen that
+                    // disagreed with them and could not be argued with. That is
+                    // how somebody stops touching an app. Only their own
+                    // just-recorded row is undoable, and it is a plain button
+                    // because a swipe or a long press is not a gesture to
+                    // require of the hands this screen was drawn for.
+                    if status == .taken {
+                        Button("Undo") { undo() }
+                            .font(.body.weight(.medium))
+                            .buttonStyle(.plain)
+                            .foregroundStyle(.tint)
+                            .frame(minHeight: 44)
+                            .accessibilityLabel("Undo \(slot.medicationName), taken")
+                            .accessibilityIdentifier("check-in.dose.undo")
+                    }
+                }
             } else {
                 Button("Taken") { record() }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
+                    .accessibilityLabel("Mark \(slot.medicationName) at \(timeLabel) as taken")
+                    // Named for tests separately from the label, for the same
+                    // reason as the caregiver's row: a query that leans on the
+                    // identifier XCUITest derives from a title breaks the
+                    // moment that control gets a real VoiceOver label.
+                    .accessibilityIdentifier("check-in.dose.take")
             }
         }
         .padding(16)
         .background(Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 14))
+    }
+
+    private var timeLabel: String {
+        slot.scheduledAt.formatted(date: .omitted, time: .shortened)
+    }
+
+    /// Puts the dose back to not recorded, and the tablet back on the count.
+    ///
+    /// Tombstones rather than deleting, and leaves the row in place: `DoseLog.id`
+    /// is derived from (medication, scheduled time), so the tombstone is holding
+    /// the id any replacement would be given, and a hard delete here would strand
+    /// the delete on this one phone (`SyncableRecord`).
+    private func undo() {
+        guard let medication = person.liveMedications.first(where: { $0.id == slot.medicationID }) else { return }
+        let calendar = Calendar.current
+        guard let existing = medication.doses.first(where: {
+            calendar.isDate($0.scheduledAt, equalTo: slot.scheduledAt, toGranularity: .minute)
+        }), existing.deletedAt == nil else { return }
+
+        if existing.status == .taken {
+            medication.restoreForDoseUntaken()
+            medication.recordLocalChange(in: context)
+        }
+        existing.tombstone(in: context)
+        try? context.save()
     }
 
     private func record() {

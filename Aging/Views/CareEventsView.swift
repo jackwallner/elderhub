@@ -161,6 +161,7 @@ struct CareEventEditorSheet: View {
 
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
+    @Environment(GroupService.self) private var groups
 
     @State private var kind: CareEventKind = .symptom
     @State private var occurredAt = Date()
@@ -237,7 +238,19 @@ struct CareEventEditorSheet: View {
 
     private func save() {
         let target = event ?? {
-            let new = CareEvent(kind: kind, recordedBy: "You", person: person)
+            // The author's real name, resolved the same way every other
+            // authored row in the app resolves it. This was the literal string
+            // "You", and `recorded_by_name` is a *synced* column: the row went
+            // up to the server saying "You" and came back down on everyone
+            // else's phone still saying it, so a fall Chris logged read
+            // "Logged by You" on his sister's screen. The one screen whose job
+            // is to answer "what happened while I was not there" was crediting
+            // every entry to whoever was reading it.
+            let new = CareEvent(
+                kind: kind,
+                recordedBy: CareTaskAuthor.name(from: groups),
+                person: person
+            )
             context.insert(new)
             return new
         }()

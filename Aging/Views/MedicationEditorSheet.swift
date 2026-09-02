@@ -345,9 +345,16 @@ private struct WeekdayPicker: View {
                     Button {
                         toggle(day)
                     } label: {
+                        // 44, Apple's floor, not 34. Seven of these share one
+                        // row, so each was about 34 by 39 points, on the one
+                        // control in this editor whose entire job is
+                        // precision: a weekly tablet entered on the wrong day
+                        // is a wrong medication schedule, and a neighbouring
+                        // circle is the easiest thing in the sheet to hit by
+                        // mistake.
                         Text(narrowSymbol(day))
                             .font(.subheadline.weight(.medium))
-                            .frame(maxWidth: .infinity, minHeight: 34)
+                            .frame(maxWidth: .infinity, minHeight: 44)
                             .background(
                                 isOn ? Color.accentColor : Color.secondary.opacity(0.15),
                                 in: Circle()

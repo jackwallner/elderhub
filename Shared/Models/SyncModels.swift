@@ -211,6 +211,24 @@ final class OutboxEntry {
     var lastError: String = ""
     var notBefore: Date = Date()
 
+    /// The two versions in dispute, as short readable lines, captured at the
+    /// moment the conflict is flagged.
+    ///
+    /// They have to be captured then or not at all: the pull that finds the
+    /// disagreement keeps the local row and discards the incoming one, so by
+    /// the time anybody opens the conflicts screen the family's version is
+    /// simply not on the phone any more. Without these the screen could name
+    /// the record and nothing else, and asked somebody to choose between
+    /// "Keep mine" and "Use theirs" for a drug dosage with no way to see what
+    /// either one said. That is the highest-stakes decision in the app and it
+    /// was the screen showing the least.
+    ///
+    /// Defaulted empty, so an outbox written by an older build still opens.
+    /// Both are ordinary local state that never leaves the phone: `OutboxEntry`
+    /// is the queue itself and is not a synced record.
+    var localSummary: String = ""
+    var remoteSummary: String = ""
+
     init(entityType: SyncEntity, entityID: UUID, groupID: UUID?) {
         self.id = UUID()
         self.entityTypeRaw = entityType.rawValue

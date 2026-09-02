@@ -181,6 +181,44 @@ struct MedListExporterTests {
         #expect(output.contains("Sarah (Daughter), no phone number saved"))
     }
 
+    /// The whole point of marking a contact primary. Order alone says nothing
+    /// to somebody reading this off a printout who has never seen the app.
+    @Test func thePrimaryContactIsMarkedCallFirst() {
+        let context = makeContext()
+        let person = Person(name: "Eleanor")
+        context.insert(person)
+
+        let primary = EmergencyContact(name: "Sarah", person: person)
+        primary.relationship = "Daughter"
+        primary.phone = "555-123-4567"
+        primary.isPrimary = true
+        context.insert(primary)
+
+        let other = EmergencyContact(name: "Michael", person: person)
+        other.relationship = "Son"
+        other.phone = "555-987-6543"
+        context.insert(other)
+
+        let output = MedListExporter.plainText(for: person)
+
+        #expect(output.contains("CALL FIRST: Sarah (Daughter), 555-123-4567"))
+        // Exactly one, and not on the contact who is not primary.
+        #expect(output.contains("  Michael (Son), 555-987-6543"))
+        #expect(output.components(separatedBy: "CALL FIRST").count == 2)
+    }
+
+    @Test func aContactWhoIsNotPrimaryCarriesNoMarker() {
+        let context = makeContext()
+        let person = Person(name: "Eleanor")
+        context.insert(person)
+
+        let contact = EmergencyContact(name: "Sarah", person: person)
+        contact.phone = "555-123-4567"
+        context.insert(contact)
+
+        #expect(!MedListExporter.plainText(for: person).contains("CALL FIRST"))
+    }
+
     @Test func summaryCarriesTheNotAMedicalRecordDisclaimer() {
         let context = makeContext()
         let person = Person(name: "Eleanor")

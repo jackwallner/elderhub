@@ -1,5 +1,7 @@
+import StoreKit
 import SwiftData
 import SwiftUI
+import UIKit
 
 struct TodayView: View {
     // Tombstoned rows stay in the store until the outbox has pushed them, so
@@ -11,6 +13,9 @@ struct TodayView: View {
     @Environment(CheckInService.self) private var checkIn
     @Environment(AppNavigator.self) private var navigator
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(AuthService.self) private var auth
+    @Environment(SyncCoordinator.self) private var sync
+    @Environment(\.openURL) private var openURL
 
     @State private var scopeSelection: TodayScope?
     @State private var quickAction: QuickAction?
@@ -18,6 +23,12 @@ struct TodayView: View {
     @State private var isAddingMedication = false
     @State private var setupHidden = false
     @State private var setupVersion = 0
+    @State private var showNotificationsBlocked = false
+    @State private var undo: UndoableAction?
+    @State private var isAskingForReview = false
+    /// Bumped on every tick-off so the phone confirms it in the hand. Doses,
+    /// tasks and bills gave no feedback at all; only the check-in button did.
+    @State private var confirmations = 0
     @State private var dismissedSteps: Set<SetupStep.Kind> = []
     @State private var destination: TodayDestination?
     @State private var notificationRoute = NotificationRoute.shared
@@ -138,6 +149,45 @@ struct TodayView: View {
                     MedicationEditorSheet(person: person)
                 }
             }
+            .notificationsBlockedAlert(isPresented: $showNotificationsBlocked)
+            .sheet(isPresented: $isAskingForReview) {
+                ReviewPromptSheet { outcome in
+                    switch outcome {
+                    case .notNow:
+                        ReviewPrompt.markAsked()
+                    case .wantsToRate:
+                        // Apple's own prompt, which is the only thing that can
+                        // actually leave a rating in place. It frequently shows
+                        // nothing at all, which is why saying yes is recorded
+                        // as a soft defer rather than as settled.
+                        ReviewPrompt.markSoftDeferred()
+                        requestAppReview()
+                    case .sendingFeedback:
+                        ReviewPrompt.markSettled()
+                        openSupportMail()
+                    }
+                }
+            }
+            .sensoryFeedback(.success, trigger: confirmations)
+            // Explicitly zero-height and hit-transparent when there is nothing
+            // to undo. A bare `if` inside `safeAreaInset` leaves a container
+            // that can still sit over the tab bar underneath this stack and
+            // eat taps meant for it, which reads as the Care tab having stopped
+            // working. Nothing about the banner is worth that.
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                Group {
+                    if let undo {
+                        UndoBanner(action: undo) {
+                            undo.perform()
+                            withAnimation(.snappy) { self.undo = nil }
+                        }
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    } else {
+                        Color.clear.frame(height: 0)
+                    }
+                }
+                .allowsHitTesting(undo != nil)
+            }
             .toolbar {
                 if people.count > 1 {
                     ToolbarItem(placement: .topBarTrailing) {
@@ -149,6 +199,7 @@ struct TodayView: View {
         .onAppear {
             applyPendingNotificationRoute()
             refreshSetupVisibility()
+            considerAskingForReview()
         }
         .onChange(of: scopeSelection) { _, _ in refreshSetupVisibility() }
         .onChange(of: notificationRoute.pendingPersonID) { _, _ in
@@ -273,7 +324,7 @@ struct TodayView: View {
 
                     ForEach(digest.tasksDue) { task in
                         TodayTaskRow(task: task, isMine: isMine(task)) {
-                            task.markComplete(by: CareTaskAuthor.name(from: groups), in: context)
+                            complete(task)
                         }
                     }
 
@@ -466,7 +517,7 @@ struct TodayView: View {
                         // sibling's overdue errand answers a different
                         // question. Whose it is goes on the row instead.
                         TodayTaskRow(task: task, isMine: isMine(task)) {
-                            task.markComplete(by: CareTaskAuthor.name(from: groups), in: context)
+                            complete(task)
                         }
                     }
                 }
@@ -540,7 +591,7 @@ struct TodayView: View {
                 Section("Bills") {
                     ForEach(billsDue) { bill in
                         TodayBillRow(bill: bill) {
-                            bill.markPaid(by: CareTaskAuthor.name(from: groups), in: context)
+                            pay(bill)
                         }
                     }
                 }
@@ -633,10 +684,20 @@ struct TodayView: View {
             DoseReminderPreferences.setEnabled(true, personID: person.id)
             setupVersion += 1
             Task {
-                let granted = await NotificationService.shared.requestAuthorization()
-                if !granted {
+                // Blocked is told, not swallowed. Tapping this step and
+                // watching it tick itself back off with no prompt and no
+                // explanation is how the checklist taught people the app does
+                // not work.
+                switch await NotificationPermission.request() {
+                case .granted:
+                    break
+                case .denied:
                     DoseReminderPreferences.setEnabled(false, personID: person.id)
                     setupVersion += 1
+                case .blocked:
+                    DoseReminderPreferences.setEnabled(false, personID: person.id)
+                    setupVersion += 1
+                    showNotificationsBlocked = true
                 }
                 await DoseReminderScheduler.refresh(in: context)
             }
@@ -719,6 +780,13 @@ struct TodayView: View {
     private func record(_ status: DoseStatus, for slot: DoseSlot, person: Person) {
         guard let medication = person.liveMedications.first(where: { $0.id == slot.medicationID }) else { return }
 
+        // Counts the day, not the tap. This is the app's core action, and
+        // several days of it is the only honest evidence that Elderhub is
+        // part of somebody's routine and therefore that asking them about it
+        // is fair.
+        ReviewPrompt.recordActiveDay()
+        confirmations += 1
+
         let calendar = Calendar.current
         // Searched across `doses`, not `liveDoses`, so a slot that was undone
         // is reused rather than inserted a second time. `DoseLog.id` is
@@ -791,8 +859,93 @@ struct TodayView: View {
         existing.tombstone(in: context)
     }
 
-    /// A one-line row for a bill that is late or due this week: tick it off, or
-    /// open the full list. Same shape and same reasoning as `TodayTaskRow`.
+    /// Ticking a task off, with a way back.
+    ///
+    /// A task or a bill marked done on Today does not stay on screen the way a
+    /// dose does: the section is built from what is still outstanding, so the
+    /// row is simply gone the instant it is tapped. Doses were forgiving of a
+    /// slip and these two were not, with nothing on screen saying so, and the
+    /// only route back was to leave Today, find the right list, show completed
+    /// rows and reopen it. At 6am, one-handed, that is not a recovery anybody
+    /// makes; they just live with the wrong record.
+    ///
+    /// The follow-up occurrence a recurring task spawns is taken back too, and
+    /// this is the one place that is right. `markIncomplete` deliberately
+    /// leaves it, because reopening a task from the Tasks screen days later
+    /// could delete a row the family has since edited or ticked off
+    /// themselves. Here the row was created seconds ago by the very tap being
+    /// undone and this device is holding the reference to it, so leaving it
+    /// behind would mean an undo that quietly adds next month's errand.
+    private func complete(_ task: CareTask) {
+        let followUp = task.markComplete(by: CareTaskAuthor.name(from: groups), in: context)
+        ReviewPrompt.recordActiveDay()
+        let name = task.title.isEmpty ? "task" : task.title
+        offerUndo("Marked \(name) done") {
+            task.markIncomplete(in: context)
+            followUp?.tombstone(in: context)
+        }
+    }
+
+    private func pay(_ bill: Bill) {
+        let followUp = bill.markPaid(by: CareTaskAuthor.name(from: groups), in: context)
+        ReviewPrompt.recordActiveDay()
+        let name = bill.payee.isEmpty ? "bill" : bill.payee
+        offerUndo("Marked \(name) paid") {
+            bill.markUnpaid(in: context)
+            followUp?.tombstone(in: context)
+        }
+    }
+
+    /// Replaces whatever was there: two banners stacked up is worse than
+    /// losing the older undo, and the older row is still reachable on its own
+    /// screen.
+    private func offerUndo(_ message: String, perform: @escaping () -> Void) {
+        confirmations += 1
+        let action = UndoableAction(message: message, perform: perform)
+        withAnimation(.snappy) { undo = action }
+        Task {
+            try? await Task.sleep(for: .seconds(7))
+            guard undo?.id == action.id else { return }
+            withAnimation(.snappy) { undo = nil }
+        }
+    }
+
+    /// Asks what they think of Elderhub, but only on a day already dealt with.
+    ///
+    /// The gate that matters is `isClear` for everybody. This is a Medical-
+    /// category app opened by people who are worried, and a card asking
+    /// "is Elderhub helping?" in front of an overdue 8am dose is the app
+    /// talking about itself while somebody is trying to find out whether their
+    /// mother took her tablets. On a day where nothing is outstanding it is a
+    /// fair question, and it is also the moment the app has just visibly done
+    /// its job. Eleanor never sees it: the recipient's phone renders
+    /// `CheckInHomeView` and never reaches this screen at all.
+    private func considerAskingForReview() {
+        guard !isAskingForReview else { return }
+        let digests = TodayDigest.build(for: people, on: Date())
+        // A record with nothing in it is not a quiet day, it is an empty app.
+        guard !digests.isEmpty, digests.allSatisfy(\.isClear),
+              digests.contains(where: { !$0.hasNothingToShow }) else { return }
+        guard ReviewPrompt.shouldAsk(isQuietDay: true) else { return }
+        isAskingForReview = true
+    }
+
+    private func requestAppReview() {
+        guard let scene = UIApplication.shared.connectedScenes
+            .compactMap({ $0 as? UIWindowScene })
+            .first(where: { $0.activationState == .foregroundActive }) else { return }
+        AppStore.requestReview(in: scene)
+    }
+
+    private func openSupportMail() {
+        guard let url = SupportMail.url(
+            personCount: people.count,
+            isSignedIn: auth.isSignedIn,
+            lastSyncedAt: sync.lastSyncedAt
+        ) else { return }
+        openURL(url)
+    }
+
     private func runningLowMedications(for person: Person) -> [Medication] {
         TodayDigest.runningLow(for: person)
     }
@@ -802,6 +955,56 @@ struct TodayView: View {
     private func isMine(_ task: CareTask) -> Bool {
         guard groups.hasOtherMembers else { return false }
         return TaskPlanner.isAssigned(task, to: groups.selfUserID, named: groups.selfDisplayName)
+    }
+}
+
+/// What was just ticked off, and the tap that puts it back.
+struct UndoableAction: Identifiable {
+    let id = UUID()
+    let message: String
+    let perform: () -> Void
+}
+
+/// A bar across the bottom of Today for a few seconds after something is
+/// ticked off.
+///
+/// Deliberately a visible control rather than a swipe or a shake: the gesture
+/// affordances this app already has are the ones people never find, and the
+/// reader this is for is holding the phone in one hand with the other one busy.
+private struct UndoBanner: View {
+    let action: UndoableAction
+    let onUndo: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Text(action.message)
+                .font(.subheadline)
+                .foregroundStyle(.primary)
+                .lineLimit(2)
+
+            Spacer(minLength: 8)
+
+            Button("Undo", action: onUndo)
+                .font(.subheadline.weight(.semibold))
+                .buttonStyle(.plain)
+                .foregroundStyle(.tint)
+                // The one control on the bar, and it is the reason the bar is
+                // there, so it gets a real target rather than the height of its
+                // own text.
+                .frame(minWidth: 60, minHeight: 44)
+                .contentShape(Rectangle())
+                .accessibilityIdentifier("today.undo")
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 6)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(Color.secondary.opacity(0.2))
+        )
+        .padding(.horizontal, 16)
+        .padding(.bottom, 8)
+        .accessibilityElement(children: .contain)
     }
 }
 
@@ -1021,20 +1224,60 @@ private struct DoseRow: View {
             Spacer()
 
             if let status = slot.status {
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(status.label)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(status == .taken ? .green : .secondary)
-                    if !slot.recordedBy.isEmpty {
-                        Text(slot.recordedBy)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                // A menu, not a label. Undo and Skip were reachable only by
+                // swiping the row, which is invisible (nothing on screen says
+                // the gesture exists) and is the hardest gesture for the older
+                // hands this app is aimed at. The status was the obvious place
+                // to tap to change the status, and it did nothing. The swipe
+                // still works for anyone who knows it.
+                Menu {
+                    if status != .taken {
+                        Button("Taken") { onRecord(.taken) }
                     }
+                    if status != .skipped {
+                        Button("Skipped") { onRecord(.skipped) }
+                    }
+                    Button("Not recorded yet") { onRecord(nil) }
+                } label: {
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text(status.label)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(status == .taken ? .green : .secondary)
+                        if !slot.recordedBy.isEmpty {
+                            Text(slot.recordedBy)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    // Colour is never the only signal: "Taken" is the word, and
+                    // green is the reinforcement.
+                    .frame(minWidth: 60, minHeight: 44, alignment: .trailing)
+                    .contentShape(Rectangle())
                 }
+                .accessibilityLabel("\(slot.medicationName) at \(timeLabel): \(status.label)")
+                .accessibilityHint("Change what was recorded")
+                .accessibilityIdentifier("today.dose.status")
             } else {
                 Button("Taken") { onRecord(.taken) }
                     .buttonStyle(.borderedProminent)
-                    .controlSize(.small)
+                    // Was `.small`, which is roughly 28 points tall. This is
+                    // the most-tapped control in the app, tapped one-handed,
+                    // early, by people in their fifties and older, and it was
+                    // the smallest thing on the screen. 44 is Apple's floor.
+                    .controlSize(.regular)
+                    .frame(minHeight: 44)
+                    // Six doses gave six buttons all announced as "Taken", so
+                    // VoiceOver could not tell a reader which drug they were
+                    // about to record.
+                    .accessibilityLabel("Mark \(slot.medicationName) at \(timeLabel) as taken")
+                    // Set explicitly, because tests used to find this button by
+                    // the identifier XCUITest derives from an unlabelled
+                    // control's title. Giving it a real VoiceOver label changed
+                    // that derived value and took the button out from under
+                    // them. The identifier is for tests and the label is for
+                    // people; leaving the two as the same string is what made
+                    // an accessibility improvement look like a regression.
+                    .accessibilityIdentifier("today.dose.take")
             }
         }
         .padding(.vertical, 4)
@@ -1049,6 +1292,10 @@ private struct DoseRow: View {
                 .tint(.orange)
         }
     }
+
+    private var timeLabel: String {
+        slot.scheduledAt.formatted(date: .omitted, time: .shortened)
+    }
 }
 
 #Preview {
@@ -1057,4 +1304,7 @@ private struct DoseRow: View {
         .environment(GroupService.shared)
         .environment(CheckInService.shared)
         .environment(DeviceModeService.shared)
+        .environment(AuthService.shared)
+        .environment(SyncCoordinator.shared)
+        .environment(AppNavigator())
 }

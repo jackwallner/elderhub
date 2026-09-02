@@ -219,8 +219,23 @@ App Store search. Everything in `aso-plan.md` about *what not to claim* still st
   the page. `EmergencyCardView` follows the same rule, and the two must stay in
   step on what they include: the export used to omit the provider block the card
   showed.
+- **A primary emergency contact is marked, not just sorted first.** The card
+  prints a "CALL FIRST" badge and the export prefixes the line with
+  `CALL FIRST:`. Order alone was the entire signal, and it is not one a
+  stranger can read: somebody holding this page in an ER has no reason to think
+  the list is ordered, and with three names on it they pick one. Both renderers
+  and `EmergencyContactEditorSheet`'s footer say the same thing.
+- `EmergencyCardView.telURL` stops at an extension marker (`x`, `#`, `,`, `;`).
+  Keeping every digit turned "555-1234 x203" into a real, wrong number the card
+  offered to dial.
 - `Services/StoreService.swift` — RevenueCat. `identify()` ties the RC customer to
   the Supabase user id; without it the billing webhook has no group to credit.
+  **The paywall has three states, not two.** `isLoadingPlans` / `hasNoPlans` /
+  loaded, backed by `loadFailure` and `hasAttemptedLoad`. A failed offerings
+  fetch used to be logged and nothing else, so the sheet rendered a bare
+  `ProgressView` forever, and this app is opened with no signal by design, which
+  makes that the ordinary case rather than the exotic one. Restore stays
+  reachable in every state.
 - `Services/AuthService.swift` — Sign in with Apple, and the offline-session rules
   that keep a transport failure from being read as a sign-out.
 - `Services/GroupService.swift` — membership, roles, invites. Every mutation is a
@@ -230,6 +245,43 @@ App Store search. Everything in `aso-plan.md` about *what not to claim* still st
   conflict rules.
 - `Services/CheckInService.swift` — the proof-of-life button and the one local
   notification that has to be reliable.
+- `Views/Components/NotificationPermission.swift` is the **one** place that
+  decides what a reminder toggle does when iOS refuses. All three dose-reminder
+  toggles (Today's checklist, the person hub, onboarding) route through it.
+  `requestAuthorization` returns false *without showing a prompt* once the app
+  has been denied, which is the common case, so all three used to flip the
+  switch back and say nothing: no prompt to answer, no hint that the answer is
+  in iOS Settings, and a caregiver concluding the app is broken.
+  `Outcome.blocked` is the case that gets the alert and the Settings link. The
+  preference is still put back, because the reminder genuinely will not fire.
+- `Services/ReviewPrompt.swift` and `Views/Components/ReviewPromptSheet.swift`
+  are the rating funnel and the gate on it. **Never asked on a day with anything
+  outstanding for anyone** (`PersonDigest.isClear` for every person, and at
+  least one person with something recorded), never before several distinct days
+  of real use, and never on the recipient's phone (that root is
+  `CheckInHomeView` and never reaches Today). This is a Medical-category app
+  opened by worried people: an "is Elderhub helping?" card in front of an
+  overdue 8am dose is worse than never asking. Yes goes to Apple's prompt and is
+  recorded as a *soft* defer, because that prompt frequently shows nothing; no
+  goes to `SupportMail`, which prefills version, build, iOS, person count and
+  sync state and deliberately carries nothing from the record (I5).
+- **Today offers an undo for anything ticked off there.** A dose stays on screen
+  and is corrected through the status menu; a task or a bill leaves the section
+  the instant it is marked, so `UndoBanner` holds it for seven seconds. Doses
+  were forgiving of a mistap and the other two were not, with nothing on screen
+  saying so.
+- **A flagged conflict carries both readings of the row**
+  (`OutboxEntry.localSummary` / `remoteSummary`, captured in
+  `SyncEngine.flagConflict`). They have to be captured then or not at all: the
+  pull keeps the local row and discards the incoming one, so the family's
+  version is gone by the time anybody opens `ConflictsView`. Without them the
+  screen asked somebody to choose "Keep mine" or "Use theirs" about a drug
+  dosage while showing neither dosage.
+- **Every authored row resolves its name through `CareTaskAuthor.name(from:)`.**
+  `recorded_by_name` is a *synced* column, so the literal string "You" that
+  `CareEventsView` wrote went to the server and came back on everyone else's
+  phone: a fall one sibling logged read "Logged by You" on the other's screen,
+  on the one feature whose job is answering "what happened while I was away".
 
 `Aging/Views/` is the UI. `Aging/Support/SampleData.swift` seeds previews and sim runs.
 `Aging/Views/Components/HubComponents.swift` holds the shared visual vocabulary

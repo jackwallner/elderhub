@@ -163,6 +163,42 @@ struct TodayDigestTests {
         #expect(TodayDigest.headline(for: TodayDigest.build(for: [mom], on: noon)) == "Nothing due today")
     }
 
+    /// The headline and `isClear` have to be measuring the same thing. The
+    /// headline counted only doses and tasks while `isClear` also counted
+    /// bills, refills and appointments, so a family whose one outstanding
+    /// thing was a bill saw "Nothing due today" printed directly above the
+    /// section listing it.
+    @Test func theHeadlineNeverSaysNothingDueWhileSomeoneIsOutstanding() {
+        let context = makeContext()
+        let mom = Person(name: "Eleanor", relationship: "Mom")
+        context.insert(mom)
+
+        let bill = Bill(payee: "Bayside Pharmacy", amount: 42, person: mom)
+        bill.dueAt = noon
+        context.insert(bill)
+
+        let digests = TodayDigest.build(for: [mom], on: noon)
+
+        #expect(digests.allSatisfy(\.isClear) == false)
+        #expect(TodayDigest.headline(for: digests) != "Nothing due today")
+        #expect(TodayDigest.headline(for: digests) == "1 to sort out")
+    }
+
+    @Test func theHeadlineCountsAnAppointmentThisWeek() {
+        let context = makeContext()
+        let mom = Person(name: "Eleanor", relationship: "Mom")
+        context.insert(mom)
+
+        let visit = Visit(date: noon.addingTimeInterval(2 * 86_400), person: mom)
+        visit.reason = "Cardiology"
+        context.insert(visit)
+
+        let digests = TodayDigest.build(for: [mom], on: noon)
+
+        #expect(digests.allSatisfy(\.isClear) == false)
+        #expect(TodayDigest.headline(for: digests) == "1 appointment")
+    }
+
     // MARK: - Tombstones
 
     /// Deleted rows live in the store until the outbox has pushed them, so

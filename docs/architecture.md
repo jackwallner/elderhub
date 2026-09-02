@@ -1047,3 +1047,201 @@ the submission.
   which is why `completeAppleSignIn` still captures the name there or not at all.
 - `OnboardingView` takes a `suggestedName`, filled from `auth.displayName` on the solo
   path, so a re-run from Settings never asks for a name Apple already gave us.
+
+## 23. The dead ends (2026-09-01)
+
+A pass over the app read from four people rather than from the code: Sarah, the
+adult daughter who does all the setup and opens it several times a day, often
+one-handed at 6am; Chris, the sibling who joined by invitation and opens it
+weekly; Eleanor, the person being cared for, holding the handset in recipient
+mode; and the clinician who never installs the app and reads the card for
+thirty seconds.
+
+None of what follows was a wrong pixel. Every one of them is a control that did
+nothing visible, a choice put to somebody with no information behind it, or an
+action with no route back.
+
+### The card did not say who to call first
+
+`EmergencyContact.isPrimary` sorted a contact to the top of the card, the
+person-details list and the exported one-pager, and was rendered nowhere except
+a badge in the editor. Position is not a signal a stranger can read: whoever is
+holding the page has no reason to believe the list is ordered, and with three
+names on it they pick one. The card now prints a `CALL FIRST` capsule and the
+export prefixes the line with `CALL FIRST:`, which is the form that survives
+being printed, faxed or pasted into a message. Both editor footers say so at the
+point where the toggle is set, so the promise and the output match.
+
+`telURL` also stopped at the first `x`, `#`, `,` or `;`. Filtering to digits
+turned "555-1234 x203" into 5551234203, a real number belonging to somebody
+else, on the one screen where dialling the wrong number matters most.
+
+### Three toggles that failed silently
+
+`UNUserNotificationCenter.requestAuthorization` returns false **without showing
+a prompt** once the app has been denied, which is the common case rather than
+the rare one. All three dose-reminder entry points (Today's setup checklist,
+the person hub's toggle, the onboarding step) responded by writing the
+preference back to off and saying nothing. There was no prompt to answer and no
+hint that the answer lives in iOS Settings, so the observable behaviour was a
+switch that slid back on its own: the app appears broken, and the feature that
+carries this product's retention never turns on.
+
+`NotificationPermission` is now the one place that decides. `Outcome.blocked` is
+told apart from `Outcome.denied` and gets an alert with an Open Settings button.
+The preference is still put back either way, because the reminder genuinely will
+not fire, and this app's standing rule is that a caregiver who believes a
+reminder is set when it is not is worse off than one who knows.
+
+`CheckInSettingsView` already did this correctly and is unchanged; it is what
+the other three should have looked like.
+
+### No way to back up the record, where anyone would look
+
+Settings' Account section, signed out, read "You are not signed in. Everything
+stays on this phone." and stopped. The only sign-in in the app was on the
+**Sharing** tab, framed as sharing, which a solo caregiver with no siblings has
+no reason ever to open. The result was a parent's entire medical record on one
+handset with no copy anywhere and no route in the app to make one.
+
+Account now carries a "Sign in to back this up" row using the existing
+`.backUp` purpose, and it pops itself on success so the reader lands back on
+"Signed in as" rather than on a screen still offering what they just did. The
+footer says explicitly that signing in adds nobody: sharing is a separate step.
+
+### The paywall could spin forever
+
+`StoreService.refresh` logged a failed offerings fetch and did nothing else, and
+`PaywallView` rendered a bare `ProgressView` whenever `plans` was empty. One
+branch meant two opposite things, "the prices are a moment away" and "this will
+never resolve", and the failing case is ordinary here rather than exotic,
+because the whole product is built to be opened with no signal.
+
+There are now three states: `isLoadingPlans`, `hasNoPlans` and loaded, backed by
+`loadFailure` and `hasAttemptedLoad` (the latter so the failure state cannot
+flash up before the first attempt has run). The empty state says what happened,
+offers a retry, and points at Restore, which stays reachable in every state
+because somebody who has already paid must not be trapped behind a store that
+is down. An offering that returns successfully with nothing in it is treated as
+a failure, since no amount of waiting fixes it.
+
+### The most-tapped control was the smallest and the least labelled
+
+`DoseRow`'s "Taken" was `.controlSize(.small)`, roughly 28 points, on the
+control this app exists to be tapped on, and its VoiceOver label was the bare
+word "Taken", so six doses gave six identical buttons with no way to tell which
+drug was about to be recorded. It is now regular size with a 44-point floor and
+a label naming the medication and the time.
+
+Undo and Skip were reachable only by swiping the row. The swipe is invisible,
+nothing on screen says it exists, and it is the hardest gesture for the hands
+this app is aimed at. The status text, which is the obvious thing to tap to
+change the status, did nothing. It is now a menu offering Taken, Skipped and
+Not recorded yet, at a 44-point target. The swipe still works for anyone who
+knows it.
+
+### Eleanor had no way back at all
+
+`SubjectDoseRow`, on the recipient's own screen, had no accessibility label and
+no undo at any gesture. A mistap wrote a dose that never happened, took a tablet
+off the count on hand, and left the person this screen was drawn for looking at
+a record that disagreed with them and could not be argued with. It now carries a
+plain Undo button, at 44 points, next to a recorded dose. It is a button rather
+than a swipe or a long press for the same reason the check-in button is the size
+it is.
+
+That check-in button also used `.font(.system(size: 74))` and
+`.font(.system(size: 32))`. A bare point size does not follow the system text
+setting, only the `TextStyle` overload and `@ScaledMetric` do, so the one
+control in the app drawn specifically for poor eyesight was the only one that
+stayed exactly the same size however far its reader had turned their text up.
+Both are `@ScaledMetric` now, starting at the values they already had, and the
+button's fixed 260-point height became a floor so a grown label has room.
+
+### A choice about a drug dosage, made blind
+
+`ConflictsView` named the record, printed "your edit 6:12 PM", and offered "Keep
+mine" and "Use theirs" without showing either version. Whichever button was
+pressed was a guess, on the highest-stakes screen the app has.
+
+The remote value genuinely was not on the phone: the pull keeps the local row
+and discards the incoming one, so by the time anybody opens the screen the
+family's version is gone. `OutboxEntry` therefore gained `localSummary` and
+`remoteSummary`, captured inside `flagConflict` at the only moment both exist,
+for medications (name, strength, schedule, instructions), tasks, bills, notes
+and people. Both are printed above the buttons. Neither is ever overwritten with
+an empty string, so a second pull of the same row cannot erase what the first one
+managed to capture, and an entry written by an older build simply renders as it
+always did.
+
+### "You" was a synced string
+
+`CareEventsView` created every `CareEvent` with `recordedBy: "You"`, a literal.
+`recorded_by_name` is a synced column, so it went to the server and came back on
+every other phone still saying it: a fall Chris logged read "Logged by You" on
+Sarah's screen. The one feature whose job is answering "what happened while I was
+not there" was crediting every entry to whoever happened to be reading it. It now
+resolves through `CareTaskAuthor.name(from:)` like every other authored row, whose
+"You" fallback only applies when there is no circle and therefore nobody else to
+read it.
+
+### Actions that vanished, and actions that asked nobody
+
+A dose ticked off on Today stays on screen. A task or a bill leaves the section
+that built it the instant it is tapped, and the only route back was another tab,
+a collapsed section and a second tap. `UndoBanner` holds it for seven seconds,
+as a visible control rather than another gesture. The undo also takes back the
+follow-up occurrence a recurring row spawns, which `markIncomplete` deliberately
+leaves behind: that caution is right for reopening a task days later from the
+Tasks screen, and wrong for undoing a tap made seconds ago whose follow-up this
+device is still holding a reference to.
+
+Three destructive actions asked nobody and now ask, matching what the rest of
+the app already did:
+
+- Swipe-deleting a **task** tombstoned it on the gesture alone. Every other
+  editable list routes through `recordDeletionConfirmation`; tasks did not, and
+  the row went from every phone in the circle at once.
+- Changing a member's **role** fired on one tap on a list row, while "Make
+  organizer" and "Remove from the group" in the same sheet both confirmed.
+  Demoting a caregiver to subject purges the rest of the family off their
+  handset, and the person who finds out is not the one tapping.
+- **Removing the caregiver code** cleared it immediately under a footer
+  explaining the consequence. It is the single control deciding whether a
+  handed-over phone stays on the check-in screen.
+
+### The headline contradicted the screen under it
+
+`TodayDigest.headline` counted overdue doses, due doses and tasks.
+`PersonDigest.isClear`, which decides whether a person is listed as outstanding
+directly below that headline, also counts appointments, refills and bills. A
+family whose only outstanding thing was a bill got "Nothing due today" printed
+above the section listing it. The headline now counts everything `isClear`
+counts, summarising refills and bills as "N to sort out" to match how the rows
+below treat them.
+
+### Nobody was ever asked what they thought
+
+There was no `requestReview` anywhere, no rating entry, and no in-app feedback;
+support was a link to a web page. In a category with no search demand, the
+rating count is most of what a stranger has to go on, so this is not a missing
+nicety.
+
+`ReviewPrompt` is the gate and it is deliberately narrow. It never asks on a day
+with anything outstanding for anyone, never before several distinct days on
+which something was actually recorded, never in the first few days, and never on
+the recipient's phone, whose root is `CheckInHomeView` and never reaches Today.
+An "is Elderhub helping?" card in front of an overdue 8am dose is the app
+talking about itself while somebody is trying to find out whether their mother
+took her tablets, and that is worse than never asking.
+
+The sheet forks. Yes raises Apple's own prompt and is recorded as a *soft*
+defer, because that prompt frequently shows nothing and a full cooldown would
+spend the ask on a dialog nobody saw. No goes to `SupportMail`, which prefills
+version, build, iOS, person count and sync state, and carries nothing at all
+from the care record. Settings has both as explicit rows, and a deliberate tap
+there is never gated.
+
+The address is the `+medlist` alias every published page and the live listing
+already use. It reads as the old name because it predates the rename, and
+correcting it is a job for all of those at once rather than for one Swift file.

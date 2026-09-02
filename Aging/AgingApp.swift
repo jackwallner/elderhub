@@ -83,7 +83,10 @@ struct AgingApp: App {
                 .environment(sync)
                 .environment(checkIn)
                 .environment(deviceMode)
-                .onAppear { store.start() }
+                .onAppear {
+                    store.start()
+                    ReviewPrompt.recordAppLaunch()
+                }
         }
         .modelContainer(CareModelStore.sharedModelContainer)
     }

@@ -182,8 +182,13 @@ final class RecordCorrectionUITests: XCTestCase {
 
         // Seeded doses for today start unrecorded, so each row carries a Taken
         // *button*. Counting buttons is what tells recorded from not: once a
-        // dose is logged the button is replaced by a status label.
-        let buttons = app.buttons.matching(identifier: "Taken")
+        // dose is logged the button is replaced by the status control.
+        //
+        // Matched on the explicit identifier rather than on "Taken". This used
+        // to rely on XCUITest deriving an identifier from an unlabelled
+        // button's title, so giving the button a VoiceOver label that names the
+        // medication silently took it out from under this test.
+        let buttons = app.buttons.matching(identifier: "today.dose.take")
         // Scrolled to for the same reason as the medication row above: the
         // setup checklist now leads Today, so the dose list starts lower than
         // it used to on a seeded record.

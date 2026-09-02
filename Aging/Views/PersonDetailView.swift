@@ -34,6 +34,7 @@ struct PersonDetailView: View {
     /// Reminders this phone wants but has no room for. Read from the same plan
     /// the scheduler applies, never counted a second way.
     @State private var droppedReminders = 0
+    @State private var showNotificationsBlocked = false
     @State private var setupHidden = false
     @State private var dismissedSteps: Set<SetupStep.Kind> = []
     @State private var pushed: CareFeature?
@@ -186,6 +187,7 @@ struct PersonDetailView: View {
             PersonDetailsEditorSheet(person: person)
         }
         .recordDeletionConfirmation($pendingDeletion)
+        .notificationsBlockedAlert(isPresented: $showNotificationsBlocked)
         .onAppear {
             remindersEnabled = DoseReminderPreferences.isEnabled(personID: person.id)
             droppedReminders = DoseReminderScheduler.plan(in: context).droppedCount
@@ -433,12 +435,21 @@ struct PersonDetailView: View {
     private func setReminders(_ enabled: Bool) {
         DoseReminderPreferences.setEnabled(enabled, personID: person.id)
         Task {
-            let authorized = enabled ? await NotificationService.shared.isAuthorized() : true
-            if enabled, !authorized {
-                let granted = await NotificationService.shared.requestAuthorization()
-                if !granted {
+            if enabled {
+                // The switch sliding back on its own used to be the entire
+                // answer. It is still put back, because the reminder really
+                // will not fire, but a refusal iOS never asked about is now
+                // explained and has somewhere to go.
+                switch await NotificationPermission.request() {
+                case .granted:
+                    break
+                case .denied:
                     DoseReminderPreferences.setEnabled(false, personID: person.id)
                     remindersEnabled = false
+                case .blocked:
+                    DoseReminderPreferences.setEnabled(false, personID: person.id)
+                    remindersEnabled = false
+                    showNotificationsBlocked = true
                 }
             }
             await DoseReminderScheduler.refresh(in: context)
