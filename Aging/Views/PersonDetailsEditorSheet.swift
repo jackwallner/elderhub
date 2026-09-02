@@ -326,9 +326,7 @@ struct EmergencyContactEditorSheet: View {
                     TextField("Name", text: $name)
                         .textContentType(.name)
                     TextField("Relationship (Daughter, Neighbor)", text: $relationship)
-                    TextField("Phone", text: $phone)
-                        .textContentType(.telephoneNumber)
-                        .keyboardType(.phonePad)
+                    PhoneNumberField(text: $phone)
                 } footer: {
                     // Stated rather than enforced. A contact with a name and no
                     // number is still worth having on the card; what is not
