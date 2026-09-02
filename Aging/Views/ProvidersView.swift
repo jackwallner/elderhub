@@ -148,9 +148,7 @@ struct ProviderEditorSheet: View {
                 }
 
                 Section {
-                    TextField("Phone", text: $phone)
-                        .textContentType(.telephoneNumber)
-                        .keyboardType(.phonePad)
+                    PhoneNumberField(text: $phone)
                     TextField("Address", text: $address, axis: .vertical)
                         .lineLimit(1...3)
                     TextField("Patient portal link", text: $portalURL)
