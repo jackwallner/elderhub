@@ -127,6 +127,16 @@ struct EmergencyCardView: View {
         }
     }
 
+    /// One contact, with "Call first" said out loud rather than implied by the
+    /// order.
+    ///
+    /// The primary contact was sorted to the top of this block and marked
+    /// nowhere, so the one fact the family recorded, "ring this person before
+    /// the others", did not survive onto the page. Position is not a signal a
+    /// stranger can read: somebody holding this card in an ER has no reason to
+    /// believe the list is ordered at all, and with three names on it they
+    /// pick one. The badge is the label, not the colour, so it still reads in
+    /// mono, at any Dynamic Type size, and printed.
     private func contactLine(_ contact: EmergencyContact) -> some View {
         let who = contact.relationship.isEmpty
             ? contact.name
@@ -134,8 +144,28 @@ struct EmergencyCardView: View {
         // A "call first" contact with no number on file is worse than useless
         // in silence, because the card still presents them as the answer.
         let phone = contact.phone.isEmpty ? "no phone number saved" : contact.phone
-        return Text("\(who), \(phone)")
-            .font(.title3)
+
+        return VStack(alignment: .leading, spacing: 3) {
+            if contact.isPrimary {
+                Text("CALL FIRST")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Color.red, in: Capsule())
+            }
+            Text("\(who), \(phone)")
+                .font(.title3)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        // Read as one sentence rather than as a loose "call first" followed by
+        // a name, which is how VoiceOver announced the two Texts separately.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            contact.isPrimary
+            ? "Call first. \(who), \(phone)"
+            : "\(who), \(phone)"
+        )
     }
 
     private var notRecorded: some View {
@@ -167,8 +197,19 @@ struct EmergencyCardView: View {
             .font(.title3)
     }
 
+    /// The number to dial, stopping at an extension rather than swallowing it.
+    ///
+    /// Keeping every digit in the string looks harmless until somebody has
+    /// typed "555-1234 x203": the filter turned that into 5551234203 and the
+    /// card offered to dial a number nobody has. On this screen a wrong number
+    /// is not a cosmetic bug, so anything past the extension marker is dropped
+    /// and the extension stays visible in the text beside it for a human to
+    /// dial.
     private func telURL(for phone: String) -> URL? {
-        let digits = phone.filter { $0.isNumber || $0 == "+" }
+        let dialable = phone.lowercased()
+            .components(separatedBy: CharacterSet(charactersIn: "x#,;"))
+            .first ?? phone
+        let digits = dialable.filter { $0.isNumber || $0 == "+" }
         guard !digits.isEmpty else { return nil }
         return URL(string: "tel:\(digits)")
     }

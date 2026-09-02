@@ -162,6 +162,7 @@ struct SetCaregiverPINSheet: View {
     @State private var first = ""
     @State private var second = ""
     @State private var error: String?
+    @State private var isConfirmingRemoval = false
 
     var body: some View {
         NavigationStack {
@@ -185,9 +186,15 @@ struct SetCaregiverPINSheet: View {
 
                 if deviceMode.hasPIN {
                     Section {
+                        // Asked, like every other action in the app that
+                        // gives something up. The footer said what the
+                        // consequence was and the button did it on one tap
+                        // anyway, and this is the single control deciding
+                        // whether a phone that has been handed over stays on
+                        // the check-in screen or opens straight back into the
+                        // whole record.
                         Button("Remove the code", role: .destructive) {
-                            deviceMode.clearPIN()
-                            dismiss()
+                            isConfirmingRemoval = true
                         }
                     } footer: {
                         Text("Without a code, anyone holding the phone can switch back to the full app.")
@@ -196,6 +203,19 @@ struct SetCaregiverPINSheet: View {
             }
             .navigationTitle(deviceMode.hasPIN ? "Change Code" : "Set a Code")
             .navigationBarTitleDisplayMode(.inline)
+            .confirmationDialog(
+                "Remove the caregiver code?",
+                isPresented: $isConfirmingRemoval,
+                titleVisibility: .visible
+            ) {
+                Button("Remove", role: .destructive) {
+                    deviceMode.clearPIN()
+                    dismiss()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Anyone holding this phone will be able to switch out of the check-in screen and into the full care record.")
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }

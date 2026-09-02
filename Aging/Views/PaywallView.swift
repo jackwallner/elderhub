@@ -153,10 +153,18 @@ struct PaywallView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 8)
 
-                    if plans.isEmpty {
+                    if store.isLoadingPlans {
                         ProgressView()
                             .padding(.vertical, 30)
                             .accessibilityIdentifier("paywall.loading")
+                    } else if store.hasNoPlans {
+                        // The load finished with nothing to sell. Said out loud
+                        // with a way out, rather than the spinner that used to
+                        // run forever: this app is opened with no signal on
+                        // purpose, so reaching the store and failing is an
+                        // ordinary Tuesday, and a reader who cannot tell
+                        // waiting from broken simply leaves.
+                        unavailable
                     } else {
                         // Pick, then buy. Three identically prominent buttons
                         // showing a title and a raw price made the user do the
@@ -270,6 +278,65 @@ struct PaywallView: View {
         .padding(.top, 10)
         .padding(.bottom, 6)
         .background(.bar)
+    }
+
+    /// What the sheet says when the store gave it nothing to sell.
+    ///
+    /// Three things, in the order they are useful: that the app is fine and the
+    /// records are untouched (this is a purchase problem, not a data one, and
+    /// the reader does not know that yet), a retry, and the reminder that an
+    /// existing purchase comes back through Restore in the footer below rather
+    /// than through this screen.
+    private var unavailable: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 34))
+                .foregroundStyle(.secondary)
+
+            Text("Couldn't load the plans")
+                .font(.headline)
+
+            // Not blamed on the network: the same empty result comes back from
+            // a misconfigured offering, and telling somebody with four bars
+            // that they are offline is its own kind of broken. What is said
+            // instead is the thing they need to know, which is that this is a
+            // purchase problem and not a problem with their records.
+            Text("We couldn't reach the App Store just now. Everything you have already entered is safe on this phone, and the first person's care record stays free either way.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+
+            Button {
+                Task { await store.refresh() }
+            } label: {
+                Text("Try again")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(store.isLoading)
+            .accessibilityIdentifier("paywall.retry")
+
+            Text("Already bought Elderhub Plus? Tap Restore below.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+
+            // StoreKit's own words, small and last. They are usually plain
+            // enough to act on ("The Internet connection appears to be
+            // offline") and this is the only place the reason is visible at
+            // all; before, the only record of it was an OSLog line on a device
+            // nobody is holding a console to.
+            if let reason = store.loadFailure {
+                Text(reason)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .padding(.vertical, 12)
+        .accessibilityIdentifier("paywall.unavailable")
     }
 
     private func benefit(_ symbol: String, _ text: String) -> some View {

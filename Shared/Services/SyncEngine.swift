@@ -462,7 +462,12 @@ actor SyncEngine {
             if isRealConflict(localDirty: existing.isDirty,
                               localUpdated: existing.updatedAt,
                               serverUpdated: dto.updated_at) {
-                flagConflict(entity: .person, id: dto.id)
+                flagConflict(
+                    entity: .person,
+                    id: dto.id,
+                    local: existing.displayLabel,
+                    remote: dto.name
+                )
                 return
             }
             if dto.deleted_at != nil {
@@ -503,7 +508,12 @@ actor SyncEngine {
             if isRealConflict(localDirty: existing.isDirty,
                               localUpdated: existing.updatedAt,
                               serverUpdated: dto.updated_at) {
-                flagConflict(entity: .medication, id: dto.id)
+                flagConflict(
+                    entity: .medication,
+                    id: dto.id,
+                    local: Self.describe(existing),
+                    remote: Self.describe(dto)
+                )
                 return
             }
             if dto.deleted_at != nil {
@@ -760,7 +770,12 @@ actor SyncEngine {
             case .keepLocal:
                 return
             case .conflict:
-                flagConflict(entity: .careTask, id: dto.id)
+                flagConflict(
+                    entity: .careTask,
+                    id: dto.id,
+                    local: Self.describe(existing),
+                    remote: Self.describe(dto)
+                )
                 return
             case .takeServer:
                 break
@@ -808,7 +823,12 @@ actor SyncEngine {
             if isRealConflict(localDirty: existing.isDirty,
                               localUpdated: existing.updatedAt,
                               serverUpdated: dto.updated_at) {
-                flagConflict(entity: .note, id: dto.id)
+                flagConflict(
+                    entity: .note,
+                    id: dto.id,
+                    local: Self.describe(existing.body),
+                    remote: Self.describe(dto.body)
+                )
                 return
             }
             if shouldKeepLocal(localDirty: existing.isDirty,
@@ -856,7 +876,12 @@ actor SyncEngine {
             if isRealConflict(localDirty: existing.isDirty,
                               localUpdated: existing.updatedAt,
                               serverUpdated: dto.updated_at) {
-                flagConflict(entity: .bill, id: dto.id)
+                flagConflict(
+                    entity: .bill,
+                    id: dto.id,
+                    local: Self.describe(existing),
+                    remote: Self.describe(dto)
+                )
                 return
             }
             if shouldKeepLocal(localDirty: existing.isDirty,
@@ -1315,6 +1340,17 @@ actor SyncEngine {
         var title: String
         /// The local copy's own timestamp, which is the edit being held.
         var localUpdatedAt: Date
+        /// The two versions in dispute, captured when the conflict was flagged
+        /// (`OutboxEntry.localSummary`). Either may be empty for an entry
+        /// written by an older build, or for a record with no useful one-line
+        /// form, and the screen renders less rather than nothing.
+        var localSummary: String = ""
+        var remoteSummary: String = ""
+
+        /// Whether either side was captured. An entry flagged by an older
+        /// build has neither, and the screen falls back to what it always
+        /// showed rather than printing two empty boxes.
+        var hasVersions: Bool { !localSummary.isEmpty || !remoteSummary.isEmpty }
 
         var kindLabel: String {
             switch entity {
@@ -1401,7 +1437,9 @@ actor SyncEngine {
             entity: entry.entityType,
             personName: person?.displayLabel ?? "",
             title: title.isEmpty ? entry.entityType.rawValue : title,
-            localUpdatedAt: updatedAt
+            localUpdatedAt: updatedAt,
+            localSummary: entry.localSummary,
+            remoteSummary: entry.remoteSummary
         )
     }
 
@@ -1466,19 +1504,117 @@ actor SyncEngine {
         )))?.first
     }
 
-    private func flagConflict(entity: SyncEntity, id: UUID) {
+    /// Flags the row and, crucially, keeps both readings of it.
+    ///
+    /// `local` and `remote` are captured here because this is the only moment
+    /// they both exist on the device: the pull keeps the local row and drops
+    /// the incoming one, so a screen asking about this later has nothing to
+    /// show. Empty strings are accepted (a record type with no useful one-line
+    /// version, or an older entry) and the screen simply says less.
+    private func flagConflict(
+        entity: SyncEntity,
+        id: UUID,
+        local: String = "",
+        remote: String = ""
+    ) {
         let existing = (try? modelContext.fetch(FetchDescriptor<OutboxEntry>(
             predicate: #Predicate { $0.entityID == id }
         ))) ?? []
-        if let first = existing.first {
-            first.status = .needsReview
-            first.lastError = "Someone else changed this while you were offline."
-        } else {
-            let entry = OutboxEntry(entityType: entity, entityID: id, groupID: nil)
-            entry.status = .needsReview
-            entry.lastError = "Someone else changed this while you were offline."
-            modelContext.insert(entry)
+        let entry = existing.first ?? {
+            let new = OutboxEntry(entityType: entity, entityID: id, groupID: nil)
+            modelContext.insert(new)
+            return new
+        }()
+        entry.status = .needsReview
+        entry.lastError = "Someone else changed this while you were offline."
+        // Never overwritten with nothing: a second pull of the same row must
+        // not erase the description the first one managed to capture.
+        if !local.isEmpty { entry.localSummary = local }
+        if !remote.isEmpty { entry.remoteSummary = remote }
+    }
+
+    // MARK: Conflict descriptions
+
+    /// One line describing a medication, from whichever side. Strength and
+    /// schedule, because those are what two people disagree about and what the
+    /// choice actually costs if it goes the wrong way.
+    private static func describe(_ medication: Medication) -> String {
+        var parts = [medication.displayName]
+        if medication.isAsNeeded {
+            parts.append("as needed")
+        } else if !medication.scheduleLabel.isEmpty {
+            parts.append(medication.scheduleLabel)
         }
+        if !medication.instructions.isEmpty { parts.append(medication.instructions) }
+        return parts.joined(separator: " · ")
+    }
+
+    private static func describe(_ dto: MedicationDTO) -> String {
+        let name = dto.strength.isEmpty ? dto.name : "\(dto.name) \(dto.strength)"
+        var parts = [name]
+        if dto.is_as_needed {
+            parts.append("as needed")
+        } else if !dto.schedule_minutes.isEmpty {
+            let times = dto.schedule_minutes.sorted()
+                .map { ScheduleEngine.timeLabel(forMinutes: $0) }
+                .joined(separator: ", ")
+            let days = ScheduleEngine.weekdayLabel(for: dto.weekdays)
+            parts.append(days.isEmpty ? times : "\(days) · \(times)")
+        }
+        if !dto.instructions.isEmpty { parts.append(dto.instructions) }
+        return parts.joined(separator: " · ")
+    }
+
+    private static func describe(_ task: CareTask) -> String {
+        var parts = [task.title.isEmpty ? "Untitled task" : task.title]
+        if let dueAt = task.dueAt {
+            parts.append("due \(dueAt.formatted(date: .abbreviated, time: .omitted))")
+        }
+        if !task.assigneeName.isEmpty { parts.append(task.assigneeName) }
+        if task.completedAt != nil { parts.append("done") }
+        return parts.joined(separator: " · ")
+    }
+
+    private static func describe(_ dto: CareTaskDTO) -> String {
+        var parts = [dto.title.isEmpty ? "Untitled task" : dto.title]
+        if let dueAt = dto.due_at {
+            parts.append("due \(dueAt.formatted(date: .abbreviated, time: .omitted))")
+        }
+        if !dto.assignee_name.isEmpty { parts.append(dto.assignee_name) }
+        if dto.completed_at != nil { parts.append("done") }
+        return parts.joined(separator: " · ")
+    }
+
+    private static func describe(_ bill: Bill) -> String {
+        var parts = [bill.payee.isEmpty ? "Untitled bill" : bill.payee, bill.amountLabel]
+        if let dueAt = bill.dueAt {
+            parts.append("due \(dueAt.formatted(date: .abbreviated, time: .omitted))")
+        }
+        if bill.paidAt != nil { parts.append("paid") }
+        return parts.joined(separator: " · ")
+    }
+
+    private static func describe(_ dto: BillDTO) -> String {
+        let amount = dto.amount.formatted(
+            .currency(code: Locale.current.currency?.identifier ?? "USD")
+        )
+        var parts = [dto.payee.isEmpty ? "Untitled bill" : dto.payee, amount]
+        if let dueAt = dto.due_at {
+            parts.append("due \(dueAt.formatted(date: .abbreviated, time: .omitted))")
+        }
+        if dto.paid_at != nil { parts.append("paid") }
+        return parts.joined(separator: " · ")
+    }
+
+    /// A note is one field end to end, so the field itself is the description.
+    /// Trimmed, because the whole point is a line somebody can compare at a
+    /// glance rather than two walls of text.
+    private static func describe(_ body: String) -> String {
+        let flat = body
+            .replacingOccurrences(of: "\n", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard flat.count > 140 else { return flat }
+        return String(flat.prefix(140)) + "…"
     }
 
     // MARK: - Cursors

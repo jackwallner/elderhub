@@ -66,7 +66,14 @@ enum MedListExporter {
             for contact in contacts {
                 let relationship = contact.relationship.isEmpty ? "" : " (\(contact.relationship))"
                 let phone = contact.phone.isEmpty ? "no phone number saved" : contact.phone
-                lines.append("  \(contact.name)\(relationship), \(phone)")
+                // Said, not implied by position. This text is read off a
+                // printout or a message by someone who has never seen the app
+                // and has no reason to think the list is in any order, so the
+                // family's "ring her first" has to be on the line itself. The
+                // marker leads the line because that is the column a reader
+                // scans down.
+                let marker = contact.isPrimary ? "CALL FIRST: " : ""
+                lines.append("  \(marker)\(contact.name)\(relationship), \(phone)")
             }
         }
         lines.append("")

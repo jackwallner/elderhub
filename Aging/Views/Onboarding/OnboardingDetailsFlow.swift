@@ -51,6 +51,7 @@ struct OnboardingDetailsFlow: View {
     @State private var isAddingPharmacy = false
     @State private var isInviting = false
     @State private var remindersOn = false
+    @State private var showNotificationsBlocked = false
 
     private static let bloodTypes = ["", "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]
 
@@ -89,6 +90,7 @@ struct OnboardingDetailsFlow: View {
         .sheet(isPresented: $isInviting) {
             InviteSheet(people: [person])
         }
+        .notificationsBlockedAlert(isPresented: $showNotificationsBlocked)
         .onAppear(perform: load)
     }
 
@@ -107,6 +109,17 @@ struct OnboardingDetailsFlow: View {
                 if index > 0 {
                     Button("Back") { index -= 1 }
                         .font(.footnote)
+                }
+                // One way out of the whole run, rather than eight taps on
+                // "Skip this step". Somebody who has decided they will fill
+                // this in later has decided it once, and making them say so
+                // eight times is the app arguing with them. The checklist on
+                // Today is waiting for them either way, and Settings can rerun
+                // the whole flow, so nothing is lost by leaving early.
+                if !isLast {
+                    Button("Finish later") { onFinished() }
+                        .font(.footnote)
+                        .accessibilityIdentifier("onboarding.details.finish-later")
                 }
             }
         }
@@ -435,10 +448,19 @@ struct OnboardingDetailsFlow: View {
         case .reminders:
             DoseReminderPreferences.setEnabled(remindersOn, personID: person.id)
             Task {
-                if remindersOn, !(await NotificationService.shared.isAuthorized()) {
-                    let granted = await NotificationService.shared.requestAuthorization()
-                    if !granted {
+                if remindersOn {
+                    switch await NotificationPermission.request() {
+                    case .granted:
+                        break
+                    case .denied:
                         DoseReminderPreferences.setEnabled(false, personID: person.id)
+                    case .blocked:
+                        // Someone re-running setup on a phone that has already
+                        // refused notifications gets no system prompt at all,
+                        // so without this the step passes and the reminders
+                        // they just asked for never arrive.
+                        DoseReminderPreferences.setEnabled(false, personID: person.id)
+                        showNotificationsBlocked = true
                     }
                 }
                 await DoseReminderScheduler.refresh(in: context)

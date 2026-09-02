@@ -231,7 +231,7 @@ struct EmergencyContactsView: View {
                     }
                     .onDelete(perform: deleteContacts)
                 } footer: {
-                    Text("The primary contact is listed first on the emergency card.")
+                    Text("The primary contact is listed first on the emergency card and marked \"Call first\", so whoever is holding the card knows who to ring.")
                 }
             }
         }
@@ -340,7 +340,7 @@ struct EmergencyContactEditorSheet: View {
                 Section {
                     Toggle("Call this person first", isOn: $isPrimary)
                 } footer: {
-                    Text("Listed at the top of the emergency card.")
+                    Text("Listed at the top of the emergency card and marked \"Call first\" there, and on the copy you share or print.")
                 }
             }
             .navigationTitle(contact == nil ? "Add Contact" : "Contact")
