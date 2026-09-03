@@ -86,6 +86,14 @@ struct AgingApp: App {
                 .onAppear {
                     store.start()
                     ReviewPrompt.recordAppLaunch()
+                    ConversionDiagnostics.recordAppOpen()
+                    #if DEBUG
+                    if RevenueCatProbe.isEnabled {
+                        // Same entry point the paywall calls, so what this
+                        // proves is the actual path and not a parallel one.
+                        store.trackPaywallImpression(id: RevenueCatProbe.impressionID)
+                    }
+                    #endif
                 }
         }
         .modelContainer(CareModelStore.sharedModelContainer)

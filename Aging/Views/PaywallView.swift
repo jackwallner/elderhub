@@ -197,6 +197,10 @@ struct PaywallView: View {
                 }
             }
             .task {
+                // This app reported no paywall impressions at all until now, so
+                // everything between "installed" and "subscribed" was invisible
+                // for it in RevenueCat.
+                store.trackPaywallImpression(id: "elderhub_paywall", oncePerSession: true)
                 // Eligibility can change between launches (a trial started on
                 // another device), so it is re-resolved every time the sheet
                 // opens rather than trusted from app start.

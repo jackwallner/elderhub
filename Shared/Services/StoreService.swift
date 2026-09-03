@@ -192,6 +192,7 @@ final class StoreService: NSObject {
     private(set) var introEligibilityResolved: Bool = false
 
     private var isConfigured = false
+    private var paywallImpressionsThisSession: Set<String> = []
     private var localOverride: Bool?
     private let log = Logger(subsystem: "com.jackwallner.aging", category: "store")
 
@@ -355,10 +356,56 @@ final class StoreService: NSObject {
             // StoreKit Testing render only; there is nothing to charge against.
             return
         }
+        let startedTrial = package.storeProduct.introductoryDiscount?.paymentMode == .freeTrial
         let result = try await Purchases.shared.purchase(package: package)
         guard !result.userCancelled else { return }
         apply(result.customerInfo)
+        if isPro {
+            ConversionDiagnostics.recordConversion(
+                plan: package.storeProduct.productIdentifier,
+                startedTrial: startedTrial,
+                offeringID: package.presentedOfferingContext.offeringIdentifier
+            )
+            syncConversionAttributes()
+        }
         await propagateToGroup()
+    }
+
+    /// Reports a custom-paywall impression to RevenueCat and records the
+    /// on-device funnel tally.
+    ///
+    /// This app previously reported no impressions at all, so everything
+    /// between "installed" and "subscribed" was invisible for it.
+    ///
+    /// Attributes rather than extra impressions for the funnel steps: RevenueCat
+    /// treats every impression id as a paywall encounter, so pushing steps
+    /// through that channel would drive the encounter rate to 100% and destroy
+    /// the one server-side number that works.
+    ///
+    /// `isConfigured` is the load-bearing guard: `Purchases.shared` traps when
+    /// RevenueCat was never configured, which is every simulator run.
+    func trackPaywallImpression(id: String, oncePerSession: Bool = false) {
+        configureIfNeeded()
+        guard isConfigured else { return }
+        if oncePerSession {
+            guard !paywallImpressionsThisSession.contains(id) else { return }
+            paywallImpressionsThisSession.insert(id)
+        }
+        ConversionDiagnostics.recordPitchView(impressionID: id)
+        syncConversionAttributes()
+        Purchases.shared.trackCustomPaywallImpression(
+            CustomPaywallImpressionParams(paywallId: id)
+        )
+    }
+
+    /// `setAttributes` only queues. RevenueCat uploads when the app backgrounds
+    /// or folds the queue into the POST that creates a customer, so a probe run
+    /// has to background the app before reading anything back.
+    func syncConversionAttributes() {
+        guard isConfigured else { return }
+        let attributes = ConversionDiagnostics.subscriberAttributes
+        guard !attributes.isEmpty else { return }
+        Purchases.shared.attribution.setAttributes(attributes)
     }
 
     func restore() async throws {
@@ -394,7 +441,23 @@ final class StoreService: NSObject {
         // `#else` rather than an early `return`, which made every line after it
         // unreachable on a simulator build and so warned on every such build,
         // burying anything else the compiler had to say.
-        #if !targetEnvironment(simulator)
+        #if targetEnvironment(simulator)
+        #if DEBUG
+        // The one simulator path allowed to configure RevenueCat, and only ever
+        // with the Test Store key: a separate RevenueCat app inside the same
+        // project, so a probe run cannot touch App Store customers, revenue or
+        // charts. See RevenueCatProbe.
+        if RevenueCatProbe.isEnabled {
+            Purchases.logLevel = .debug
+            Purchases.configure(
+                with: Configuration.Builder(withAPIKey: RevenueCatProbe.testStoreKey)
+                    .with(appUserID: RevenueCatProbe.appUserID)
+                    .build()
+            )
+            isConfigured = true
+        }
+        #endif
+        #else
         #if DEBUG
         Purchases.logLevel = .debug
         #endif
@@ -403,3 +466,31 @@ final class StoreService: NSObject {
         #endif
     }
 }
+
+#if DEBUG
+/// Simulator-only proof path for the fleet-wide funnel attributes.
+///
+/// Under the normal rules the attributes cannot be verified on a simulator: the
+/// production key must never be configured there, so RevenueCat is never
+/// configured, so nothing is ever sent, so a physical device is the only
+/// witness. The Test Store key is a different RevenueCat app inside the same
+/// project, so a probe run cannot touch App Store customers, revenue or charts.
+///
+/// DEBUG only, and only with the launch argument, so it cannot reach a Release
+/// build or an ordinary simulator run.
+enum RevenueCatProbe {
+    static var isEnabled: Bool {
+        ProcessInfo.processInfo.arguments.contains("-rcfunnelprobe")
+    }
+
+    static let testStoreKey = "test_YdfGaRElhIbZeQWNtLhAznkKwAj"
+
+    static var appUserID: String {
+        ProcessInfo.processInfo.environment["RC_PROBE_USER"] ?? "funnel-probe-elderhub"
+    }
+
+    static var impressionID: String {
+        ProcessInfo.processInfo.environment["RC_PROBE_SURFACE"] ?? "elderhub_paywall"
+    }
+}
+#endif
