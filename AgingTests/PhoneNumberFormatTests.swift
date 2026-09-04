@@ -68,4 +68,31 @@ struct PhoneNumberFormatTests {
         #expect(PhoneNumberFormat.formatted("911") == "911")
         #expect(PhoneNumberFormat.formatted("988") == "988")
     }
+
+    // MARK: Which edits may be re-formatted under the caret
+
+    @Test func typingAndBackspacingAtTheEndAreTailEdits() {
+        #expect(PhoneNumberFormat.isTailEdit(from: "555-1", to: "555-12"))
+        #expect(PhoneNumberFormat.isTailEdit(from: "555-123-4", to: "555-123-"))
+        #expect(PhoneNumberFormat.isTailEdit(from: "", to: "5"))
+        #expect(PhoneNumberFormat.isTailEdit(from: "5", to: ""))
+    }
+
+    @Test func correctingADigitInTheMiddleIsNotATailEdit() {
+        // Deleting the second "2" of "555-123-4567" and typing a "4" over it.
+        // Re-formatting either of these would throw the caret to the end of
+        // the number, so the next keystroke lands in the wrong place.
+        #expect(!PhoneNumberFormat.isTailEdit(from: "555-123-4567", to: "555-13-4567"))
+        #expect(!PhoneNumberFormat.isTailEdit(from: "555-13-4567", to: "555-143-4567"))
+    }
+
+    @Test func pastingOverTheWholeFieldIsNotATailEdit() {
+        #expect(!PhoneNumberFormat.isTailEdit(from: "555-123-4567", to: "2065550101"))
+    }
+
+    @Test func anUnchangedValueNeedsNoDecision() {
+        // Both directions hold, which is the harmless case: formatting an
+        // already-formatted value is a no-op.
+        #expect(PhoneNumberFormat.isTailEdit(from: "555-123-4567", to: "555-123-4567"))
+    }
 }
