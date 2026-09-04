@@ -318,7 +318,19 @@ struct OnboardingFlow: View {
                 // usable without the group, so this is reported and then
                 // stepped past rather than trapping someone on an onboarding
                 // screen with their data already entered.
-                errorMessage = error.localizedDescription
+                //
+                // Said in full, though. The bare error message read as a
+                // transient hiccup, and the next screen looked exactly like a
+                // successful setup, so somebody could enter a fortnight of
+                // medications believing their family could see them and find
+                // out only when they went to send an invitation. Sharing → Start
+                // a care circle is the retry; naming it is what turns an alert
+                // into a recovery.
+                errorMessage = """
+                    \(error.localizedDescription)
+
+                    \(person.displayLabel)'s record is saved on this phone and everything works, but the care circle was not created, so nothing is shared with your family yet. Open Sharing and tap "Start a care circle" to finish it.
+                    """
             }
         }
 

@@ -115,7 +115,7 @@ struct MedicationEditorSheet: View {
                     }
                 }
 
-                Section("Refills") {
+                Section {
                     Toggle("Track refills", isOn: $trackRefills.animation())
 
                     if trackRefills {
@@ -137,6 +137,18 @@ struct MedicationEditorSheet: View {
                             "Warn at \(refillThresholdDays) day\(refillThresholdDays == 1 ? "" : "s") left",
                             value: $refillThresholdDays, in: 1...30
                         )
+                    }
+                } header: {
+                    Text("Refills")
+                } footer: {
+                    // Zero units per dose used to save happily and then switch
+                    // the warning off in silence: `daysRemaining` divides by it,
+                    // returns nil for anything nonpositive, and the medication
+                    // dropped out of Running low with the toggle still on. Said
+                    // before the tap, and corrected on save.
+                    if trackRefills, unitsPerDose <= 0 {
+                        Text("Units per dose has to be more than zero, or nothing can be worked out from what's on hand. This will be saved as 1.")
+                            .foregroundStyle(.orange)
                     }
                 }
 
@@ -281,7 +293,10 @@ struct MedicationEditorSheet: View {
         target.tracksRefills = trackRefills
         if trackRefills {
             target.quantityRemaining = max(0, quantityRemaining)
-            target.unitsPerDose = unitsPerDose
+            // See the footer: a nonpositive value is not "no dose", it is a
+            // typo that quietly disables the low-stock warning the toggle
+            // above just promised.
+            target.unitsPerDose = unitsPerDose > 0 ? unitsPerDose : 1
             target.refillThresholdDays = refillThresholdDays
             // Only a new refill resets the fill date. Correcting the strength
             // of a bottle opened a fortnight ago must not claim it is new.

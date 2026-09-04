@@ -343,6 +343,9 @@ struct CareTaskEditorSheet: View {
     @State private var recurrence: CareTaskRecurrence = .never
     @State private var assigneeName = ""
     @State private var assigneeUserID: UUID?
+    /// The name that was on screen when `assigneeUserID` was set. The id is
+    /// only allowed to survive a save while the field still says this.
+    @State private var assigneeNameForID = ""
 
     private var trimmedTitle: String {
         title.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -399,6 +402,7 @@ struct CareTaskEditorSheet: View {
                                     Button(member.resolvedName) {
                                         assigneeName = member.displayName
                                         assigneeUserID = member.id
+                                        assigneeNameForID = member.displayName
                                     }
                                 }
                             } label: {
@@ -444,6 +448,7 @@ struct CareTaskEditorSheet: View {
         recurrence = task.recurrence
         assigneeName = task.assigneeName
         assigneeUserID = task.assigneeUserID
+        assigneeNameForID = task.assigneeUserID == nil ? "" : task.assigneeName
     }
 
     private func save() {
@@ -467,9 +472,17 @@ struct CareTaskEditorSheet: View {
         target.recurrence = hasDueDate ? recurrence : .never
         let trimmedAssignee = assigneeName.trimmingCharacters(in: .whitespacesAndNewlines)
         target.assigneeName = trimmedAssignee
-        // Clearing or retyping the name drops the id rather than leaving it
-        // pointing at whoever was picked from the menu three edits ago.
-        target.assigneeUserID = trimmedAssignee.isEmpty ? nil : assigneeUserID
+        // Clearing *or retyping* the name drops the id. This used to keep the
+        // id for any non-empty name, so picking Chris from the menu and then
+        // typing "Sarah" over it saved a row that read Sarah and was assigned,
+        // by id, to Chris: `TaskPlanner.isAssigned` prefers the id whenever
+        // both sides have one, so Chris's Mine listed an errand under Sarah's
+        // name and Sarah's Mine did not list it at all. The id survives only
+        // while the field still says what it said when the id was picked.
+        let idStillMatchesName = trimmedAssignee.caseInsensitiveCompare(
+            assigneeNameForID.trimmingCharacters(in: .whitespacesAndNewlines)
+        ) == .orderedSame
+        target.assigneeUserID = (trimmedAssignee.isEmpty || !idStillMatchesName) ? nil : assigneeUserID
         target.recordLocalChange(in: context)
 
         dismiss()

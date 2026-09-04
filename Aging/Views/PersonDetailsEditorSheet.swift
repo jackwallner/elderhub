@@ -115,9 +115,19 @@ struct PersonDetailsEditorSheet: View {
                     }
                 }
 
-                Section("Notes") {
+                Section {
                     TextField("Anything else worth knowing", text: $notes, axis: .vertical)
                         .lineLimit(3...8)
+                } header: {
+                    Text("Notes")
+                } footer: {
+                    // Said where the expectation is formed, which is the only
+                    // place it is any use. This field sits two rows under the
+                    // allergies and contacts that do print on the card, and it
+                    // is reached from the card's own Edit button, so anything
+                    // clinical typed here was reasonably believed to be part of
+                    // the handoff. It is not, and a clinician never sees it.
+                    Text("For your family. This does not print on the emergency card or the shared one-pager. Anything a paramedic needs belongs in allergies, conditions or medications.")
                 }
             }
             .navigationTitle("Details")

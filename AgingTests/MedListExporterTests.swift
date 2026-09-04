@@ -226,4 +226,23 @@ struct MedListExporterTests {
 
         #expect(MedListExporter.plainText(for: person).contains("not a medical record"))
     }
+    /// Onboarding promises a date of birth prints on the handoff, and it did
+    /// not: only an age, which is not what a hospital asks for and is not a
+    /// value a clinician can match a page to a patient with. Named when
+    /// missing, like the blood-type line above it.
+    @Test func theHandoffPrintsTheDateOfBirthOrSaysItIsMissing() {
+        let context = makeContext()
+        let born = Calendar.current.date(from: DateComponents(year: 1939, month: 7, day: 13))!
+        let person = Person(name: "Eleanor Wallner", relationship: "Mom", birthDate: born)
+        context.insert(person)
+
+        let text = MedListExporter.plainText(for: person)
+        #expect(text.contains("Date of birth: "))
+        #expect(text.contains("1939"))
+
+        let unknown = Person(name: "Frank Wallner", relationship: "Dad")
+        context.insert(unknown)
+        #expect(MedListExporter.plainText(for: unknown).contains("Date of birth: not recorded"))
+    }
+
 }

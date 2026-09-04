@@ -268,4 +268,61 @@ struct TodayDigestTests {
         #expect(low.count == 1)
         #expect(low[0].id == tracked.id)
     }
+
+    // MARK: - Check-in
+
+    /// The weekly sibling's question. A person with an agreed check-in that has
+    /// not been pressed is not a settled day: they used to be filed under
+    /// "Nothing due today" in Everyone mode, which reads as reassurance about
+    /// the one fact the screen did not know.
+    @Test func anUnpressedCheckInKeepsThePersonOutstanding() {
+        let context = makeContext()
+        let mom = Person(name: "Eleanor", relationship: "Mom")
+        context.insert(mom)
+
+        let digest = TodayDigest.build(for: [mom], on: noon) { _ in (enabled: true, checkedIn: false) }[0]
+
+        #expect(digest.checkInOutstanding)
+        #expect(!digest.isClear)
+        #expect(digest.statusLine == "no check-in yet")
+    }
+
+    @Test func aPressedCheckInLeavesTheDayClear() {
+        let context = makeContext()
+        let mom = Person(name: "Eleanor", relationship: "Mom")
+        context.insert(mom)
+
+        let digest = TodayDigest.build(for: [mom], on: noon) { _ in (enabled: true, checkedIn: true) }[0]
+
+        #expect(!digest.checkInOutstanding)
+        #expect(digest.isClear)
+        #expect(digest.statusLine == "Nothing recorded yet")
+    }
+
+    /// No check-in agreed is the default everywhere outside Today, and it must
+    /// not invent an outstanding item for the people who never enabled one.
+    @Test func aPersonWithNoCheckInIsUnaffected() {
+        let context = makeContext()
+        let mom = Person(name: "Eleanor", relationship: "Mom")
+        context.insert(mom)
+
+        let digest = TodayDigest.build(for: [mom], on: noon)[0]
+
+        #expect(!digest.checkInOutstanding)
+        #expect(digest.isClear)
+    }
+
+    @Test func theHeadlineCountsOutstandingCheckIns() {
+        let context = makeContext()
+        let mom = Person(name: "Eleanor", relationship: "Mom")
+        let dad = Person(name: "Frank", relationship: "Dad")
+        context.insert(mom)
+        context.insert(dad)
+
+        let digests = TodayDigest.build(for: [mom, dad], on: noon) { _ in
+            (enabled: true, checkedIn: false)
+        }
+
+        #expect(TodayDigest.headline(for: digests) == "2 check-ins outstanding")
+    }
 }

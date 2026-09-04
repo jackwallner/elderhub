@@ -41,6 +41,9 @@ struct TodayView: View {
         case emergencyCard
         case fullRecord
         case appointments
+        /// Named, because Everyone mode has no selected person and the card is
+        /// the one screen that must never need a person to be selected first.
+        case emergencyCardFor(UUID)
 
         var id: Self { self }
     }
@@ -131,11 +134,19 @@ struct TodayView: View {
                 }
             }
             .navigationDestination(item: $destination) { target in
-                if let person = selectedPerson {
-                    switch target {
-                    case .emergencyCard: EmergencyCardView(person: person)
-                    case .fullRecord: PersonDetailView(person: person)
-                    case .appointments: VisitsView(person: person)
+                switch target {
+                case .emergencyCardFor(let id):
+                    if let person = people.first(where: { $0.id == id }) {
+                        EmergencyCardView(person: person)
+                    }
+                default:
+                    if let person = selectedPerson {
+                        switch target {
+                        case .emergencyCard: EmergencyCardView(person: person)
+                        case .fullRecord: PersonDetailView(person: person)
+                        case .appointments: VisitsView(person: person)
+                        case .emergencyCardFor: EmptyView()
+                        }
                     }
                 }
             }
@@ -287,7 +298,7 @@ struct TodayView: View {
     /// having to switch person to tick off Dad's tablet is the whole problem
     /// this screen exists to fix.
     private var everyoneContent: some View {
-        let digests = TodayDigest.build(for: people, on: Date())
+        let digests = TodayDigest.build(for: people, on: Date(), checkInState: checkInState)
         let outstanding = digests.filter { !$0.isClear }
         // Named `settled` and not `clear`: `clear(_:person:)` is the undo path
         // for a dose a few lines below, and shadowing it here silently turns
@@ -310,8 +321,57 @@ struct TodayView: View {
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
 
+            // One tap from the default screen to any card in the family, and
+            // above the day's work rather than under it.
+            //
+            // Everyone mode is what a phone with two people opens on, and it
+            // used to carry no route to a card at all: the person had to be
+            // picked out of a toolbar menu first, then the card found at the
+            // bottom of their day. That is a fine amount of work for a
+            // caregiver and far too much for the paramedic they have just
+            // handed the phone to.
+            Section("Emergency cards") {
+                ForEach(people) { person in
+                    Button {
+                        destination = .emergencyCardFor(person.id)
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: "cross.case.fill")
+                                .foregroundStyle(.red)
+                                .frame(width: 22)
+                            Text(person.displayLabel)
+                                .font(.body.weight(.medium))
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.tertiary)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("today.everyone.emergency-card.\(person.displayLabel)")
+                }
+            }
+
             ForEach(outstanding) { digest in
                 Section {
+                    // First in the section, because it is the only line here
+                    // that is about the person rather than about a list, and
+                    // the question the weekly sibling opened the app to ask.
+                    // Not tappable to "complete": nobody may press somebody
+                    // else's check-in, so this states what was recorded and
+                    // goes no further (I6).
+                    if digest.checkInOutstanding {
+                        Label {
+                            Text("No check-in yet today")
+                                .font(.body.weight(.medium))
+                        } icon: {
+                            Image(systemName: "hand.wave")
+                                .foregroundStyle(.secondary)
+                        }
+                        .accessibilityIdentifier("today.everyone.check-in")
+                    }
+
                     ForEach(digest.pendingSlots) { slot in
                         DoseRow(slot: slot, person: digest.person) { status in
                             if let status {
@@ -379,6 +439,16 @@ struct TodayView: View {
                 }
             }
         }
+    }
+
+    /// What `TodayDigest` cannot work out on its own. Check-in settings and
+    /// presses live in a service, not on the models, and the Everyone screen is
+    /// the one that has to answer "is Mom OK?" without switching person first.
+    private func checkInState(_ person: Person) -> (enabled: Bool, checkedIn: Bool) {
+        (
+            enabled: checkIn.settings(for: person)?.enabled == true,
+            checkedIn: checkIn.hasCheckedInToday(person)
+        )
     }
 
     private var peopleSummary: String {
@@ -922,7 +992,7 @@ struct TodayView: View {
     /// `CheckInHomeView` and never reaches this screen at all.
     private func considerAskingForReview() {
         guard !isAskingForReview else { return }
-        let digests = TodayDigest.build(for: people, on: Date())
+        let digests = TodayDigest.build(for: people, on: Date(), checkInState: checkInState)
         // A record with nothing in it is not a quiet day, it is an empty app.
         guard !digests.isEmpty, digests.allSatisfy(\.isClear),
               digests.contains(where: { !$0.hasNothingToShow }) else { return }
@@ -1085,6 +1155,9 @@ private struct TodayBillRow: View {
                 Image(systemName: "circle")
                     .font(.title3)
                     .foregroundStyle(.secondary)
+                    // See `TodayTaskRow`: 44 points, matching the dose control.
+                    .frame(minWidth: 44, minHeight: 44, alignment: .leading)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Mark \(bill.payee) paid")
@@ -1133,6 +1206,13 @@ private struct TodayTaskRow: View {
                 Image(systemName: "circle")
                     .font(.title3)
                     .foregroundStyle(.secondary)
+                    // The same 44-point floor the dose button was given, and
+                    // for the same reason: these three controls sit in one
+                    // column on one screen, tapped one-handed, and only one of
+                    // them had a hit area anybody had measured. A bare glyph is
+                    // about 22 points.
+                    .frame(minWidth: 44, minHeight: 44, alignment: .leading)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Mark \(task.title) done")

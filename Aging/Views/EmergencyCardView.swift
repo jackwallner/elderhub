@@ -33,28 +33,34 @@ struct EmergencyCardView: View {
             VStack(alignment: .leading, spacing: 22) {
                 header
 
-                if isEmpty {
-                    // Nothing at all: the prompt says what to fill in, and
-                    // repeating "Not recorded" five times below it would only
-                    // bury the one button that fixes the situation.
+                // The prompt used to *replace* the sections, on the reasoning
+                // that repeating "Not recorded" five times would bury the
+                // button that fixes it. That is true of Sarah setting the card
+                // up and wrong of the only reader who matters: a clinician
+                // handed a card carrying nothing but "Nothing on the card yet"
+                // cannot tell an app that was never filled in from a patient
+                // with no allergies and no medications. Both now, prompt first,
+                // so the button is still the first thing Sarah sees and the
+                // page still says what it does and does not know.
+                if isEmpty, deviceMode.allowsEditing {
                     emptyPrompt
-                } else {
-                    // Once the card holds anything, every critical section is
-                    // drawn whether or not it has content. A card that simply
-                    // omits Allergies reads, to someone holding it in an ER, as
-                    // "no allergies"; there is no way to tell an absent section
-                    // from a negative answer, and the two are very different
-                    // facts. "Not recorded" says which one this is.
-                    block(title: "Allergies", lines: person.allergies, tint: .red)
-                    block(title: "Conditions", lines: person.conditions, tint: .orange)
+                }
 
-                    medications
+                // Every critical section is drawn whether or not it has
+                // content. A card that simply omits Allergies reads, to someone
+                // holding it in an ER, as "no allergies"; there is no way to
+                // tell an absent section from a negative answer, and the two
+                // are very different facts. "Not recorded" says which one this
+                // is.
+                block(title: "Allergies", lines: person.allergies, tint: .red)
+                block(title: "Conditions", lines: person.conditions, tint: .orange)
 
-                    contactsBlock
+                medications
 
-                    if !providersWithPhone.isEmpty {
-                        providersBlock
-                    }
+                contactsBlock
+
+                if !providersWithPhone.isEmpty {
+                    providersBlock
                 }
 
                 Text("This list is maintained by a family member and is not a medical record.")
@@ -243,19 +249,51 @@ struct EmergencyCardView: View {
                 // not enough, it has to have carried real local data onto it.
                 .accessibilityIdentifier("emergency-card.name")
 
-            HStack(spacing: 8) {
-                if let age = person.age {
-                    Text("Age \(age)")
-                    Text("·")
-                }
-                // Named even when it is missing, for the same reason the
-                // sections below are: a blank where a blood type would be does
-                // not tell a reader whether it is unknown or simply not here.
-                Text(person.bloodType.isEmpty ? "Blood type not recorded" : "Blood type \(person.bloodType)")
-            }
-            .font(.title3)
-            .foregroundStyle(.secondary)
+            // Onboarding tells the person entering it that a date of birth
+            // "prints on the emergency card", and it did not: the header showed
+            // an age, which is not what a hospital asks for and is not a value
+            // anybody can match a page to a patient with. Named when missing,
+            // like the blood type below.
+            Text(birthLine)
+                .font(.title3)
+                .foregroundStyle(.secondary)
+
+            // Named even when it is missing, for the same reason the sections
+            // below are: a blank where a blood type would be does not tell a
+            // reader whether it is unknown or simply not here.
+            Text(person.bloodType.isEmpty ? "Blood type not recorded" : "Blood type \(person.bloodType)")
+                .font(.title3)
+                .foregroundStyle(.secondary)
+
+            // The exported one-pager prints when it was generated and the live
+            // card printed nothing, so of the two routes to the same
+            // information only one told the reader how old it might be. This is
+            // the record's own last edit, not the time the screen was opened:
+            // a card rendered a second ago from a record nobody has touched
+            // since March is three months old, and saying "now" would be a
+            // worse answer than saying nothing.
+            Text(freshnessLine)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
         }
+    }
+
+    private var birthLine: String {
+        guard let birthDate = person.birthDate else { return "Date of birth not recorded" }
+        let born = birthDate.formatted(date: .abbreviated, time: .omitted)
+        guard let age = person.age else { return "Born \(born)" }
+        return "Born \(born) · Age \(age)"
+    }
+
+    /// The most recent edit anywhere on the card: the person's own details, the
+    /// medications it prints, the contacts it lists or the providers behind
+    /// them. Whichever is newest is the honest answer to "how current is this".
+    private var freshnessLine: String {
+        var latest = person.updatedAt
+        for medication in person.activeMedications { latest = max(latest, medication.updatedAt) }
+        for contact in person.liveContacts { latest = max(latest, contact.updatedAt) }
+        for provider in providersWithPhone { latest = max(latest, provider.updatedAt) }
+        return "Last updated \(latest.formatted(date: .abbreviated, time: .shortened))"
     }
 
     private var medications: some View {
@@ -284,6 +322,14 @@ struct EmergencyCardView: View {
         }
     }
 
+    /// Deliberately the same fields as `MedListExporter.line(for:)`, in the
+    /// same order.
+    ///
+    /// The card carried name, schedule and purpose while the exported one-pager
+    /// carried form, instructions, prescriber and pharmacy as well, so Sarah
+    /// showing a clinician the screen believed she was handing over the page
+    /// she would have sent them. Two routes to "the emergency information",
+    /// with different information on them, is a route-dependent handoff.
     private func detail(for med: Medication) -> String {
         var parts: [String] = []
         if med.isAsNeeded {
@@ -293,8 +339,24 @@ struct EmergencyCardView: View {
             // the worst thing this card can say.
             parts.append(med.scheduleLabel)
         }
+        if !med.form.rawValue.isEmpty, med.form != .other {
+            parts.append(med.form.label.lowercased())
+        }
         if !med.purpose.isEmpty {
             parts.append("for \(med.purpose)")
+        }
+        if !med.instructions.isEmpty {
+            parts.append(med.instructions)
+        }
+        let prescriber = med.resolvedPrescriberName
+        if !prescriber.isEmpty {
+            let phone = med.resolvedPrescriberPhone
+            parts.append(phone.isEmpty ? "(\(prescriber))" : "(\(prescriber), \(phone))")
+        }
+        let pharmacy = med.resolvedPharmacyName
+        if !pharmacy.isEmpty {
+            let phone = med.resolvedPharmacyPhone
+            parts.append(phone.isEmpty ? "pharmacy: \(pharmacy)" : "pharmacy: \(pharmacy), \(phone)")
         }
         return parts.joined(separator: " · ")
     }
