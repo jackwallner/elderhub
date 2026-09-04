@@ -115,9 +115,12 @@ struct OnboardingDetailsFlow: View {
                 // this in later has decided it once, and making them say so
                 // eight times is the app arguing with them. The checklist on
                 // Today is waiting for them either way, and Settings can rerun
-                // the whole flow, so nothing is lost by leaving early.
+                // the whole flow, so nothing is lost by leaving early: it
+                // writes the step being looked at first, which is what makes
+                // that true. Interrupted halfway through typing the allergies,
+                // this used to throw away the answer on screen.
                 if !isLast {
-                    Button("Finish later") { onFinished() }
+                    Button("Finish later") { finishNow() }
                         .font(.footnote)
                         .accessibilityIdentifier("onboarding.details.finish-later")
                 }
@@ -422,6 +425,15 @@ struct OnboardingDetailsFlow: View {
         } else {
             index += 1
         }
+    }
+
+    /// "Finish later": leave the run from wherever they are, keeping the answer
+    /// on screen. Saving here is the whole point of the button. Leaving without
+    /// saving is not "finish later", it is a silent discard of a form somebody
+    /// was halfway through, and the steps they had already passed were kept.
+    private func finishNow() {
+        save(step)
+        onFinished()
     }
 
     /// Only the steps that hold their answer in local state need saving. The

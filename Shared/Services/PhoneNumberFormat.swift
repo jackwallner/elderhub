@@ -42,6 +42,18 @@ enum PhoneNumberFormat {
         }
     }
 
+    /// Whether an edit that took `old` to `new` happened at the end of the
+    /// field: a character appended, or one deleted off the end.
+    ///
+    /// The field re-formats on a tail edit only. Writing the binding back puts
+    /// the caret at the end of the text, which is where it already is while a
+    /// number is being typed in, and is not where it is when somebody has
+    /// tapped into the middle of one to correct a digit. Re-formatting there
+    /// moved them to the end, so the next backspace took the wrong digit.
+    static func isTailEdit(from old: String, to new: String) -> Bool {
+        new.hasPrefix(old) || old.hasPrefix(new)
+    }
+
     /// Groups up to ten digits as `xxx-xxx-xxxx`, adding a separator only
     /// ahead of a digit that exists.
     private static func grouped(_ digits: String) -> String {

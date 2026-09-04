@@ -259,3 +259,51 @@ extension-safe dialing, larger and labeled check-in and dose controls, visible
 undo for recent Today actions, blocked-notification guidance, a non-spinning
 paywall failure state with Restore still reachable, and readable local versus
 remote conflict summaries.
+
+---
+
+## Dispositions, 2026-09-04
+
+This audit was written against build 34. `f146441` (audit 91) landed after it and
+closes REG-02 through REG-18, which are the same findings under different ids.
+Verified at HEAD before touching anything, rather than taken on the commit
+message's word:
+
+| reg93 | audit 91 | State at HEAD |
+| --- | --- | --- |
+| REG-02 | PA-01 | Closed. `SettingsView.signOutAndForget()` forgets the circle, logs the RevenueCat customer out and rebuilds the reminders. |
+| REG-03 | PA-02 | Closed. `RootView` calls `groups.loadMembers()` on launch and on foreground, which is what applies a narrowed scope to the local mirror. `CachedGroupMember` still carries no access scope, and that is correct: the scope is applied when it is learned, and an offline launch has nothing new to apply. |
+| REG-04 | PA-03 | Closed. `PersonDigest.checkInOutstanding`. |
+| REG-05 | PA-04 | Closed. The editor drops `assigneeUserID` when the name is retyped over it. |
+| REG-06 | PA-05 | Closed. Every critical section is drawn even when empty. |
+| REG-07 | PA-06 | Closed. The card prints the export's medication fields. |
+| REG-08 | PA-08 | Closed. Date of birth on both handoffs. |
+| REG-09 | PA-07 | Closed for the multi-person default: Everyone mode has an "Emergency cards" section above the day's work. Depth on the single-person screen is unchanged. |
+| REG-10 | PA-09 | Closed. The recipient screen names whose it is and refuses to guess past a stale handover. |
+| REG-11 | PA-10 | Closed. A real "Try again" button. |
+| REG-12 | PA-11 | Closed. A nonpositive units-per-dose is warned about and saved as 1. |
+| REG-13 | PA-15 | Closed. Consent is replaced by a retry when the member list is unavailable. |
+| REG-14 | PA-14 | Closed as copy. |
+| REG-15 | PA-13 | Closed. "Only on this phone" in search results. |
+| REG-16 | PA-16 | Closed. The Details notes field says it does not print. |
+| REG-17 | PA-17 | Closed. 44-point floor on the task and bill controls. |
+| REG-18 | PA-18 | Closed. "Last updated" on the card. |
+
+Fixed in this pass, the two that were genuinely still open:
+
+| ID | Disposition |
+| --- | --- |
+| REG-01 | Fixed. "Finish later" calls `finishNow()`, which saves the step on screen before leaving. The allergies and conditions steps flush the half-typed entry as well, so an answer that was never added with the plus button is kept too. The button's comment claimed nothing was lost; it does now. |
+| REG-20 | Fixed. `PhoneNumberField` re-formats a tail edit only (`PhoneNumberFormat.isTailEdit`), and tidies the value when the field loses focus. Writing the binding back moves the caret to the end, which is where it already was while a number is being typed and is not where it was when somebody tapped into the middle of one to correct a digit. Seven unit tests cover the rule; the caret itself is still not runtime-confirmed, but nothing is rewritten under it any more. |
+
+Not implemented:
+
+| ID | Reason |
+| --- | --- |
+| REG-19 | Same as PA-12. A catch-up model for the weekly sibling needs a last-viewed marker synced per member and a change feed to read it against. That is a feature, not a fix, and it is not going into a regression pass. |
+
+The ASC note about the live 1.0.1 listing carrying `/medlist` URLs stands as
+written: the redirect repo keeps them resolving, and `fastlane/metadata` already
+holds the `/elderhub` URLs for 1.0.2 to upload.
+
+Tests: `AgingTests` 329 tests green on a leased headless simulator.
