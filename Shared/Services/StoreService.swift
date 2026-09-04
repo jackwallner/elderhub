@@ -230,6 +230,27 @@ final class StoreService: NSObject {
         }
     }
 
+    /// Drops the RevenueCat identity when the account boundary closes.
+    ///
+    /// Sign-out used to leave the previous user logged in to RevenueCat, so the
+    /// next account on the handset inherited their entitlement state and any
+    /// purchase made afterwards was attributed to the person who signed out.
+    /// `logOut` puts the SDK back on an anonymous id; the observable state is
+    /// reset with it rather than left showing Plus for a family that has gone.
+    func forgetCustomer() async {
+        guard isConfigured else {
+            isPro = localOverride ?? false
+            return
+        }
+        do {
+            let info = try await Purchases.shared.logOut()
+            apply(info)
+        } catch {
+            log.error("logOut failed: \(error.localizedDescription, privacy: .public)")
+            isPro = localOverride ?? false
+        }
+    }
+
     func refresh() async {
         if let localOverride {
             isPro = localOverride

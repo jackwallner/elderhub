@@ -10,6 +10,15 @@ enum MedListExporter {
         var lines: [String] = []
 
         lines.append("MEDICATION LIST: \(person.name)")
+        // Printed, and printed when missing, for the same reason the card
+        // prints it: onboarding promises a date of birth appears on the
+        // handoff, a hospital asks for it before anything else, and an age is
+        // not a value anybody can match a page to a patient with.
+        if let birthDate = person.birthDate {
+            lines.append("Date of birth: \(birthDate.formatted(date: .abbreviated, time: .omitted))")
+        } else {
+            lines.append("Date of birth: not recorded")
+        }
         if let age = person.age {
             lines.append("Age \(age)")
         }

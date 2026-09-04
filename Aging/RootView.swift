@@ -66,6 +66,15 @@ struct RootView: View {
 
             await auth.refreshInBackground()
             await groups.refresh()
+            // Not only a Sharing-screen concern. `loadMembers` is what applies
+            // a narrowed access scope to the local mirror, and it used to be
+            // reachable only from Sharing or Transparency: until somebody
+            // wandered onto one of those screens, a phone whose access had been
+            // withdrawn went on showing the records it had already downloaded,
+            // readable offline. The server refusing new reads does not withdraw
+            // the old ones, because a pull cursor cannot tell a removed row
+            // from a row that simply did not change.
+            await groups.loadMembers()
             await NotificationService.shared.registerIfAuthorized()
             await sync.syncNow()
             await DoseReminderScheduler.refresh(in: context)
@@ -80,6 +89,7 @@ struct RootView: View {
             guard phase == .active else { return }
             Task {
                 await groups.refresh()
+                await groups.loadMembers()
                 await sync.syncNow()
                 // Rescheduled every foreground so the 63-request window rolls
                 // forward past whatever has already fired.

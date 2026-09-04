@@ -17,6 +17,7 @@ struct TransparencyView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var isLeaving = false
+    @State private var isRetrying = false
 
     var body: some View {
         ScrollView {
@@ -76,16 +77,59 @@ struct TransparencyView: View {
                     .foregroundStyle(.secondary)
 
                 if isOnboarding {
-                    Button {
-                        groups.markTransparencyAccepted()
-                        onAccepted?()
-                    } label: {
-                        Text("I understand")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 52)
+                    // Two buttons while the list is missing, and the retry is
+                    // the prominent one.
+                    //
+                    // "I understand" used to be the only control on a screen
+                    // that had just admitted it could not name a single person
+                    // who can see this record, which is consent to a disclosure
+                    // whose contents are unknown. It is not removed, because
+                    // this is the recipient's own screen and a phone with no
+                    // signal must never be a room with no door (I3): it becomes
+                    // a plain secondary action that says what is being agreed
+                    // to.
+                    if groups.hasCachedMemberList {
+                        Button {
+                            groups.markTransparencyAccepted()
+                            onAccepted?()
+                        } label: {
+                            Text("I understand")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 52)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .accessibilityIdentifier("transparency.accept")
+                    } else {
+                        Button {
+                            Task {
+                                isRetrying = true
+                                await groups.refresh()
+                                await groups.loadMembers()
+                                isRetrying = false
+                            }
+                        } label: {
+                            Text(isRetrying ? "Checking…" : "Try again")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 52)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(isRetrying)
+                        .accessibilityIdentifier("transparency.retry")
+
+                        Button {
+                            groups.markTransparencyAccepted()
+                            onAccepted?()
+                        } label: {
+                            Text("Continue without the list")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 52)
+                        }
+                        .buttonStyle(.bordered)
+                        .accessibilityIdentifier("transparency.accept")
                     }
-                    .buttonStyle(.borderedProminent)
                 } else {
                     Button(role: .destructive) {
                         isLeaving = true

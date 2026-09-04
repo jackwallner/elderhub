@@ -551,3 +551,35 @@ The app and test targets compiled and testing started, but the Xcode test
 worker did not materialize. The run was stopped after waiting and exited 75.
 No test was counted as passing from that run. The findings above therefore
 distinguish source-confirmed behavior from runtime validation gaps.
+
+---
+
+## Dispositions, 2026-09-03
+
+Implemented in this pass. Every entry names the file the fix lives in; the
+reasoning is in the source comment beside it, not here.
+
+| ID | Disposition |
+| --- | --- |
+| PA-01 | Fixed. `SettingsView.signOutAndForget()` runs the same `forgetGroupLocally` the delete-account path already ran, logs the RevenueCat customer out (`StoreService.forgetCustomer()`), drops every pending notification and reschedules from what is left. Delete-account gained the RevenueCat and notification halves too. Local-only records are deliberately untouched: they were never the account's. |
+| PA-02 | Fixed. `RootView` calls `groups.loadMembers()` on launch and on foreground, which is what applies a narrowed access scope to the local mirror. It was reachable only from Sharing and Transparency. |
+| PA-03 | Fixed. `PersonDigest` carries `hasCheckIn` / `checkedInToday`, handed in by `TodayView` so `TodayDigest` stays pure functions over the models. An unpressed check-in makes a person outstanding rather than clear, prints "no check-in yet" in `statusLine`, counts in the Everyone headline, and renders as the first row of that person's section. |
+| PA-04 | Fixed. The task editor remembers the name that was on screen when the id was picked (`assigneeNameForID`) and drops the id on save unless the field still says it. The comment claiming this already happened is now true. |
+| PA-05 | Fixed. `EmergencyCardView` draws every critical section always. The setup prompt is additional, not a replacement, and only when the card is editable. |
+| PA-06 | Fixed. The card's `detail(for:)` prints the same fields in the same order as `MedListExporter.line(for:)`: form, instructions, prescriber and pharmacy with their phone numbers. |
+| PA-07 | Partly fixed. Everyone mode now carries an "Emergency cards" section directly under the headline, one row per person, pushing straight to the card with no person selection. Depth on the single-person screen and inside the card itself is unchanged. |
+| PA-08 | Fixed. Date of birth prints in the card header and in the export, and both name it when it is missing. |
+| PA-09 | Fixed. The recipient screen prints the person's name above the button, and a handover naming a person this phone does not hold no longer falls through to a guess: it says so and offers a retry. The caregiver unlock stays in the toolbar, so that state is never a dead end. |
+| PA-10 | Fixed. A real "Try again" button, replacing pull-to-refresh as the only recovery. |
+| PA-11 | Fixed. The editor warns before the tap and saves a nonpositive units-per-dose as 1, so refill tracking cannot be switched on and silently do nothing. |
+| PA-12 | Not implemented. A catch-up model ("what changed since Chris last looked") needs a last-viewed marker synced per member and a change feed to read it against, which is a feature, not a fix. |
+| PA-13 | Fixed. Search results carry "Only on this phone" for a private or stranded record, so the boundary the sectioned list is careful about is not erased by typing. |
+| PA-14 | Fixed as copy. The onboarding alert now says the record is saved, that nothing is shared, and names Sharing → "Start a care circle" as the retry. The flow still advances: trapping someone on an onboarding screen with their data entered is worse. |
+| PA-15 | Fixed. With no member list, "I understand" is replaced by a prominent "Try again" and a secondary "Continue without the list", so consent is not offered as though the disclosure had been shown. Not blocked: a recipient with no signal must never be stuck. |
+| PA-16 | Fixed. The Details notes field has a footer saying it does not print on the card or the one-pager, and where clinical detail belongs instead. |
+| PA-17 | Fixed. The task and bill completion controls take the same 44-point minimum and explicit hit shape as the dose control. |
+| PA-18 | Fixed. The card header prints "Last updated", taken from the newest edit across the person, their active medications, contacts and printed providers. Deliberately not the time the screen was opened. |
+
+Tests: `AgingTests` 316 tests green on a leased headless simulator, including four
+new `TodayDigestTests` for the check-in rule and one `MedListExporterTests` for
+the date of birth.

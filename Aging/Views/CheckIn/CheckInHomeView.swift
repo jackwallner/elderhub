@@ -25,6 +25,7 @@ struct CheckInHomeView: View {
     @Environment(DeviceModeService.self) private var deviceMode
 
     @State private var justPressed = false
+    @State private var isReloading = false
 
     /// The check-in glyph and its caption, in points that grow with the
     /// reader's text setting. Starting values are the ones this button always
@@ -49,10 +50,13 @@ struct CheckInHomeView: View {
     ///    their user id is theirs by definition.
     /// 3. Otherwise guess, which is what the whole screen used to do.
     private var me: Person? {
-        if deviceMode.isRecipientMode,
-           let chosen = deviceMode.handedOverPersonID,
-           let person = people.first(where: { $0.id == chosen }) {
-            return person
+        if deviceMode.isRecipientMode, let chosen = deviceMode.handedOverPersonID {
+            // Named and not resolvable: deliberately *not* passed on to the
+            // guesses below. A handover names one person, so falling through to
+            // "whoever is first in the list" answers a question nobody asked,
+            // and it answers it silently, on the screen where the reader has no
+            // way to tell they are pressing somebody else's button.
+            return people.first { $0.id == chosen }
         }
         if let userID = auth.userID,
            let linked = people.first(where: { $0.linkedUserID == userID }) {
@@ -61,11 +65,30 @@ struct CheckInHomeView: View {
         return people.first(where: \.isSelf) ?? people.first
     }
 
+    /// True while this phone was handed over to a named person whose record is
+    /// not on it: a first launch that has not synced, or a record removed on
+    /// another device. Distinguished from "no people at all" because the two
+    /// have different recoveries and only one of them has a name to print.
+    private var isAwaitingHandedOverPerson: Bool {
+        deviceMode.isRecipientMode && deviceMode.handedOverPersonID != nil && me == nil
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 28) {
                     if let person = me {
+                        // Whose screen this is, said on the screen. The title
+                        // is "Today" for everybody, so a stale handover or a
+                        // household with two records on one phone produced a
+                        // button that looked identical whoever it belonged to,
+                        // and a press against the wrong person's record is not
+                        // something the person pressing it can detect.
+                        Text(person.displayLabel)
+                            .font(.title2.weight(.semibold))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .accessibilityIdentifier("check-in.person-name")
+
                         button(for: person)
                         status(for: person)
                         medications(for: person)
@@ -86,11 +109,40 @@ struct CheckInHomeView: View {
                         .buttonStyle(.plain)
                         .accessibilityIdentifier("check-in.emergency-card")
                     } else {
-                        ContentUnavailableView(
-                            "Nothing here yet",
-                            systemImage: "clock.arrow.circlepath",
-                            description: Text("Your family's list has not reached this phone yet.")
-                        )
+                        // A retry that is a button, not a gesture. The only way
+                        // out of this screen used to be a pull-to-refresh on the
+                        // scroll view, which is invisible, and this is the
+                        // screen belonging to the person least likely to know
+                        // it exists and least able to perform it: it is a blank
+                        // page, to somebody with unsteady hands, on a phone
+                        // their family set up for them.
+                        VStack(spacing: 18) {
+                            ContentUnavailableView(
+                                isAwaitingHandedOverPerson ? "Still loading" : "Nothing here yet",
+                                systemImage: "clock.arrow.circlepath",
+                                description: Text(
+                                    isAwaitingHandedOverPerson
+                                        ? "This phone is set up for one person, and their details have not arrived yet."
+                                        : "Your family's list has not reached this phone yet."
+                                )
+                            )
+
+                            Button {
+                                Task {
+                                    isReloading = true
+                                    await sync.syncNow()
+                                    isReloading = false
+                                }
+                            } label: {
+                                Text(isReloading ? "Checking…" : "Try again")
+                                    .font(.headline)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 52)
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .disabled(isReloading)
+                            .accessibilityIdentifier("check-in.retry")
+                        }
                         .padding(.top, 60)
                     }
                 }

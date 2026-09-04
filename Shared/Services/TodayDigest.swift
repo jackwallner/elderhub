@@ -21,8 +21,19 @@ struct PersonDigest: Identifiable {
     let appointments: [Visit]
     let runningLow: [Medication]
     let billsDue: [Bill]
+    /// Whether a daily check-in has been agreed for this person, and whether
+    /// today's has happened. Not derivable from the models: the settings and
+    /// the presses live in `CheckInService`, so they are handed in.
+    let hasCheckIn: Bool
+    let checkedInToday: Bool
 
     var id: UUID { person.id }
+
+    /// A check-in that has been agreed and has not happened yet today. The one
+    /// outstanding thing on this screen that nobody in the family can tick off:
+    /// it is a statement about a button that has not been pressed, never an
+    /// assessment of the person who did not press it (I6).
+    var checkInOutstanding: Bool { hasCheckIn && !checkedInToday }
 
     /// Scheduled, still unticked, and the time has passed. Deliberately not
     /// "not taken": a dose logged as skipped is an answered question.
@@ -38,7 +49,7 @@ struct PersonDigest: Identifiable {
     /// absence.
     var isClear: Bool {
         pendingSlots.isEmpty && tasksDue.isEmpty && appointments.isEmpty
-            && runningLow.isEmpty && billsDue.isEmpty
+            && runningLow.isEmpty && billsDue.isEmpty && !checkInOutstanding
     }
 
     /// True when there is nothing outstanding *and* nothing recorded either,
@@ -54,6 +65,8 @@ struct PersonDigest: Identifiable {
         appointments: [Visit],
         runningLow: [Medication],
         billsDue: [Bill],
+        hasCheckIn: Bool = false,
+        checkedInToday: Bool = false,
         now: Date
     ) {
         self.person = person
@@ -62,6 +75,8 @@ struct PersonDigest: Identifiable {
         self.appointments = appointments
         self.runningLow = runningLow
         self.billsDue = billsDue
+        self.hasCheckIn = hasCheckIn
+        self.checkedInToday = checkedInToday
         self.now = now
     }
 
@@ -93,6 +108,14 @@ struct PersonDigest: Identifiable {
         if !billsDue.isEmpty {
             parts.append(billsDue.count == 1 ? "1 bill" : "\(billsDue.count) bills")
         }
+        // Last, because it is the one line here nobody can act on, and named
+        // rather than counted. Before this a person whose only outstanding
+        // thing was an unpressed check-in was filed under "Nothing due today",
+        // which is the opposite of the answer the sibling opening the app came
+        // for.
+        if checkInOutstanding {
+            parts.append("no check-in yet")
+        }
 
         if parts.isEmpty {
             // Two different silences, and telling them apart is the whole point
@@ -109,21 +132,30 @@ struct PersonDigest: Identifiable {
 enum TodayDigest {
 
     @MainActor
+    /// `checkInState` is handed in rather than read here so this file stays
+    /// pure functions over the models, like `ScheduleEngine` and `TaskPlanner`.
+    /// The default answers "no check-in agreed", which is what every caller
+    /// outside Today wants: the Care row is an inventory of the record, and the
+    /// button lives on the daily screen.
     static func build(
         for people: [Person],
         on date: Date = Date(),
-        calendar: Calendar = .current
+        calendar: Calendar = .current,
+        checkInState: (Person) -> (enabled: Bool, checkedIn: Bool) = { _ in (false, false) }
     ) -> [PersonDigest] {
         people
             .filter { $0.deletedAt == nil }
             .map { person in
-                PersonDigest(
+                let checkIn = checkInState(person)
+                return PersonDigest(
                     person: person,
                     slots: ScheduleEngine.slots(for: person, on: date, calendar: calendar),
                     tasksDue: TaskPlanner.dueNow(person.liveTasks, now: date, calendar: calendar),
                     appointments: person.appointmentsDue(now: date, calendar: calendar),
                     runningLow: runningLow(for: person),
                     billsDue: BillPlanner.needingAttention(person.liveBills, now: date, calendar: calendar),
+                    hasCheckIn: checkIn.enabled,
+                    checkedInToday: checkIn.checkedIn,
                     now: date
                 )
             }
@@ -150,6 +182,7 @@ enum TodayDigest {
         let tasks = digests.reduce(0) { $0 + $1.tasksDue.count }
         let appointments = digests.reduce(0) { $0 + $1.appointments.count }
         let errands = digests.reduce(0) { $0 + $1.runningLow.count + $1.billsDue.count }
+        let awaitingCheckIn = digests.filter(\.checkInOutstanding).count
 
         var parts: [String] = []
         if overdue > 0 { parts.append(overdue == 1 ? "1 dose overdue" : "\(overdue) doses overdue") }
@@ -159,6 +192,11 @@ enum TodayDigest {
             parts.append(appointments == 1 ? "1 appointment" : "\(appointments) appointments")
         }
         if errands > 0 { parts.append(errands == 1 ? "1 to sort out" : "\(errands) to sort out") }
+        if awaitingCheckIn > 0 {
+            parts.append(
+                awaitingCheckIn == 1 ? "1 check-in outstanding" : "\(awaitingCheckIn) check-ins outstanding"
+            )
+        }
 
         guard !parts.isEmpty else { return "Nothing due today" }
         return parts.joined(separator: " · ")

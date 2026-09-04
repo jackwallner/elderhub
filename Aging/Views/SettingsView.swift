@@ -1,5 +1,6 @@
 import SwiftData
 import SwiftUI
+import UserNotifications
 
 struct SettingsView: View {
     // Tombstoned rows stay in the store until the outbox has pushed them, so
@@ -12,6 +13,7 @@ struct SettingsView: View {
     @Environment(GroupService.self) private var groups
     @Environment(SyncCoordinator.self) private var sync
     @Environment(DeviceModeService.self) private var deviceMode
+    @Environment(\.modelContext) private var context
     @Environment(\.openURL) private var openURL
 
     @State private var showPaywall = false
@@ -24,6 +26,30 @@ struct SettingsView: View {
     @State private var isAskingForReview = false
 
     private var isUnlocked: Bool { store.isPro || groups.hasPlus }
+
+    /// Signing out closes the account boundary on this handset, it does not
+    /// merely stop the network calls.
+    ///
+    /// `auth.signOut()` alone left the previous family's shared records, their
+    /// cached circle, their queued outbox and their routed reminders on the
+    /// phone, and left the RevenueCat customer signed in behind them: somebody
+    /// who deliberately signed out could still read Dad's medications, and the
+    /// next account to use the handset inherited an identity nobody chose. The
+    /// same `forgetGroupLocally` the delete-account path already ran is what
+    /// makes sign-out mean something, and pending notifications are dropped
+    /// before the survivors are rescheduled so no request keeps naming a person
+    /// this phone can no longer show.
+    ///
+    /// Local-only records are deliberately untouched: a private record that was
+    /// never in a circle is not the account's to take away, and this app works
+    /// with no account at all (I3).
+    private func signOutAndForget() async {
+        await auth.signOut()
+        groups.forgetGroupLocally()
+        await store.forgetCustomer()
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        await DoseReminderScheduler.refresh(in: context)
+    }
 
     /// Restore has to say something. Swallowed with `try?`, a failed restore
     /// and a restore that found no purchase and a restore that worked all
@@ -83,7 +109,7 @@ struct SettingsView: View {
                     .disabled(isRestoring)
                     if auth.isSignedIn {
                         Button("Sign out") {
-                            Task { await auth.signOut() }
+                            Task { await signOutAndForget() }
                         }
                         Button("Delete my account", role: .destructive) {
                             isDeletingAccount = true
@@ -451,6 +477,8 @@ private struct BackUpSignInView: View {
 private struct DeleteAccountSheet: View {
     @Environment(AuthService.self) private var auth
     @Environment(GroupService.self) private var groups
+    @Environment(StoreService.self) private var store
+    @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
 
     @State private var typed = ""
@@ -501,6 +529,12 @@ private struct DeleteAccountSheet: View {
         do {
             try await auth.deleteAccount()
             groups.forgetGroupLocally()
+            // Same closure as sign-out: the RevenueCat customer and the
+            // reminders naming a record this phone can no longer show outlive
+            // the account otherwise.
+            await store.forgetCustomer()
+            UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+            await DoseReminderScheduler.refresh(in: context)
             dismiss()
         } catch {
             errorMessage = error.localizedDescription

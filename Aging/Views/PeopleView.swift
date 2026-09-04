@@ -73,6 +73,9 @@ struct PeopleView: View {
 
     private var privatePeople: [Person] { localOnlyPeople + strandedPeople }
 
+    /// The same set, by id, for the flat search results.
+    private var privatePersonIDs: Set<UUID> { Set(privatePeople.map(\.id)) }
+
     /// The payer's own device unlocks straight from RevenueCat with no round
     /// trip; everyone else in the family resolves through the group row, which
     /// is already cached locally and so survives being offline (§9).
@@ -100,7 +103,16 @@ struct PeopleView: View {
                                     personID: hit.personID, kind: hit.kind
                                 )
                             } label: {
-                                SearchHitRow(hit: hit)
+                                // Search replaced the named sections with one
+                                // flat list, so a private record looked exactly
+                                // like a shared one: the same boundary the list
+                                // below is careful about, erased by typing into
+                                // a field. The badge is the section heading,
+                                // carried onto the row.
+                                SearchHitRow(
+                                    hit: hit,
+                                    isPrivate: privatePersonIDs.contains(hit.personID)
+                                )
                             }
                             .buttonStyle(.plain)
                         }
@@ -383,6 +395,7 @@ private struct SearchDestination: Hashable {
 
 private struct SearchHitRow: View {
     let hit: SearchHit
+    let isPrivate: Bool
 
     var body: some View {
         HStack(spacing: 12) {
@@ -403,9 +416,16 @@ private struct SearchHitRow: View {
 
             Spacer()
 
-            Text(hit.personName)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(hit.personName)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                if isPrivate {
+                    Text("Only on this phone")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+            }
         }
         .padding(.vertical, 2)
     }
