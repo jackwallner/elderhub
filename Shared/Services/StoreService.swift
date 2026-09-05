@@ -513,5 +513,11 @@ enum RevenueCatProbe {
     static var impressionID: String {
         ProcessInfo.processInfo.environment["RC_PROBE_SURFACE"] ?? "elderhub_paywall"
     }
+
+    /// Drives a Test Store purchase after the impression, so the `converted_*`
+    /// half of the funnel record is exercised and not just the impression half.
+    static var wantsPurchase: Bool {
+        ProcessInfo.processInfo.arguments.contains("-rcfunnelprobepurchase")
+    }
 }
 #endif

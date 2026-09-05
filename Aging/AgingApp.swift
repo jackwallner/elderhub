@@ -92,6 +92,13 @@ struct AgingApp: App {
                         // Same entry point the paywall calls, so what this
                         // proves is the actual path and not a parallel one.
                         store.trackPaywallImpression(id: RevenueCatProbe.impressionID)
+                        if RevenueCatProbe.wantsPurchase {
+                            Task {
+                                await store.refresh()
+                                guard let plan = store.plans.first else { return }
+                                try? await store.purchase(plan)
+                            }
+                        }
                     }
                     #endif
                 }
