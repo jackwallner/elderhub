@@ -1,15 +1,19 @@
-Everyone's day on one screen. With more than one person in your circle, Today now opens on all of them, so a missed morning dose is visible without switching records.
+The emergency card now says who to call first. The primary contact is badged on the card and marked in the copy you share or print, so whoever is holding it does not have to work it out from the order of the list.
 
-Bills. Track what is owed and what has been paid, with recurring bills and autopay kept out of the overdue list.
+The card is also complete. Every critical section is drawn even when it is empty, so a section that is blank reads as "not recorded" rather than as one that is missing. It prints the date of birth, the same medication detail as the shared one-pager, and when the record was last updated.
 
-Appointments. A visit dated in the future is an appointment, listed on Today for the week ahead with a reminder the evening before.
+Check-in on the Everyone screen. A check-in that has not been pressed keeps that person on the day's list instead of filing them under "Nothing due today", and every person's emergency card is one tap from the screen a two-person phone opens on.
 
-Medications you can pause. Stop a medication without deleting it, and keep every dose you logged. Weekly and other day-specific schedules are now shown everywhere the medication is.
+Reminders now say when iOS has turned them off. A switch that used to slide back on its own with no explanation tells you the answer is in iOS Settings, and takes you there.
 
-Choose who sees whom. Limit a family member to particular people in the circle, rather than all of them.
+Bigger controls, and a way back. The dose button and the check-in button are larger, named for VoiceOver, and follow your text size. Doses, tasks and bills can all be undone from Today.
 
-Tap a reminder and it opens the person it names.
+When two phones disagree about a row, the conflicts screen shows both versions before asking which one to keep.
 
-Fixed: reminders are now grouped per person and time, so a long medication list no longer pushes the evening's reminders off the device. The app tells you if any do not fit.
+Signing out now clears the shared record from the phone, and a change to who can see whom applies on the next launch rather than waiting for someone to open Sharing.
 
-Fixed: joining a family circle now downloads the whole record. A birthday saved without a time of day could stop a newly joined phone from receiving anything at all, and a record now arrives in order rather than in pieces. If your phone already downloaded half a record, this update goes back for the rest of it. Deleting a person no longer stops the rest of the family's visits and tasks from arriving.
+Fixed: something one family member logged no longer reads as "Logged by You" on everybody else's screen.
+
+Fixed: phone numbers group as you type, and correcting a digit in the middle of one no longer sends the cursor to the end.
+
+Fixed: leaving setup with "Finish later" keeps the answer you were part-way through typing.
