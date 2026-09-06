@@ -415,6 +415,24 @@ Sunday-first numbering; empty means every day.
   disclosure, not a migration.
 - Full design record, including the open environment setup, is `docs/architecture.md`.
 
+## App Store screenshots
+- The set is generated, not hand-shot. `scripts/capture-screenshots.sh <udid> <out>`
+  is the product-evidence capture the shared renderer
+  (`~/ios/appstore-screenshots`, manifest `configs/elderhub.json`, `capture.mode:
+  command`) calls on a leased headless simulator; it owns boot, build, install and
+  navigation, and the caller owns the lease. Render with
+  `./bin/shotflow all configs/elderhub.json --output outputs/elderhub`.
+- Composed frames live in `fastlane/screenshots/en-US/` and the raw device
+  captures they were composed from in `fastlane/screenshot-captures/en-US/`,
+  deliberately outside `fastlane/screenshots/` so `deliver` cannot read the
+  folder as a locale.
+- **The capture asserts its own status bar.** A shot taken right after a push
+  intermittently catches the Dynamic Island drawn as a black pill over the
+  status bar, which reads as a rendering fault on a store page. `shoot()` checks
+  the strip and retakes rather than trusting the frame.
+- Paywall, trial and purchase captures stay out of this script. A monetization
+  shot must never reach an App Store set by accident.
+
 ---
 Shared iOS conventions (build, simulator, release/TestFlight, ASC key, signing, review
 funnel, gotchas): always-loaded global CLAUDE.md + the `ios-dev` skill.
