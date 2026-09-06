@@ -1,0 +1,104 @@
+{
+  "status": "ok",
+  "manifest": "configs/elderhub.json",
+  "app": "elderhub",
+  "mode": "command",
+  "lease": "elderhub",
+  "output": "samples/elderhub/capture-proof",
+  "proof_only": false,
+  "checkout_options": [],
+  "lease_checked_in": true,
+  "screenshots": [
+    "01_today_everyone.png",
+    "02_emergency_card.png",
+    "03_medications.png",
+    "04_tasks.png",
+    "05_bills.png",
+    "06_appointments.png"
+  ],
+  "screenshot_records": [
+    {
+      "name": "01_today_everyone.png",
+      "path": "samples/elderhub/capture-proof/01_today_everyone.png",
+      "size": [
+        1206,
+        2622
+      ],
+      "mode": "RGBA",
+      "sha256": "c5d5cdbc225be2e5930ca4130be1f7d0c045203c626294248a5caa192fa76788"
+    },
+    {
+      "name": "02_emergency_card.png",
+      "path": "samples/elderhub/capture-proof/02_emergency_card.png",
+      "size": [
+        1206,
+        2622
+      ],
+      "mode": "RGBA",
+      "sha256": "bd2ee5c83e6a0e76fc2c3000e5f6b9f51074ef43bc5ba82624a9b0a33c74b6f3"
+    },
+    {
+      "name": "03_medications.png",
+      "path": "samples/elderhub/capture-proof/03_medications.png",
+      "size": [
+        1206,
+        2622
+      ],
+      "mode": "RGBA",
+      "sha256": "f8499ef62243a2cd22e3a0030ef55f34ee53cc2885d890ed83d322d3f1f51e17"
+    },
+    {
+      "name": "04_tasks.png",
+      "path": "samples/elderhub/capture-proof/04_tasks.png",
+      "size": [
+        1206,
+        2622
+      ],
+      "mode": "RGBA",
+      "sha256": "d999910a2d17d9884e4f9be7b94bb2a414a0fe0d92e14e86ebb9c0f69805ac3e"
+    },
+    {
+      "name": "05_bills.png",
+      "path": "samples/elderhub/capture-proof/05_bills.png",
+      "size": [
+        1206,
+        2622
+      ],
+      "mode": "RGBA",
+      "sha256": "0bb1fdcf4fe8e0b0f63b276690817b99efe18a8220a30b676ede4da3df894fbe"
+    },
+    {
+      "name": "06_appointments.png",
+      "path": "samples/elderhub/capture-proof/06_appointments.png",
+      "size": [
+        1206,
+        2622
+      ],
+      "mode": "RGBA",
+      "sha256": "e55bf532c6ac350d72579853734f36363bdd2d97ddd1fa33770ef04810b0d699"
+    }
+  ],
+  "flows": [
+    {
+      "id": "repo-command",
+      "screenshots": [
+        "01_today_everyone.png",
+        "02_emergency_card.png",
+        "03_medications.png",
+        "04_tasks.png",
+        "05_bills.png",
+        "06_appointments.png"
+      ]
+    }
+  ],
+  "app_repo": {
+    "path": "~/elderhub",
+    "git_commit": "0bb8bed7c7a19100aa6869ae65cf4ff120500847"
+  },
+  "device": {
+    "udid": "2C7A80C1-1228-411A-B9AD-A7DEED683F79",
+    "name": "agent-sim-1",
+    "runtime": "com.apple.CoreSimulator.SimRuntime.iOS-26-5",
+    "device_type": "com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro"
+  }
+}
