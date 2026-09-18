@@ -376,7 +376,7 @@ private struct SubjectDoseRow: View {
             medication.recordLocalChange(in: context)
         }
         existing.tombstone(in: context)
-        try? context.save()
+        context.saveOrReport()
     }
 
     private func record() {
@@ -417,6 +417,6 @@ private struct SubjectDoseRow: View {
         // carry it to the rest of the family.
         medication.recordLocalChange(in: context)
         log.recordLocalChange(in: context)
-        try? context.save()
+        context.saveOrReport()
     }
 }

@@ -361,7 +361,7 @@ struct PeopleView: View {
         // through the cascade rule on the other devices.
         DoseReminderPreferences.clear(personID: person.id)
         person.tombstone(in: context)
-        try? context.save()
+        context.saveOrReport()
         Task { await DoseReminderScheduler.refresh(in: context) }
     }
 

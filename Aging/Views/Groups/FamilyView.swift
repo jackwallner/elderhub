@@ -334,7 +334,7 @@ struct FamilyView: View {
             person.surrogateAttestedAt = Date()
             person.recordLocalChange(in: context)
         }
-        try? context.save()
+        context.saveOrReport()
         isConfirmingSharing = false
         Task { await createGroup() }
     }

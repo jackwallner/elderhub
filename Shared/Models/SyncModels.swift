@@ -386,7 +386,7 @@ extension SyncableRecord {
     func recordLocalChange(in context: ModelContext) {
         updatedAt = Date()
         isDirty = true
-        try? context.save()
+        context.saveOrReport()
         SyncCoordinator.shared.enqueue(Self.syncEntity, id: id)
     }
 
