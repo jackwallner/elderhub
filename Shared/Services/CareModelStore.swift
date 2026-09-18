@@ -43,12 +43,10 @@ enum CareModelStore {
             return container
         }
 
-        // A schema change during development can leave an unreadable store behind.
-        // Drop it and retry once before falling back to memory.
-        let storeFiles = [url, url.appendingPathExtension("wal"), url.appendingPathExtension("shm")]
-        for file in storeFiles {
-            try? FileManager.default.removeItem(at: file)
-        }
+        // A failed migration or a half-written file can leave the store unreadable.
+        // For anyone not in a family group this is the only copy of the records,
+        // so move it aside instead of deleting it, then retry with a fresh store.
+        quarantineStore(at: url)
 
         if let container = makeContainer(url: url) {
             return container
@@ -78,6 +76,29 @@ enum CareModelStore {
         }
     }
     #endif
+
+    /// Renames the store and its SQLite sidecars to `<name>.corrupt-<uuid>` so a
+    /// fresh store can open at `url`. The move keeps the file's protection class.
+    /// Returns the quarantined copies.
+    @discardableResult
+    static func quarantineStore(at url: URL, fileManager: FileManager = .default) -> [URL] {
+        let suffix = ".corrupt-\(UUID().uuidString)"
+        let candidates = [
+            url,
+            URL(fileURLWithPath: url.path + "-wal"),
+            URL(fileURLWithPath: url.path + "-shm"),
+            url.appendingPathExtension("wal"),
+            url.appendingPathExtension("shm")
+        ]
+        var moved: [URL] = []
+        for file in candidates where fileManager.fileExists(atPath: file.path) {
+            let destination = URL(fileURLWithPath: file.path + suffix)
+            if (try? fileManager.moveItem(at: file, to: destination)) != nil {
+                moved.append(destination)
+            }
+        }
+        return moved
+    }
 
     /// In-memory container for tests and previews.
     static func makeInMemoryContainer() -> ModelContainer {
@@ -110,7 +131,7 @@ enum CareModelStore {
 
     /// Applied to the store and its write-ahead log. Set explicitly rather than
     /// relying on the platform default, and re-applied on every container build
-    /// so the wipe-and-retry path above cannot silently recreate the file
+    /// so the quarantine-and-retry path above cannot silently recreate the file
     /// without it.
     private static func applyFileProtection(to url: URL) {
         let manager = FileManager.default

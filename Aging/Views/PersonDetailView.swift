@@ -491,7 +491,7 @@ struct PersonDetailView: View {
         for med in meds {
             med.tombstone(in: context)
         }
-        try? context.save()
+        context.saveOrReport()
         Task { await DoseReminderScheduler.refresh(in: context) }
     }
 }

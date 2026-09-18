@@ -235,7 +235,7 @@ struct OnboardingFlow: View {
     private func goBack() {
         if step == .signIn, !auth.isSignedIn, let draft = createdPerson {
             context.delete(draft)
-            try? context.save()
+            context.saveOrReport()
             createdPerson = nil
             createdPersonName = ""
         }
@@ -270,7 +270,7 @@ struct OnboardingFlow: View {
             context.insert(person)
         }
         if attested, person.surrogateAttestedAt == nil { person.surrogateAttestedAt = Date() }
-        try? context.save()
+        context.saveOrReport()
 
         createdPersonName = person.displayLabel
         createdPerson = person

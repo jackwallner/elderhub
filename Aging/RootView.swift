@@ -26,6 +26,7 @@ struct RootView: View {
     @State private var notificationRoute = NotificationRoute.shared
     @State private var authLinkError: String?
     @State private var onboardingSessionActive = false
+    @State private var saveFailures = SaveFailureReporter.shared
 
     enum Tab: Hashable {
         case today, people, family, settings
@@ -117,6 +118,17 @@ struct RootView: View {
             Button("OK", role: .cancel) { authLinkError = nil }
         } message: {
             Text(authLinkError ?? "Request a new email link and try again.")
+        }
+        .alert(
+            "Not saved",
+            isPresented: Binding(
+                get: { saveFailures.message != nil },
+                set: { if !$0 { saveFailures.message = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) { saveFailures.message = nil }
+        } message: {
+            Text(saveFailures.message ?? "")
         }
     }
 

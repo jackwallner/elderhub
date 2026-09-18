@@ -81,7 +81,7 @@ final class CheckInService {
             pressedAt: date
         )
         context.insert(record)
-        try? context.save()
+        context.saveOrReport()
 
         SyncCoordinator.shared.enqueue(.checkIn, id: record.id)
         Task { await SyncCoordinator.shared.syncNow() }
@@ -111,7 +111,7 @@ final class CheckInService {
         settings.timeZoneIdentifier = TimeZone.current.identifier
         settings.updatedAt = Date()
         settings.isDirty = true
-        try? context.save()
+        context.saveOrReport()
 
         SyncCoordinator.shared.enqueue(.checkInSettings, id: person.id)
         Task {
