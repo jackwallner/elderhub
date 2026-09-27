@@ -24,7 +24,7 @@ import Observation
 /// against a confused tap, not against an adversary: this is a family, and the
 /// data it guards is already readable on the same screen by design.
 ///
-/// Two things this must never do, both structural (see CLAUDE.md):
+/// Two things this must never do, both structural (see AGENTS.md):
 /// - never consult `StoreService`, at any depth. Check-in has no paywall.
 /// - never gate the emergency card. Recipient mode still shows it, because the
 ///   whole point of the card is the moment nobody can remember a passcode.

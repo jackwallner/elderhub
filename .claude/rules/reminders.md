@@ -10,7 +10,7 @@ paths:
 
 # Elderhub: reminders, routing and notification permission
 
-Moved verbatim from CLAUDE.md. Loads when a matching file is read; update it here.
+Moved verbatim from AGENTS.md. Loads when a matching file is read; update it here.
 
 - **A dose reminder is one notification per person per dose time, not per
   medication.** Per medication the request count grows with the drug list, and

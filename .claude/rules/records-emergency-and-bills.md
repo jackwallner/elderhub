@@ -18,7 +18,7 @@ paths:
 
 # Elderhub: records, the emergency card, notes and bills
 
-Moved verbatim from CLAUDE.md. Loads when a matching file is read; update it here.
+Moved verbatim from AGENTS.md. Loads when a matching file is read; update it here.
 
 ### Person labels
 
@@ -29,7 +29,7 @@ Moved verbatim from CLAUDE.md. Loads when a matching file is read; update it her
 
 ### Services
 
-- `Services/BillPlanner.swift` — the same shape as `TaskPlanner`, for `Bill`:
+- `Services/BillPlanner.swift`: the same shape as `TaskPlanner`, for `Bill`:
   bucketing (overdue / due soon / later / no date / autopay), recurrence
   arithmetic and the outstanding total. Autopay is checked *before* the date, so
   a direct debit is never called overdue; without that the overdue section stops
@@ -37,7 +37,7 @@ Moved verbatim from CLAUDE.md. Loads when a matching file is read; update it her
   next period rather than moving this one's date, exactly as `CareTask` does,
   because "did anyone pay the March invoice" is what the history is for.
 
-- `Services/DeviceModeService.swift` — who is holding *this handset*
+- `Services/DeviceModeService.swift`: who is holding *this handset*
   (`.caregiver` / `.recipient`) and the four-digit caregiver code that swaps back.
   A different axis from `GroupRole`, which is what an *account* may do in the
   circle and is enforced by RLS; keep the two named apart in code and in copy. The
@@ -60,7 +60,7 @@ Moved verbatim from CLAUDE.md. Loads when a matching file is read; update it her
   pays anything. `paidAt` records that a human says they paid it, the way a
   `DoseLog` records that a human says a tablet was swallowed.
 
-- `Services/MedListExporter.swift` — the plain-text one-pager. It prints every
+- `Services/MedListExporter.swift`: the plain-text one-pager. It prints every
   critical section even when empty ("ALLERGIES: not recorded"), because a
   section that simply vanishes reads as a negative answer to whoever is holding
   the page. `EmergencyCardView` follows the same rule, and the two must stay in

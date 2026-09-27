@@ -1,4 +1,4 @@
-# Aging (Elderhub) — Project Guide
+# Aging (Elderhub) Project Guide
 
 Multi-person medication and medical-record tracker for people looking after a parent
 or spouse. XcodeGen project/scheme: `Aging`, sim lease owner `elderhub`.
@@ -15,30 +15,30 @@ repository is `elderhub`.
 - RevenueCat, entitlement `Aging+`, resolved as `store.isPro || groups.hasPlus`
 
 ## Targets / bundle IDs
-- `Aging` — `com.jackwallner.aging`
-- `AgingTests` — `com.jackwallner.aging.tests`
+- `Aging`: `com.jackwallner.aging`
+- `AgingTests`: `com.jackwallner.aging.tests`
 - RevenueCat app: `appl_dvyPWLaZxKyjLUrFVzDynNGjVGb`
 - No App Group (no widget or watch target in v1)
 
 ## Architecture
 `Shared/` holds everything not view-layer:
-- `Models/CareModels.swift` — `Person`, `Medication`, `DoseLog`, `Visit`,
+- `Models/CareModels.swift`: `Person`, `Medication`, `DoseLog`, `Visit`,
   `VitalReading`, `EmergencyContact`, `Provider`, `CareEvent`, `CareTask`,
   `Bill`. Enums are stored as `*Raw` strings with a computed accessor, so
   SwiftData migrations stay cheap.
-- `Services/CareModelStore.swift` — the container. Falls back to a wiped store, then
+- `Services/CareModelStore.swift`: the container. Falls back to a wiped store, then
   to memory, rather than crashing on a schema change.
-- `Services/ScheduleEngine.swift` — pure functions turning a `Medication` schedule
+- `Services/ScheduleEngine.swift`: pure functions turning a `Medication` schedule
   into `DoseSlot`s for a day, matched against logged doses. All the testable logic
   lives here, not in views.
-- `Services/AuthService.swift` — Sign in with Apple, and the offline-session rules
+- `Services/AuthService.swift`: Sign in with Apple, and the offline-session rules
   that keep a transport failure from being read as a sign-out.
-- `Services/GroupService.swift` — membership, roles, invites. Every mutation is a
+- `Services/GroupService.swift`: membership, roles, invites. Every mutation is a
   security-definer RPC; `group_members` has no client write policy at all.
 - `Services/SyncEngine.swift` / `SyncRemote.swift` / `SyncCoordinator.swift` —
   offline-first two-way sync: outbox, compound server-time cursor, per-entity
   conflict rules.
-- `Services/CheckInService.swift` — the proof-of-life button and the one local
+- `Services/CheckInService.swift`: the proof-of-life button and the one local
   notification that has to be reliable.
 
 `Aging/Views/` is the UI. `Aging/Support/SampleData.swift` seeds previews and sim runs.
@@ -73,7 +73,7 @@ Condensed from the deep notes below; the reasoning and the bugs behind each one 
 - Never put `caregiver`, `senior care` or `home care` in any ASC field. A same-category app is named **Elder Hub**, so watch for a name-confusion rejection.
 
 ## Deep notes (load on demand)
-These files load automatically when you read a file matching their `paths:`. Agents that do not auto-load rules (AGENTS.md readers) should open the file for the area they are touching. Record new area-specific learnings in the matching file, not here. The full design record stays `docs/architecture.md`.
+These files load automatically when you read a file matching their `paths:`. Agents that do not auto-load rules (Codex, Cursor) should open the file for the area they are touching. Record new area-specific learnings in the matching file, not here. The full design record stays `docs/architecture.md`.
 
 | File | Covers | Read when |
 |---|---|---|
@@ -124,4 +124,4 @@ These files load automatically when you read a file matching their `paths:`. Age
 
 ---
 Shared iOS conventions (build, simulator, release/TestFlight, ASC key, signing, review
-funnel, gotchas): always-loaded global CLAUDE.md + the `ios-dev` skill.
+funnel, gotchas): the global agent rules + the `ios-dev` skill.

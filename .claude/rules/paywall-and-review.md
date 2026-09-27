@@ -12,9 +12,9 @@ paths:
 
 # Elderhub: the paywall and the review prompt
 
-Moved verbatim from CLAUDE.md. Loads when a matching file is read; update it here.
+Moved verbatim from AGENTS.md. Loads when a matching file is read; update it here.
 
-- `Services/StoreService.swift` — RevenueCat. `identify()` ties the RC customer to
+- `Services/StoreService.swift`: RevenueCat. `identify()` ties the RC customer to
   the Supabase user id; without it the billing webhook has no group to credit.
   **The paywall has three states, not two.** `isLoadingPlans` / `hasNoPlans` /
   loaded, backed by `loadFailure` and `hasAttemptedLoad`. A failed offerings

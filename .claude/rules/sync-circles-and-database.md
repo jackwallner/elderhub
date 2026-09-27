@@ -26,7 +26,7 @@ paths:
 
 # Elderhub: sync, circles, access and the database
 
-Moved verbatim from CLAUDE.md. Loads when a matching file is read; update it here.
+Moved verbatim from AGENTS.md. Loads when a matching file is read; update it here.
 
 ### Circles and access
 

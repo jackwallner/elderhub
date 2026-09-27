@@ -27,9 +27,9 @@ paths:
 
 # Elderhub: Today, tasks, appointments and medication schedules
 
-Moved verbatim from CLAUDE.md. Loads when a matching file is read; update it here.
+Moved verbatim from AGENTS.md. Loads when a matching file is read; update it here.
 
-- `Services/TaskPlanner.swift` — pure bucketing (overdue / today / …), recurrence
+- `Services/TaskPlanner.swift`: pure bucketing (overdue / today / …), recurrence
   arithmetic and `CareTaskMerge`, the task-specific sync rule. Two siblings
   ticking off the same errand is agreement, not a conflict; two people editing
   the same task's text is a conflict. Genuine LWW, unlike `applyVisit`.
@@ -85,7 +85,7 @@ Moved verbatim from CLAUDE.md. Loads when a matching file is read; update it her
   one-pager all read the one label; empty `weekdays` means every day and prints
   nothing.
 
-- `Services/TodayDigest.swift` — what is outstanding for each person right now,
+- `Services/TodayDigest.swift`: what is outstanding for each person right now,
   as pure functions over the models. **The Today tab and the Care tab rows both
   render this one type**, so "2 due" cannot mean two things on two screens. It
   also owns the single refill rule (`runningLow`), which `TodayView` used to
@@ -108,7 +108,7 @@ Moved verbatim from CLAUDE.md. Loads when a matching file is read; update it her
   a person who vanishes off the daily screen reads as a record that has gone
   missing.
 
-- `Services/CareOverview.swift` — the feature catalog (`CareFeature`: title, blurb,
+- `Services/CareOverview.swift`: the feature catalog (`CareFeature`: title, blurb,
   symbol, colour), the per-tile count lines, and `SetupChecklist`. One list, read by
   the person hub, the Today quick actions and the People rows, so a feature cannot
   be added in one place and go missing in the other two. Copy here is always a

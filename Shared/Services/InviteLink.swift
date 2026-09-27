@@ -17,7 +17,7 @@ enum InviteLink {
     static let codeLength = 8
 
     /// Canonical, and mirrored from the `elderhub` repo's `/docs`. See the
-    /// hosting note in CLAUDE.md before changing it: this string ends up in
+    /// hosting note in AGENTS.md before changing it: this string ends up in
     /// mail that outlives the build that sent it.
     static let webBase = "https://jackwallner.com/ios/elderhub/join.html"
 
