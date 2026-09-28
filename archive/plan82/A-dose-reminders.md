@@ -2,7 +2,7 @@
 
 ## Why this is first
 
-`aso-plan.md` lists "reminders per person, with mark taken on their behalf" as v1
+`../../project-docs/marketing/aso-plan.md` lists "reminders per person, with mark taken on their behalf" as v1
 core. It is not built. `grep` for `UNNotificationRequest` across `Shared/` and
 `Aging/` hits only `CheckInService`: the app stores schedules and never fires a
 single local notification for them. Every slice after this one hangs off the

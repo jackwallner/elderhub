@@ -568,7 +568,7 @@ store checklist and are mostly clerical, but 11 and 15 both have a trap in them.
 - It does not say the app is legally clear. `architecture.md` §10 flags
   Washington's MHMDA as the top exposure and recommends a lawyer's hour before
   launch. That recommendation still stands and nothing here discharges it.
-- It does not re-price any feature. `aso-plan.md` Appendix B's refusals hold.
+- It does not re-price any feature. `../project-docs/marketing/aso-plan.md` Appendix B's refusals hold.
 - It does not audit the check-in and reminder scheduling logic beyond confirming
   I2 holds and the tests pass. `DoseReminderScheduler` and `CheckInService` were
   read, not stress-tested against timezone changes or the 64-notification limit.

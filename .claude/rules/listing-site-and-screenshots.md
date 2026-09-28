@@ -2,7 +2,7 @@
 paths:
   - "fastlane/**/*"
   - "docs/**/*"
-  - "aso-plan.md"
+  - "project-docs/marketing/aso-plan.md"
   - "scripts/capture-screenshots.sh"
   - "scripts/compose-screenshots.py"
   - "scripts/pull-appstore-metadata.sh"
@@ -20,7 +20,7 @@ Moved verbatim from AGENTS.md. Loads when a matching file is read; update it her
 Renamed from "Med List: Family Meds" on 2026-08-05. The medication-list title was an
 ASO bet on `medication list` (pop 23 / diff 23), the one soft keyword in the category.
 That bet is off: the product pivoted past meds-only, and acquisition is planned outside
-App Store search. Everything in `aso-plan.md` about *what not to claim* still stands
+App Store search. Everything in `project-docs/marketing/aso-plan.md` about *what not to claim* still stands
 (see below); only the title strategy changed. Note that **Elder Hub** (App Store id
 1589043147, Elder Technologies, Medical) is a live same-category app with a near
 -identical name, so watch for a name-confusion rejection at review.
@@ -30,7 +30,7 @@ App Store search. Everything in `aso-plan.md` about *what not to claim* still st
 - **Acquisition is not App Store search.** The eldercare/caregiving vocabulary has no
   search demand (every term at Astro's popularity floor; ~30 competing apps, category
   ceiling 35 ratings since 2016), and as of the Elderhub rename the title no longer
-  chases the one soft term. Plan the channel outside search. `aso-plan.md` is still the
+  chases the one soft term. Plan the channel outside search. `project-docs/marketing/aso-plan.md` is still the
   reference for what the category is; read it before touching metadata.
 
 - Still true regardless of channel: do not put `caregiver`, `senior care` or `home care`

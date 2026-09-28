@@ -5,7 +5,7 @@ No migration. No new entity. Read-only over what C and D added.
 ## Goal
 
 One chronological history per person: doses, visits, vitals, medication changes,
-incidents, check-ins. `aso-plan.md` Appendix B calls this the one thing on the list
+incidents, check-ins. `../../project-docs/marketing/aso-plan.md` Appendix B calls this the one thing on the list
 nobody else has, and it feeds `health journal` (pop 22).
 
 It is near-free because every entity already carries `createdAt`, `updatedAt` and

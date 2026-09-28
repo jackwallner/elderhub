@@ -8,7 +8,7 @@ Type "hearing" and get the audiologist, the hearing-aid medication note, the vis
 where it came up, and the incident log entry. Local, offline, no server (I1).
 
 This plus the timeline and `MedListExporter` is the deliberate answer to the "AI
-assistant" ask in `aso-plan.md` Appendix B. Most of those example questions are a
+assistant" ask in `../../project-docs/marketing/aso-plan.md` Appendix B. Most of those example questions are a
 search over a well-structured local store, answered deterministically, offline, at
 zero marginal cost, without shipping anyone's medical record to a third party.
 

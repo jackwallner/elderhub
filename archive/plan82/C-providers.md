@@ -40,7 +40,7 @@ the existing contacts, tappable to call. Do not add a tab.
 
 `portalURL` is a plain stored string rendered as a link. **It is not credential
 storage**: no username, no password, no "saved login" affordance. The password vault
-is refused in `aso-plan.md` Appendix B and this field is the closest thing to it.
+is refused in `../../project-docs/marketing/aso-plan.md` Appendix B and this field is the closest thing to it.
 
 Extend `MedListExporter` so the one-pager prints the prescriber and pharmacy with
 phone numbers. That one-pager is the feature that earns the app; a provider phone

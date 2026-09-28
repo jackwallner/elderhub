@@ -22,9 +22,9 @@ gets a real account with a deliberately smaller surface, whose centre is one lar
 button that says they are OK. If that button is not pressed inside an agreed window,
 the family gets told.
 
-### The tension with `aso-plan.md`, resolved
+### The tension with `../project-docs/marketing/aso-plan.md`, resolved
 
-`aso-plan.md` put shared accounts explicitly out of v1, because thirty apps in the
+`../project-docs/marketing/aso-plan.md` put shared accounts explicitly out of v1, because thirty apps in the
 eldercare graveyard all led with exactly that and none of them cleared 40 ratings.
 That finding still stands and this document does not overturn it.
 
@@ -496,7 +496,7 @@ recipient, is assigned by writing a name on it, and notifies nobody. What stays
 out is the shift-scheduling, rota and paid-staff-coordination product that
 phrase referred to, which sits next to paid-caregiver scheduling for a reason.
 The first three are liability surfaces we are deliberately not touching (I6); the rest
-were priced against Astro in `aso-plan.md` and found at the popularity floor.
+were priced against Astro in `../project-docs/marketing/aso-plan.md` and found at the popularity floor.
 
 ---
 

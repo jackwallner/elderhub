@@ -2,7 +2,7 @@
 
 Research brief for moving Aging (App Store title **Med List: Family Meds**) from
 local-only SwiftData to a Supabase-backed family group with a proof-of-life
-check-in feature. Written against `CLAUDE.md`, `aso-plan.md`, and
+check-in feature. Written against `CLAUDE.md`, `../../project-docs/marketing/aso-plan.md`, and
 `docs/research/01-groups-rbac-rls.md`. Guideline text is quoted verbatim from
 developer.apple.com where cited; anything I could not verify against a primary
 source is labeled **Unverified**. Legal sections are analysis, not legal

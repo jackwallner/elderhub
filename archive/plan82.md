@@ -1,6 +1,6 @@
 # plan82: post-1.0 feature build
 
-Six slices from `aso-plan.md` Appendix B. Each is built by **one agent in a fresh
+Six slices from `../project-docs/marketing/aso-plan.md` Appendix B. Each is built by **one agent in a fresh
 context**. You were told which letter you are.
 
 ## How to run this
@@ -88,4 +88,4 @@ with `recordedBy` attribution, `MedListExporter` one-pager, `CheckInService`.
 
 Password vault, interaction checker, insurance, financial, document vault, care-task
 board, AI assistant, fall detection, location sharing, HealthKit. Each is priced and
-refused in `aso-plan.md` Appendix B. If a slice seems to want one, it does not.
+refused in `../project-docs/marketing/aso-plan.md` Appendix B. If a slice seems to want one, it does not.
