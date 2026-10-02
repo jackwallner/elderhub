@@ -21,8 +21,6 @@ paths:
   - "AgingTests/WeekdayScheduleTests.swift"
   - "AgingTests/TodayDigestTests.swift"
   - "AgingTests/CareOverviewTests.swift"
-  - "AgingUITests/CareTaskAssigneeFilterUITests.swift"
-  - "AgingUITests/HubRenderUITests.swift"
 ---
 
 # Elderhub: Today, tasks, appointments and medication schedules

@@ -10,7 +10,7 @@ Produce the screenshot with the StoreKit-Testing UI test, not `simctl`:
     UDID=$(agent-sim checkout "$OWNER")
     trap 'agent-sim checkin "$OWNER"' EXIT
     agent-sim boot "$OWNER"
-    xcodebuild -project Aging.xcodeproj -scheme Aging \\
+    xcodebuild -project Aging.xcodeproj -scheme AgingUITests \\
       -destination "id=$UDID" \\
       -resultBundlePath build/xcresult -only-testing:AgingUITests test
     xcrun xcresulttool export attachments --path build/xcresult.xcresult \\

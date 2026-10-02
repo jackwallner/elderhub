@@ -37,7 +37,22 @@ schemes:
       storeKitConfiguration: Aging/Services/Products.storekit
       targets:
         - AgingTests
+  # UI tests are slow, so they get their own scheme and stay out of the
+  # default `xcodebuild test -scheme Aging` run.
+  AgingUITests:
+    build:
+      targets:
+        Aging: all
+        AgingUITests: [test]
+    test:
+      config: Debug
+      gatherCoverageData: false
+      storeKitConfiguration: Aging/Services/Products.storekit
+      targets:
         - AgingUITests
+    run:
+      config: Debug
+      storeKitConfiguration: Aging/Services/Products.storekit
 
 targets:
   Aging:

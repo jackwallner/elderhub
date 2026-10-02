@@ -5,7 +5,6 @@ paths:
   - "Shared/Services/NotificationRoute.swift"
   - "Aging/Views/Components/NotificationPermission.swift"
   - "AgingTests/DoseReminderTests.swift"
-  - "AgingUITests/DoseReminderToggleUITests.swift"
 ---
 
 # Elderhub: reminders, routing and notification permission
