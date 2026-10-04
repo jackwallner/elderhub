@@ -1,1 +1,1 @@
-medication,dementia,alzheimers,memory care,pill,reminder,prescription,elder,parent,senior,medical id
+medication,med,list,tracker,pill,reminder,medicine,schedule,elderly,elder,blood,pressure,glucose
