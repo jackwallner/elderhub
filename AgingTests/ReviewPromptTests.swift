@@ -3,118 +3,101 @@ import Testing
 
 @testable import Aging
 
-/// The gate on asking somebody what they think of a Medical-category app.
-///
-/// The negative cases are the ones that matter. Asking at the wrong moment
-/// here is not a minor annoyance: it is the app talking about itself in front
-/// of an overdue dose.
+/// The rating-ask rules from the fleet policy: ask from the second launch,
+/// wait out a 30-day cooldown, stop only when the user opened the review page,
+/// and never let feedback stop or restart the asks.
 @MainActor
+@Suite(.serialized)
 struct ReviewPromptTests {
-
-    private func fresh() {
-        ReviewPrompt.resetForTesting()
+    /// Snapshots and restores the tracker's persisted state so the suite
+    /// doesn't leave a simulator install mid-ask.
+    private func withCleanTracker(_ body: () -> Void) {
+        let launches = ReviewPrompt.appLaunchCount
+        let lastShown = ReviewPrompt.lastShownDate
+        let outcome = ReviewPrompt.outcome
+        let pending = ReviewPrompt.hasPendingPositiveMoment
+        defer {
+            ReviewPrompt.appLaunchCount = launches
+            ReviewPrompt.lastShownDate = lastShown
+            ReviewPrompt.outcome = outcome
+            ReviewPrompt.hasPendingPositiveMoment = pending
+        }
+        ReviewPrompt.outcome = nil
+        ReviewPrompt.lastShownDate = nil
+        ReviewPrompt.hasPendingPositiveMoment = false
+        body()
     }
 
-    @Test func neverAsksOnADayWithAnythingOutstanding() {
-        fresh()
-        let longAgo = Date().addingTimeInterval(-30 * 86_400)
-        ReviewPrompt.recordAppLaunch(now: longAgo)
-        for day in 0..<ReviewPrompt.requiredActiveDays {
-            ReviewPrompt.recordActiveDay(now: longAgo.addingTimeInterval(Double(day) * 86_400))
+    @Test func asksFromTheSecondSession() {
+        withCleanTracker {
+            ReviewPrompt.appLaunchCount = 2
+            #expect(ReviewPrompt.canRequestReview(hasCompletedSetup: true))
         }
-
-        #expect(ReviewPrompt.shouldAsk(isQuietDay: false) == false)
-        #expect(ReviewPrompt.shouldAsk(isQuietDay: true))
     }
 
-    @Test func neverAsksBeforeTheAppHasBeenUsedAcrossSeveralDays() {
-        fresh()
-        let longAgo = Date().addingTimeInterval(-30 * 86_400)
-        ReviewPrompt.recordAppLaunch(now: longAgo)
-
-        // One busy afternoon is not a routine.
-        ReviewPrompt.recordActiveDay(now: longAgo)
-        #expect(ReviewPrompt.shouldAsk(isQuietDay: true) == false)
-
-        for day in 1..<ReviewPrompt.requiredActiveDays {
-            ReviewPrompt.recordActiveDay(now: longAgo.addingTimeInterval(Double(day) * 86_400))
+    @Test func neverAsksInTheFirstSession() {
+        withCleanTracker {
+            ReviewPrompt.appLaunchCount = 1
+            #expect(!ReviewPrompt.canRequestReview(hasCompletedSetup: true))
         }
-        #expect(ReviewPrompt.shouldAsk(isQuietDay: true))
     }
 
-    /// The day is counted, not the tap. A caregiver who ticks off six doses
-    /// before breakfast has had one day of using the app, not six.
-    @Test func manyActionsInOneDayCountOnce() {
-        fresh()
-        let today = Date()
-        for _ in 0..<12 {
-            ReviewPrompt.recordActiveDay(now: today)
+    @Test func stillRequiresSomeoneOnTheRecord() {
+        withCleanTracker {
+            ReviewPrompt.appLaunchCount = 9
+            #expect(!ReviewPrompt.canRequestReview(hasCompletedSetup: false))
         }
-        #expect(ReviewPrompt.activeDayCount == 1)
     }
 
-    @Test func neverAsksInTheFirstFewDaysHoweverBusyTheyWere() {
-        fresh()
-        let now = Date()
-        ReviewPrompt.recordAppLaunch(now: now)
-        for day in 0..<ReviewPrompt.requiredActiveDays {
-            ReviewPrompt.recordActiveDay(now: now.addingTimeInterval(Double(day) * 3_600))
+    @Test func openingTheReviewPageEndsTheAsks() {
+        withCleanTracker {
+            ReviewPrompt.appLaunchCount = 9
+            ReviewPrompt.markOpenedWriteReview()
+            ReviewPrompt.lastShownDate = Date.now.addingTimeInterval(-365 * 86_400)
+            #expect(!ReviewPrompt.canRequestReview(hasCompletedSetup: true))
         }
-
-        #expect(ReviewPrompt.shouldAsk(isQuietDay: true, now: now) == false)
     }
 
-    @Test func aNotNowIsRespectedForTheCooldown() {
-        fresh()
-        let longAgo = Date().addingTimeInterval(-90 * 86_400)
-        ReviewPrompt.recordAppLaunch(now: longAgo)
-        for day in 0..<ReviewPrompt.requiredActiveDays {
-            ReviewPrompt.recordActiveDay(now: longAgo.addingTimeInterval(Double(day) * 86_400))
+    @Test func waitsOutTheCooldown() {
+        withCleanTracker {
+            ReviewPrompt.appLaunchCount = 9
+            ReviewPrompt.lastShownDate = Date.now.addingTimeInterval(-10 * 86_400)
+            #expect(!ReviewPrompt.canRequestReview(hasCompletedSetup: true))
+            ReviewPrompt.lastShownDate = Date.now.addingTimeInterval(-31 * 86_400)
+            #expect(ReviewPrompt.canRequestReview(hasCompletedSetup: true))
         }
-
-        let asked = Date()
-        ReviewPrompt.markAsked(now: asked)
-
-        let tomorrow = asked.addingTimeInterval(86_400)
-        #expect(ReviewPrompt.shouldAsk(isQuietDay: true, now: tomorrow) == false)
-
-        let afterCooldown = asked.addingTimeInterval(
-            TimeInterval(ReviewPrompt.cooldownDays + 1) * 86_400
-        )
-        #expect(ReviewPrompt.shouldAsk(isQuietDay: true, now: afterCooldown))
     }
 
-    /// Saying yes raises Apple's prompt, which often shows nothing at all. A
-    /// full cooldown there would spend the ask on a dialog nobody saw.
-    @Test func sayingYesUsesTheShorterCooldown() {
-        fresh()
-        let longAgo = Date().addingTimeInterval(-120 * 86_400)
-        ReviewPrompt.recordAppLaunch(now: longAgo)
-        for day in 0..<ReviewPrompt.requiredActiveDays {
-            ReviewPrompt.recordActiveDay(now: longAgo.addingTimeInterval(Double(day) * 86_400))
+    @Test func feedbackNeverEndsTheAsks() {
+        withCleanTracker {
+            ReviewPrompt.appLaunchCount = 9
+            ReviewPrompt.markFeedbackSubmitted()
+            #expect(ReviewPrompt.outcome == .submittedFeedback)
+            #expect(ReviewPrompt.lastShownDate == nil, "feedback must not start a cooldown")
+            #expect(ReviewPrompt.canRequestReview(hasCompletedSetup: true))
         }
-
-        let asked = Date()
-        ReviewPrompt.markSoftDeferred(now: asked)
-
-        let betweenCooldowns = asked.addingTimeInterval(
-            TimeInterval(ReviewPrompt.softDeferCooldownDays + 1) * 86_400
-        )
-        #expect(ReviewPrompt.shouldAsk(isQuietDay: true, now: betweenCooldowns))
     }
 
-    @Test func onceSettledItNeverAsksAgain() {
-        fresh()
-        let longAgo = Date().addingTimeInterval(-400 * 86_400)
-        ReviewPrompt.recordAppLaunch(now: longAgo)
-        for day in 0..<ReviewPrompt.requiredActiveDays {
-            ReviewPrompt.recordActiveDay(now: longAgo.addingTimeInterval(Double(day) * 86_400))
+    @Test func feedbackAfterTheReviewPageKeepsTheAsksEnded() {
+        withCleanTracker {
+            ReviewPrompt.appLaunchCount = 9
+            ReviewPrompt.markOpenedWriteReview()
+            ReviewPrompt.markFeedbackSubmitted()
+            #expect(ReviewPrompt.outcome == .openedWriteReview)
+            #expect(!ReviewPrompt.canRequestReview(hasCompletedSetup: true))
         }
+    }
 
-        ReviewPrompt.markSettled(now: longAgo)
-
-        let muchLater = Date().addingTimeInterval(365 * 86_400)
-        #expect(ReviewPrompt.isSettled)
-        #expect(ReviewPrompt.shouldAsk(isQuietDay: true, now: muchLater) == false)
+    /// A moment whose ask finds something outstanding or presented must
+    /// survive that skip so the next dose marked can still ask.
+    @Test func blockedAskKeepsTheMomentPending() {
+        withCleanTracker {
+            ReviewPrompt.appLaunchCount = 9
+            ReviewPrompt.recordPositiveMoment()
+            #expect(ReviewPrompt.shouldRequestAfterPositiveMoment(hasCompletedSetup: true))
+            #expect(ReviewPrompt.shouldRequestAfterPositiveMoment(hasCompletedSetup: true))
+            ReviewPrompt.markShown()
+            #expect(!ReviewPrompt.shouldRequestAfterPositiveMoment(hasCompletedSetup: true))
+        }
     }
 }

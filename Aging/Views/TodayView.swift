@@ -13,9 +13,6 @@ struct TodayView: View {
     @Environment(CheckInService.self) private var checkIn
     @Environment(AppNavigator.self) private var navigator
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @Environment(AuthService.self) private var auth
-    @Environment(SyncCoordinator.self) private var sync
-    @Environment(\.openURL) private var openURL
 
     @State private var scopeSelection: TodayScope?
     @State private var quickAction: QuickAction?
@@ -25,7 +22,8 @@ struct TodayView: View {
     @State private var setupVersion = 0
     @State private var showNotificationsBlocked = false
     @State private var undo: UndoableAction?
-    @State private var isAskingForReview = false
+    @State private var reviewTask: Task<Void, Never>?
+    @Environment(\.requestReview) private var requestReview
     /// Bumped on every tick-off so the phone confirms it in the hand. Doses,
     /// tasks and bills gave no feedback at all; only the check-in button did.
     @State private var confirmations = 0
@@ -161,24 +159,6 @@ struct TodayView: View {
                 }
             }
             .notificationsBlockedAlert(isPresented: $showNotificationsBlocked)
-            .sheet(isPresented: $isAskingForReview) {
-                ReviewPromptSheet { outcome in
-                    switch outcome {
-                    case .notNow:
-                        ReviewPrompt.markAsked()
-                    case .wantsToRate:
-                        // Apple's own prompt, which is the only thing that can
-                        // actually leave a rating in place. It frequently shows
-                        // nothing at all, which is why saying yes is recorded
-                        // as a soft defer rather than as settled.
-                        ReviewPrompt.markSoftDeferred()
-                        requestAppReview()
-                    case .sendingFeedback:
-                        ReviewPrompt.markSettled()
-                        openSupportMail()
-                    }
-                }
-            }
             .sensoryFeedback(.success, trigger: confirmations)
             // Explicitly zero-height and hit-transparent when there is nothing
             // to undo. A bare `if` inside `safeAreaInset` leaves a container
@@ -210,7 +190,6 @@ struct TodayView: View {
         .onAppear {
             applyPendingNotificationRoute()
             refreshSetupVisibility()
-            considerAskingForReview()
         }
         .onChange(of: scopeSelection) { _, _ in refreshSetupVisibility() }
         .onChange(of: notificationRoute.pendingPersonID) { _, _ in
@@ -850,11 +829,8 @@ struct TodayView: View {
     private func record(_ status: DoseStatus, for slot: DoseSlot, person: Person) {
         guard let medication = person.liveMedications.first(where: { $0.id == slot.medicationID }) else { return }
 
-        // Counts the day, not the tap. This is the app's core action, and
-        // several days of it is the only honest evidence that Elderhub is
-        // part of somebody's routine and therefore that asking them about it
-        // is fair.
-        ReviewPrompt.recordActiveDay()
+        // A dose taken is the app's core action and its positive moment.
+        if status == .taken { scheduleReviewRequestAfterPositiveMoment() }
         confirmations += 1
 
         let calendar = Calendar.current
@@ -948,7 +924,7 @@ struct TodayView: View {
     /// behind would mean an undo that quietly adds next month's errand.
     private func complete(_ task: CareTask) {
         let followUp = task.markComplete(by: CareTaskAuthor.name(from: groups), in: context)
-        ReviewPrompt.recordActiveDay()
+        scheduleReviewRequestAfterPositiveMoment()
         let name = task.title.isEmpty ? "task" : task.title
         offerUndo("Marked \(name) done") {
             task.markIncomplete(in: context)
@@ -958,7 +934,7 @@ struct TodayView: View {
 
     private func pay(_ bill: Bill) {
         let followUp = bill.markPaid(by: CareTaskAuthor.name(from: groups), in: context)
-        ReviewPrompt.recordActiveDay()
+        scheduleReviewRequestAfterPositiveMoment()
         let name = bill.payee.isEmpty ? "bill" : bill.payee
         offerUndo("Marked \(name) paid") {
             bill.markUnpaid(in: context)
@@ -980,40 +956,38 @@ struct TodayView: View {
         }
     }
 
-    /// Asks what they think of Elderhub, but only on a day already dealt with.
-    ///
-    /// The gate that matters is `isClear` for everybody. This is a Medical-
-    /// category app opened by people who are worried, and a card asking
-    /// "is Elderhub helping?" in front of an overdue 8am dose is the app
-    /// talking about itself while somebody is trying to find out whether their
-    /// mother took her tablets. On a day where nothing is outstanding it is a
-    /// fair question, and it is also the moment the app has just visibly done
-    /// its job. Eleanor never sees it: the recipient's phone renders
-    /// `CheckInHomeView` and never reaches this screen at all.
-    private func considerAskingForReview() {
-        guard !isAskingForReview else { return }
+    /// The rating ask after a dose, task or bill was just marked done: Apple's
+    /// own prompt, no question in front of it. Waits for the confirmation to
+    /// settle, then asks only if nothing is presented and nothing is
+    /// outstanding for anyone today. This is a Medical-category app opened by
+    /// worried people, so an ask in front of an overdue 8am dose is worse than
+    /// never asking. A blocked ask keeps the moment pending for the next one.
+    private func scheduleReviewRequestAfterPositiveMoment() {
+        ReviewPrompt.recordPositiveMoment()
+        reviewTask?.cancel()
+        reviewTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(3))
+            guard !Task.isCancelled, isTodayClear, isQuietDay,
+                  ReviewPrompt.shouldRequestAfterPositiveMoment(hasCompletedSetup: !people.isEmpty)
+            else { return }
+            ReviewPrompt.markShown()
+            requestReview()
+        }
+    }
+
+    /// Everything for everybody is dealt with today.
+    private var isQuietDay: Bool {
         let digests = TodayDigest.build(for: people, on: Date(), checkInState: checkInState)
-        // A record with nothing in it is not a quiet day, it is an empty app.
-        guard !digests.isEmpty, digests.allSatisfy(\.isClear),
-              digests.contains(where: { !$0.hasNothingToShow }) else { return }
-        guard ReviewPrompt.shouldAsk(isQuietDay: true) else { return }
-        isAskingForReview = true
+        return !digests.isEmpty && digests.allSatisfy(\.isClear)
     }
 
-    private func requestAppReview() {
-        guard let scene = UIApplication.shared.connectedScenes
-            .compactMap({ $0 as? UIWindowScene })
-            .first(where: { $0.activationState == .foregroundActive }) else { return }
-        AppStore.requestReview(in: scene)
-    }
-
-    private func openSupportMail() {
-        guard let url = SupportMail.url(
-            personCount: people.count,
-            isSignedIn: auth.isSignedIn,
-            lastSyncedAt: sync.lastSyncedAt
-        ) else { return }
-        openURL(url)
+    /// No sheet, alert or other screen is presented over Today.
+    private var isTodayClear: Bool {
+        guard !showNotificationsBlocked, UIApplication.shared.applicationState == .active else { return false }
+        return !UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .contains { $0.isKeyWindow && $0.rootViewController?.presentedViewController != nil }
     }
 
     private func runningLowMedications(for person: Person) -> [Medication] {

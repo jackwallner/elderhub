@@ -61,6 +61,7 @@ struct AgingApp: App {
             SampleData.seedIfEmpty(into: CareModelStore.sharedModelContainer.mainContext)
         }
         #endif
+        ReviewPrompt.recordAppLaunch()
     }
 
     #if DEBUG
@@ -85,7 +86,6 @@ struct AgingApp: App {
                 .environment(deviceMode)
                 .onAppear {
                     store.start()
-                    ReviewPrompt.recordAppLaunch()
                     ConversionDiagnostics.recordAppOpen()
                     #if DEBUG
                     if RevenueCatProbe.isEnabled {

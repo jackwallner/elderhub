@@ -3,7 +3,7 @@ paths:
   - "Shared/Services/StoreService.swift"
   - "Shared/Services/ReviewPrompt.swift"
   - "Aging/Views/PaywallView.swift"
-  - "Aging/Views/Components/ReviewPromptSheet.swift"
+  - "Aging/Views/TodayView.swift"
   - "Aging/Services/Products.storekit"
   - "AgingTests/ReviewPromptTests.swift"
   - "AgingTests/PaywallFunnelTests.swift"
@@ -23,14 +23,16 @@ Moved verbatim from AGENTS.md. Loads when a matching file is read; update it her
   makes that the ordinary case rather than the exotic one. Restore stays
   reachable in every state.
 
-- `Services/ReviewPrompt.swift` and `Views/Components/ReviewPromptSheet.swift`
-  are the rating funnel and the gate on it. **Never asked on a day with anything
-  outstanding for anyone** (`PersonDigest.isClear` for every person, and at
-  least one person with something recorded), never before several distinct days
-  of real use, and never on the recipient's phone (that root is
-  `CheckInHomeView` and never reaches Today). This is a Medical-category app
-  opened by worried people: an "is Elderhub helping?" card in front of an
-  overdue 8am dose is worse than never asking. Yes goes to Apple's prompt and is
-  recorded as a *soft* defer, because that prompt frequently shows nothing; no
-  goes to `SupportMail`, which prefills version, build, iOS, person count and
-  sync state and deliberately carries nothing from the record (I5).
+- Ratings: no in-app rating question (App Review 5.6.1). `ReviewPrompt` is the
+  tracker; Today marks a dose taken, task done or bill paid as the positive
+  moment and calls the system `requestReview()` about 3s later only if nothing
+  is presented and **nothing is outstanding for anyone today**
+  (`PersonDigest.isClear` for every person), from the 2nd launch with a 30-day
+  cooldown. A blocked ask stays pending. Never on the recipient's phone (that
+  root is `CheckInHomeView` and never reaches Today). This is a Medical-category
+  app opened by worried people: an ask in front of an overdue 8am dose is worse
+  than never asking. Settings > Feedback has separate "Rate Elderhub" (ends the
+  asks) and "Send Feedback" rows; feedback goes to `SupportMail`
+  (`Aging/Support/SupportMail.swift`), which prefills version, build, iOS,
+  person count and sync state and deliberately carries nothing from the record
+  (I5). Sending feedback never stops the asks.

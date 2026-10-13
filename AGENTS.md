@@ -81,7 +81,7 @@ These files load automatically when you read a file matching their `paths:`. Age
 | `.claude/rules/reminders.md` | Grouped dose reminders, reminder routing, `NotificationPermission` | Notifications and reminder toggles |
 | `.claude/rules/records-emergency-and-bills.md` | Person labels, `BillPlanner`, `DeviceModeService`, `CareNote` and `Bill` boundaries, `MedListExporter`, CALL FIRST, `telURL` | The emergency card, export, notes, bills, handover mode |
 | `.claude/rules/sync-circles-and-database.md` | One account one circle, per-recipient access, conflicts, author names, no `date` columns, parent binding, `DoseLog` ids, `tracksRefills`, adopting records | Sync, groups, invitations, migrations, RLS, edge functions |
-| `.claude/rules/paywall-and-review.md` | The three paywall states, the review prompt gate | `StoreService`, the paywall, the rating funnel |
+| `.claude/rules/paywall-and-review.md` | The three paywall states, the rating ask | `StoreService`, the paywall, the rating funnel |
 | `.claude/rules/listing-site-and-screenshots.md` | The Elderhub rename, acquisition and keywords, the marketing site, `join.html`, the old medlist URLs, App Store screenshots | Metadata, `docs/`, screenshots, ASO |
 
 ## App-specific notes

@@ -23,7 +23,6 @@ struct SettingsView: View {
     @State private var setupPerson: Person?
     @State private var isSettingPIN = false
     @State private var isConfirmingHandover = false
-    @State private var isAskingForReview = false
 
     private var isUnlocked: Bool { store.isPro || groups.hasPlus }
 
@@ -153,20 +152,6 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $isSettingPIN) {
                 SetCaregiverPINSheet()
-            }
-            .sheet(isPresented: $isAskingForReview) {
-                ReviewPromptSheet { outcome in
-                    switch outcome {
-                    case .notNow:
-                        ReviewPrompt.markAsked()
-                    case .wantsToRate:
-                        ReviewPrompt.markSettled()
-                        openURL(AppStoreReviewLinks.writeReviewURL)
-                    case .sendingFeedback:
-                        ReviewPrompt.markSettled()
-                        openSupportMail()
-                    }
-                }
             }
             .confirmationDialog(
                 handoverCandidates.count > 1 ? "Who is holding the phone?" : "Hand this phone over?",
@@ -396,26 +381,23 @@ struct SettingsView: View {
         }
     }
 
-    /// Rating and feedback, said plainly and reachable on purpose.
-    ///
-    /// The app had neither: no rating request anywhere, and support was a link
-    /// to a web page. In a category whose whole shelf is decided by rating
-    /// count, that is not a missing nicety. A deliberate tap here is never
-    /// gated by the passive prompt's eligibility rules: somebody who came
-    /// looking for this has already decided.
+    /// Rating and feedback, said plainly and reachable on purpose: two
+    /// separate rows with no question in front of either (App Review 5.6.1).
     private var feedbackSection: some View {
         Section {
             Button {
-                isAskingForReview = true
+                ReviewPrompt.markOpenedWriteReview()
+                openURL(AppStoreReviewLinks.writeReviewURL)
             } label: {
                 Label("Rate Elderhub", systemImage: "star")
             }
             .accessibilityIdentifier("settings.rate")
 
             Button {
+                ReviewPrompt.markFeedbackSubmitted()
                 openSupportMail()
             } label: {
-                Label("Email us about a problem", systemImage: "envelope")
+                Label("Send Feedback", systemImage: "envelope")
             }
             .accessibilityIdentifier("settings.contact")
         } header: {

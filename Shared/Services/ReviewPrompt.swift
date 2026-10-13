@@ -1,126 +1,138 @@
 import Foundation
 
-/// When it is fair to ask this person what they think of Elderhub.
+/// Persists rating-ask eligibility. The ask itself is the system
+/// `requestReview()` with no question in front of it (App Review 5.6.1).
 ///
-/// The app had no rating request, no Settings entry and no feedback route at
-/// all, which in this category is not a small omission: the eldercare shelf has
-/// no search demand to speak of, so what a stranger has to go on is the rating
-/// count, and a handful of ratings is the difference between the top of the
-/// category and invisible.
-///
-/// The care this needs is the other half. This is a Medical-category app opened
-/// by people who are worried, and an "enjoying the app?" card in front of an
-/// overdue dose is worse than never asking: it is the app talking about itself
-/// while somebody is trying to find out whether their mother took her tablets.
-/// So the gate here is deliberately narrow, and the checks that matter are the
-/// negative ones:
-///
-/// - Never while anything is outstanding for anyone today (`isQuietDay`).
-/// - Never on the recipient's screen. Eleanor is handed this phone to press one
-///   button; she is not the person with an opinion about the app, and asking
-///   her for a rating she cannot leave is noise at best.
-/// - Never during onboarding, and never before the app has actually been used
-///   across several days.
-///
-/// Nothing here leaves the device and nothing is sent anywhere.
+/// This is a Medical-category app opened by people who are worried, so the
+/// moment matters: Today asks only after a dose, task or bill was just marked
+/// done and nothing is outstanding for anyone. The recipient's phone renders
+/// `CheckInHomeView` and never reaches Today. Nothing here leaves the device.
 @MainActor
 enum ReviewPrompt {
+    /// What the user did about a review. Only opening the review page ends the
+    /// passive asks: someone who sent feedback can still rate.
+    enum Outcome: String {
+        case openedWriteReview
+        /// Emailed support. Never stops the asks.
+        case submittedFeedback
+    }
+
     private static let defaults = UserDefaults.standard
 
-    private static let firstOpenKey = "reviewPrompt.firstOpen"
-    private static let lastAskedKey = "reviewPrompt.lastAsked"
-    private static let settledKey = "reviewPrompt.settled"
-    private static let softDeferKey = "reviewPrompt.softDefer"
-    private static let activeDayCountKey = "reviewPrompt.activeDayCount"
-    private static let lastActiveDayKey = "reviewPrompt.lastActiveDay"
+    private enum Key {
+        static let launchCount = "reviewPrompt.launchCount"
+        static let lastShownDate = "reviewPrompt.lastShownDate"
+        static let outcome = "reviewPrompt.outcome"
+        static let pendingPositiveMoment = "reviewPrompt.pendingPositiveMoment"
+        /// Written by the old in-app rating sheet. Read only as a cooldown
+        /// fallback so an upgrade doesn't ask again right away.
+        static let legacyLastAsked = "reviewPrompt.lastAsked"
+        static let legacyUnused = [
+            "reviewPrompt.firstOpen", "reviewPrompt.settled", "reviewPrompt.softDefer",
+            "reviewPrompt.activeDayCount", "reviewPrompt.lastActiveDay",
+        ]
+    }
 
-    /// Distinct days on which the caregiver actually recorded something before
-    /// the question is fair. A week of real use is the honest signal that this
-    /// app is part of somebody's routine, and it is a much better one than
-    /// launch count, which counts opening the app and closing it again in
-    /// frustration.
-    static let requiredActiveDays = 5
-    /// Days since first open, so a burst of activity in one afternoon does not
-    /// qualify.
-    static let requiredDaysSinceFirstOpen = 3
-    /// After a "Not now".
-    static let cooldownDays = 60
-    /// After a yes that led to Apple's own prompt, which frequently shows
-    /// nothing at all. A long jail there burns the ask on a dialog the user
-    /// never saw.
-    static let softDeferCooldownDays = 30
+    /// Ask early. The only tenure gate is "not the first session": a second cold start.
+    static let minimumLaunchCount = 2
+    /// Days between our calls. Apple shows the prompt at most three times a
+    /// year per device and decides each time, so this paces our asks.
+    static let cooldownDays = 30
 
-    // MARK: Recording
-
-    static func recordAppLaunch(now: Date = .now) {
-        if defaults.object(forKey: firstOpenKey) == nil {
-            defaults.set(now, forKey: firstOpenKey)
+    /// UI tests never count launches or ask.
+    static var skipsAutomation: Bool {
+        ProcessInfo.processInfo.arguments.contains {
+            $0 == "-uitest-reset" || $0 == "-uitest-wipe-store" || $0 == "-rcfunnelprobe" || $0 == "-FASTLANE_SNAPSHOT"
         }
     }
 
-    /// Called when the caregiver records something real: a dose, a task, a
-    /// bill. Counts the day, not the action, so a busy Monday is one day.
-    static func recordActiveDay(now: Date = .now) {
-        let today = Calendar.current.startOfDay(for: now)
-        if let last = defaults.object(forKey: lastActiveDayKey) as? Date,
-           Calendar.current.isDate(last, inSameDayAs: today) {
-            return
+    // MARK: - State
+
+    static var appLaunchCount: Int {
+        get { max(defaults.integer(forKey: Key.launchCount), 0) }
+        set { defaults.set(newValue, forKey: Key.launchCount) }
+    }
+
+    static var lastShownDate: Date? {
+        get {
+            defaults.object(forKey: Key.lastShownDate) as? Date
+                ?? defaults.object(forKey: Key.legacyLastAsked) as? Date
         }
-        defaults.set(today, forKey: lastActiveDayKey)
-        defaults.set(activeDayCount + 1, forKey: activeDayCountKey)
-    }
-
-    static var activeDayCount: Int {
-        max(defaults.integer(forKey: activeDayCountKey), 0)
-    }
-
-    // MARK: Eligibility
-
-    /// `isQuietDay` is the caller's answer to "is there anything outstanding
-    /// for anyone right now". It is passed in rather than computed here so this
-    /// type stays free of the model layer and stays testable.
-    static func shouldAsk(isQuietDay: Bool, now: Date = .now) -> Bool {
-        guard !isSettled else { return false }
-        guard isQuietDay else { return false }
-        guard activeDayCount >= requiredActiveDays else { return false }
-        guard let first = defaults.object(forKey: firstOpenKey) as? Date else { return false }
-        guard now.timeIntervalSince(first) >= TimeInterval(requiredDaysSinceFirstOpen) * 86_400 else {
-            return false
+        set {
+            defaults.removeObject(forKey: Key.legacyLastAsked)
+            if let newValue {
+                defaults.set(newValue, forKey: Key.lastShownDate)
+            } else {
+                defaults.removeObject(forKey: Key.lastShownDate)
+            }
         }
-        guard let last = defaults.object(forKey: lastAskedKey) as? Date else { return true }
-        let days = defaults.bool(forKey: softDeferKey) ? softDeferCooldownDays : cooldownDays
-        return now.timeIntervalSince(last) >= TimeInterval(days) * 86_400
     }
 
-    /// True once the reader has answered in a way that should not be asked
-    /// again: they went to the App Store, or they sent feedback.
-    static var isSettled: Bool { defaults.bool(forKey: settledKey) }
-
-    // MARK: Outcomes
-
-    static func markAsked(now: Date = .now) {
-        defaults.set(now, forKey: lastAskedKey)
-        defaults.set(false, forKey: softDeferKey)
+    static var outcome: Outcome? {
+        get { defaults.string(forKey: Key.outcome).flatMap(Outcome.init(rawValue:)) }
+        set {
+            if let newValue {
+                defaults.set(newValue.rawValue, forKey: Key.outcome)
+            } else {
+                defaults.removeObject(forKey: Key.outcome)
+            }
+        }
     }
 
-    /// Said yes, so Apple's prompt was raised. It may have shown nothing, hence
-    /// the shorter cooldown.
-    static func markSoftDeferred(now: Date = .now) {
-        defaults.set(now, forKey: lastAskedKey)
-        defaults.set(true, forKey: softDeferKey)
+    static var hasPendingPositiveMoment: Bool {
+        get { defaults.bool(forKey: Key.pendingPositiveMoment) }
+        set { defaults.set(newValue, forKey: Key.pendingPositiveMoment) }
     }
 
-    static func markSettled(now: Date = .now) {
-        defaults.set(true, forKey: settledKey)
-        defaults.set(now, forKey: lastAskedKey)
+    // MARK: - Recording
+
+    static func recordAppLaunch() {
+        Key.legacyUnused.forEach(defaults.removeObject(forKey:))
+        guard !skipsAutomation else { return }
+        appLaunchCount += 1
     }
 
-    /// Test seam. Also what Settings' "Rate Elderhub" implicitly bypasses: a
-    /// deliberate tap is never gated.
-    static func resetForTesting() {
-        for key in [firstOpenKey, lastAskedKey, settledKey, softDeferKey,
-                    activeDayCountKey, lastActiveDayKey] {
-            defaults.removeObject(forKey: key)
+    /// A dose taken, a task done or a bill paid.
+    static func recordPositiveMoment() {
+        guard !skipsAutomation else { return }
+        hasPendingPositiveMoment = true
+    }
+
+    // MARK: - Eligibility
+
+    static func passivePromptAllowed(now: Date = .now) -> Bool {
+        guard outcome != .openedWriteReview else { return false }
+        guard let last = lastShownDate else { return true }
+        return now.timeIntervalSince(last) >= TimeInterval(cooldownDays) * 86_400
+    }
+
+    static func canRequestReview(hasCompletedSetup: Bool, now: Date = .now) -> Bool {
+        guard !skipsAutomation, hasCompletedSetup, passivePromptAllowed(now: now) else { return false }
+        return appLaunchCount >= minimumLaunchCount
+    }
+
+    static func shouldRequestAfterPositiveMoment(hasCompletedSetup: Bool, now: Date = .now) -> Bool {
+        guard hasPendingPositiveMoment else { return false }
+        return canRequestReview(hasCompletedSetup: hasCompletedSetup, now: now)
+    }
+
+    // MARK: - Outcomes
+
+    static func markShown(now: Date = .now) {
+        lastShownDate = now
+        hasPendingPositiveMoment = false
+    }
+
+    static func markOpenedWriteReview() {
+        outcome = .openedWriteReview
+        markShown()
+    }
+
+    /// Never overwrites `.openedWriteReview`: feedback sent after the review
+    /// page must not reopen the asks that page ended.
+    static func markFeedbackSubmitted() {
+        if outcome != .openedWriteReview {
+            outcome = .submittedFeedback
         }
     }
 }
