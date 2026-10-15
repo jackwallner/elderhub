@@ -30,6 +30,7 @@
   "@graph": [
     {
       "@type": "MobileApplication",
+      "dateModified": "2026-10-15",
       "@id": "https://jackwallner.com/ios/elderhub/#app",
       "name": "Elderhub: Family Care Log",
       "alternateName": "Elderhub",
@@ -268,7 +269,7 @@
 
       .hero .platforms {
         font-size: 13px;
-        color: #86868b;
+        color: #6e6e73;
         letter-spacing: 0.3px;
         margin-bottom: 36px;
       }
@@ -362,20 +363,6 @@
       .feature-card {
         background: #fff;
         padding: 36px 32px;
-      }
-
-      .feature-card .label {
-        display: inline-block;
-        font-size: 11px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.8px;
-        color: #86868b;
-        margin-bottom: 10px;
-      }
-
-      .feature-card .label.elderhub-pro {
-        color: #1f9c86;
       }
 
       .feature-card h3 {
@@ -485,7 +472,7 @@
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.8px;
-        color: #86868b;
+        color: #6e6e73;
         margin-bottom: 12px;
       }
 
@@ -517,7 +504,7 @@
       }
 
       .specs-table td:first-child {
-        color: #86868b;
+        color: #6e6e73;
         width: 140px;
         font-size: 12px;
         text-transform: uppercase;
@@ -541,7 +528,7 @@
 
       .cta p {
         font-size: 15px;
-        color: #86868b;
+        color: #6e6e73;
         margin-bottom: 28px;
       }
 
@@ -550,11 +537,11 @@
         text-align: center;
         padding: 20px 24px;
         font-size: 12px;
-        color: #86868b;
+        color: #6e6e73;
       }
 
       footer a {
-        color: #86868b;
+        color: #6e6e73;
         text-decoration: none;
         margin: 0 10px;
       }
@@ -612,6 +599,12 @@
         .faq summary::after { content: "+"; float: right; color: #6e6e73; font-weight: 400; }
         .faq details[open] summary::after { content: "\2212"; }
         .faq details p { font-size: 15px; line-height: 1.6; color: #6e6e73; margin-top: 10px; }
+        .feature-card .tier {
+            margin-top: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #1a8270;
+        }
     </style>
   </head>
   <body>
@@ -688,7 +681,6 @@
       </div>
       <div class="features-grid">
         <div class="feature-card">
-          <span class="label">Emergency card</span>
           <h3>One tap to hand it over</h3>
           <p>
             Allergies, conditions, active medications and emergency contacts in
@@ -697,7 +689,6 @@
           </p>
         </div>
         <div class="feature-card">
-          <span class="label">Medications &amp; reminders</span>
           <h3>The list a doctor wants</h3>
           <p>
             Name, strength, form, purpose, prescriber, instructions, schedule
@@ -705,7 +696,6 @@
           </p>
         </div>
         <div class="feature-card">
-          <span class="label">Dose history</span>
           <h3>Marked on someone's behalf</h3>
           <p>
             Log a dose as taken or skipped and the entry records who did it.
@@ -713,7 +703,6 @@
           </p>
         </div>
         <div class="feature-card">
-          <span class="label">Visits</span>
           <h3>What the doctor said</h3>
           <p>
             Log a visit while it is fresh: the provider, reason, notes and
@@ -721,7 +710,6 @@
           </p>
         </div>
         <div class="feature-card">
-          <span class="label">Vitals</span>
           <h3>Vitals worth watching</h3>
           <p>
             Blood pressure, weight, glucose, heart rate, temperature and oxygen,
@@ -729,7 +717,6 @@
           </p>
         </div>
         <div class="feature-card">
-          <span class="label">Tasks, notes &amp; contacts</span>
           <h3>The details between visits</h3>
           <p>
             Keep the practical details around a person in the same record, not
@@ -737,7 +724,6 @@
           </p>
         </div>
         <div class="feature-card">
-          <span class="label">Check-in</span>
           <h3>One large button</h3>
           <p>
             Optional. If it is not pressed by the end of the agreed window,
@@ -745,7 +731,6 @@
           </p>
         </div>
         <div class="feature-card">
-          <span class="label">Share &amp; export</span>
           <h3>Plain text, anywhere</h3>
           <p>
             Share the emergency card as plain text or export the record for an
@@ -753,14 +738,12 @@
           </p>
         </div>
         <div class="feature-card">
-          <span class="label elderhub-pro"
-            >People &amp; sharing &middot; Elderhub Plus</span
-          >
           <h3>Everyone you look after</h3>
           <p>
             Every feature is free for one person. Plus adds more people to the
             same care circle, and invited family members are always free.
           </p>
+          <p class="tier">Included with Elderhub Plus</p>
         </div>
       </div>
     </section>
@@ -963,7 +946,7 @@
     <!-- The My Health My Data Act asks for the consumer-health-data link on the
          homepage specifically, not only inside the general privacy policy. -->
     <footer>
-      <div class="divider">&copy; 2026 Jack Wallner</div>
+      <div class="divider">&copy; 2026 Jack Wallner · Last updated <time datetime="2026-10-15" data-updated>October 15, 2026</time></div>
       <div>
         <!-- Load-bearing, not decoration: the portfolio mirror that serves this
              page at jackwallner.com copies index.html plus the closure of what

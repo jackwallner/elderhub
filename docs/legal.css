@@ -30,7 +30,7 @@ body {
 .site-nav a:hover { color: #eb567c; }
 h1 { font-size: 28px; margin-bottom: 4px; letter-spacing: -0.3px; }
 h2 { font-size: 20px; margin-top: 32px; }
-.date { color: #86868b; font-size: 14px; margin-bottom: 32px; }
+.date { color: #6e6e73; font-size: 14px; margin-bottom: 32px; }
 ul { padding-left: 20px; }
 li { margin-bottom: 8px; }
 a { color: #0066cc; text-decoration: none; }
@@ -44,9 +44,9 @@ a:hover { text-decoration: underline; }
 .footer-links {
     margin-top: 40px;
     font-size: 13px;
-    color: #86868b;
+    color: #6e6e73;
 }
 .footer-links a {
-    color: #86868b;
+    color: #6e6e73;
     margin-right: 16px;
 }
