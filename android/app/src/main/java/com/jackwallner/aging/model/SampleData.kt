@@ -63,12 +63,24 @@ object SampleData {
         val morning = meds[0].doseTimes(now, zone).firstOrNull()
         val doses = listOfNotNull(
             morning?.takeIf { it < now }?.let { DoseLog.create(meds[0].id, it, DoseStatus.TAKEN, "Jack", it.plusSeconds(240)) },
-        )
+        ) + history(meds.take(2), now, zone)
         return CareState(
             people = listOf(mom), medications = meds, doses = doses, visits = visits, contacts = listOf(contact),
             providers = listOf(primaryCare, audiologist, pharmacy), caregiverName = "Jack", hasCompletedOnboarding = true,
         )
     }
+
+    /** Six past days of doses, one evening skipped, so adherence and the hub read like a real week. */
+    private fun history(meds: List<Medication>, now: Instant, zone: ZoneId): List<DoseLog> =
+        (1..6).flatMap { daysAgo ->
+            val day = now.atZone(zone).minusDays(daysAgo.toLong()).toInstant()
+            meds.flatMap { med ->
+                med.doseTimes(day, zone).map { time ->
+                    val skipped = daysAgo == 3 && time.atZone(zone).hour >= 12
+                    DoseLog.create(med.id, time, if (skipped) DoseStatus.SKIPPED else DoseStatus.TAKEN, if (daysAgo % 2 == 0) "Sarah" else "Jack", time.plusSeconds(300))
+                }
+            }
+        }
 
     /** Adds Dad: the second care recipient, which only Plus allows. */
     fun withDad(state: CareState, now: Instant = Instant.now()): CareState {

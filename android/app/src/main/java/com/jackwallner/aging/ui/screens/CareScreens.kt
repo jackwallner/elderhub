@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -153,7 +155,7 @@ fun PersonHubScreen(personId: UUID) {
             )
             tiles.chunked(2).forEach { pair ->
                 Row(
-                    Modifier.padding(horizontal = Spacing.lg).padding(bottom = Spacing.md),
+                    Modifier.padding(horizontal = Spacing.lg).padding(bottom = Spacing.md).height(IntrinsicSize.Max),
                     horizontalArrangement = Arrangement.spacedBy(Spacing.md),
                 ) {
                     pair.forEach { (tile, route) ->
@@ -164,7 +166,7 @@ fun PersonHubScreen(personId: UUID) {
                             icon = icon,
                             tint = tint,
                             status = CareOverview.detail(feature, state, personId, now, zone),
-                            modifier = Modifier.weight(1f).testTag("hub.${feature.name.lowercase()}"),
+                            modifier = Modifier.weight(1f).fillMaxHeight().testTag("hub.${feature.name.lowercase()}"),
                         ) { navigator.push(route) }
                     }
                     if (pair.size == 1) Spacer(Modifier.weight(1f))

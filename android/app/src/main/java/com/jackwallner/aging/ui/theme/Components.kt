@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -64,6 +65,8 @@ fun DetailTopBar(title: String, onBack: () -> Unit, actions: @Composable RowScop
             }
         },
         actions = actions,
+        // The root Scaffold already pads for the status bar.
+        windowInsets = WindowInsets(0),
         colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = AgingTheme.colors.background),
     )
 }
@@ -206,7 +209,7 @@ fun FeatureTile(
         Text(title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold), color = AgingTheme.colors.text)
         Text(blurb, style = MaterialTheme.typography.bodySmall, color = AgingTheme.colors.secondaryText, minLines = 2, maxLines = 3)
         if (status != null) {
-            Text(status, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold), color = tint, maxLines = 1)
+            Text(status, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold), color = tint, maxLines = 2)
         }
     }
 }

@@ -1,7 +1,6 @@
 package com.jackwallner.aging.model
 
 import java.time.Instant
-import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -30,7 +29,7 @@ object MedListExporter {
 
         lines += "MEDICATION LIST: ${person.name}"
         lines += person.birthDate?.let { "Date of birth: ${it.format(dateFormat)}" } ?: "Date of birth: not recorded"
-        person.age(LocalDate.ofInstant(generatedAt, zone))?.let { lines += "Age $it" }
+        person.age(generatedAt.atZone(zone).toLocalDate())?.let { lines += "Age $it" }
         lines += "Blood type: ${person.bloodType.ifEmpty { "not recorded" }}"
         lines += "Generated ${generatedAt.atZone(zone).format(stampFormat)}"
         lines += ""

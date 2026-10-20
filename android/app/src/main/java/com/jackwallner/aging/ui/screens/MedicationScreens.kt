@@ -35,6 +35,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -126,6 +127,7 @@ fun MedicationEditorScreen(personId: UUID, medicationId: UUID?) {
     val graph = LocalGraph.current
     val navigator = LocalNavigator.current
     val context = LocalContext.current
+    val locale = LocalConfiguration.current.locales[0]
     val state = graph.care.state
     val existing = medicationId?.let { id -> state.medications.firstOrNull { it.id == id } }
     var name by remember { mutableStateOf(existing?.name.orEmpty()) }
@@ -213,7 +215,7 @@ fun MedicationEditorScreen(personId: UUID, medicationId: UUID?) {
                 modifier = Modifier.padding(start = Spacing.lg, top = Spacing.md),
             )
             FlowRow(Modifier.padding(horizontal = Spacing.lg), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                ScheduleEngine.orderedWeekdays().forEach { day ->
+                ScheduleEngine.orderedWeekdays(locale).forEach { day ->
                     val everyDay = weekdays.isEmpty()
                     val on = everyDay || day in weekdays
                     FilterChip(
@@ -223,13 +225,13 @@ fun MedicationEditorScreen(personId: UUID, medicationId: UUID?) {
                             val next = if (day in current) current - day else current + day
                             if (next.isNotEmpty()) weekdays = if (next.size == 7) emptyList() else next
                         },
-                        label = { Text(ScheduleEngine.dayOfWeek(day).getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.getDefault())) },
+                        label = { Text(ScheduleEngine.dayOfWeek(day).getDisplayName(java.time.format.TextStyle.SHORT, locale)) },
                         colors = FilterChipDefaults.filterChipColors(selectedContainerColor = AgingTheme.colors.accent.copy(alpha = 0.18f)),
                     )
                 }
             }
             Text(
-                ScheduleEngine.weekdayLabel(weekdays).ifEmpty { "Every day" },
+                ScheduleEngine.weekdayLabel(weekdays, locale).ifEmpty { "Every day" },
                 style = MaterialTheme.typography.bodySmall,
                 color = AgingTheme.colors.secondaryText,
                 modifier = Modifier.padding(horizontal = Spacing.lg),

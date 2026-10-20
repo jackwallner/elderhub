@@ -17,7 +17,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Assignment
@@ -43,6 +45,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -165,6 +168,7 @@ private fun NameStep(
     val suggestions = if (isSolo) listOf("Me") else listOf("Mom", "Dad", "Spouse", "Partner", "Me")
     val requiresAttestation = !isSolo
     val canContinue = name.isNotBlank() && (!requiresAttestation || attested)
+    val focus = LocalFocusManager.current
     Column(Modifier.fillMaxSize().padding(horizontal = 28.dp)) {
         Column(
             Modifier.weight(1f).verticalScroll(rememberScrollState()),
@@ -203,15 +207,16 @@ private fun NameStep(
                 label = { Text("Relationship (optional)") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { focus.clearFocus() }),
                 modifier = Modifier.fillMaxWidth().testTag("onboarding.relationship"),
             )
             Spacer(Modifier.height(Spacing.sm))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 suggestions.forEach { option ->
                     val chosen = relationship.trim().equals(option, ignoreCase = true)
                     FilterChip(
                         selected = chosen,
-                        onClick = { onRelationship(if (chosen) "" else option) },
+                        onClick = { onRelationship(if (chosen) "" else option); focus.clearFocus() },
                         label = { Text(option) },
                         colors = FilterChipDefaults.filterChipColors(selectedContainerColor = AgingTheme.colors.accent.copy(alpha = 0.18f)),
                     )
