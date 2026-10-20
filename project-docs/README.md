@@ -13,3 +13,7 @@ Developer notes and historical audits for this repository. The published site re
 ## Marketing
 
 - [aso-plan.md](marketing/aso-plan.md): Aging app: ASO scoping + scope decision
+
+## Android
+
+- [port-2026-10-20.md](android/port-2026-10-20.md): Android port, first shift: what ships, evidence, decisions needed
