@@ -70,6 +70,8 @@ targets:
       base:
         PRODUCT_NAME: Aging
         PRODUCT_BUNDLE_IDENTIFIER: com.jackwallner.aging
+        ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES: "AppIcon-A AppIcon-B AppIcon-C"
+        ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS: YES
         INFOPLIST_FILE: Aging/Info.plist
         CODE_SIGN_ENTITLEMENTS: Aging/Aging.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
