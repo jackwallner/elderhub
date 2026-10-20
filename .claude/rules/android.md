@@ -66,10 +66,14 @@ build is R8-optimized with no key and no debug hooks.
    platforms), or (c) ship Android local-only (current build). Until decided,
    Android has no Sharing tab, no join links (`docs/join.html` invitations do
    not open the Android app) and no check-in push.
-2. **Reminders.** Dose reminders, refill and appointment notifications and the
-   check-in reminder are not ported. They need `POST_NOTIFICATIONS` and inexact
-   `AlarmManager` scheduling (exact alarms need a Play declaration). Port next;
-   no backend decision needed.
+2. **Reminders.** Dose reminders are ported (`DoseReminderPlanner`,
+   `ReminderService`): one notification per person per dose time, a per-person
+   switch on the hub (`dose-reminders.<ID>`), one rolling `setWindow` alarm
+   (5-minute window, no exact-alarm permission or Play declaration), re-planned
+   on every record change, launch, boot, update and clock change. Blocked
+   permission shows the Settings alert. Not yet ported: refill and
+   appointment notifications, the check-in reminder, and routing a tapped
+   notification to the person (it opens Today, which lists everyone).
 3. **Not yet ported features** (each needs a `CareFeature` case and a hub tile
    when it lands): tasks, vitals, symptoms/care events, notes, bills, timeline,
    search, handover mode, setup checklist, the in-app review ask.
@@ -78,9 +82,9 @@ build is R8-optimized with no key and no debug hooks.
 
     cd android
     export JAVA_HOME=~/jdks/temurin-17/Contents/Home
-    ./gradlew --no-daemon :app:testDebugUnitTest                       # 65 JVM tests
+    ./gradlew --no-daemon :app:testDebugUnitTest                       # 78 JVM tests
     ./gradlew --no-daemon :app:lintDebug :app:assembleDebug :app:assembleQa
-    ANDROID_SERIAL=emulator-5584 ./gradlew --no-daemon :app:connectedDebugAndroidTest   # 9 device tests
+    ANDROID_SERIAL=emulator-5584 ./gradlew --no-daemon :app:connectedDebugAndroidTest   # 10 device tests
 
 Leased AVD: `agent-emu-1` (API 36 Google Play x86_64), booted headless with
 `emulator -avd agent-emu-1 -port 5584 -no-window -no-audio -no-boot-anim
