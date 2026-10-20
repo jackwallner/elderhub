@@ -56,6 +56,9 @@ class CareStore(private val persistence: CarePersistence) {
     var state by mutableStateOf(load())
         private set
 
+    /** Called after every saved change (the reminder planner listens). */
+    var onChange: (() -> Unit)? = null
+
     private fun load(): CareState =
         persistence.load()?.let { runCatching { CareCodec.decode(it) }.getOrNull() } ?: CareState()
 
@@ -64,6 +67,7 @@ class CareStore(private val persistence: CarePersistence) {
         if (next == state) return
         state = next
         persistence.save(CareCodec.encode(next))
+        onChange?.invoke()
     }
 
     fun reset() = update { CareState() }

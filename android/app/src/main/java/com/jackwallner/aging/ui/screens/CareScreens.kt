@@ -172,6 +172,7 @@ fun PersonHubScreen(personId: UUID) {
                     if (pair.size == 1) Spacer(Modifier.weight(1f))
                 }
             }
+            ReminderCard(person)
             Spacer(Modifier.height(Spacing.xl))
         }
     }

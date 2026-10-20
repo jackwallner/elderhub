@@ -26,6 +26,8 @@ class MainActivity : ComponentActivity() {
         if (savedInstanceState == null) DebugLaunchOptions.apply(graph, intent)
         enableEdgeToEdge()
         lifecycleScope.launch { graph.store.start() }
+        // Re-plan on every launch: a time-zone change or a missed boot broadcast must not leave reminders stale.
+        graph.reminders.refresh()
         setContent {
             CompositionLocalProvider(LocalGraph provides graph) {
                 AgingTheme {
