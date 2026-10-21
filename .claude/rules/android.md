@@ -174,6 +174,16 @@ Debug launch extras (`src/debug/.../DebugLaunchOptions.kt`): `resetAll`,
 
 - 2026-10-20: not on Play. No Play app, no RevenueCat Play app, no upload
   keystore, no products. Version 1.0.4 (versionCode 1), target/compile SDK 36.
+- 2026-10-21 (Air package run `shift-android-package-elderhub-1-1792578904`,
+  source `b3b87dc`): blocked, no signed APK/AAB. Signed `assembleRelease
+  bundleRelease` stops at `validateReleaseConfiguration` (no
+  `REVENUECAT_PLAY_KEY`). Verified missing: `aging-upload.p12` (and any backup),
+  a `play_store` app in RevenueCat `proj9692114f` (only `app_store` and
+  `test_store`), `android/local.properties`, a Play app and its service
+  account. Play state: nothing staged, nothing in review. Evidence and next
+  steps: `~/fleet-evidence/shift-android-package-elderhub-1-1792578904/`.
+  On the Air, signed builds need `ANDROID_HOME=~/Library/Android/sdk` and
+  Temurin 17 (`/Library/Java/JavaVirtualMachines/temurin-17.jdk`).
 - Listing, policy answers and graphics: `android/play-assets/listing-en-US.md`.
   Privacy policy has an Android section.
 - 2026-10-21: family sharing ported (fleet run
