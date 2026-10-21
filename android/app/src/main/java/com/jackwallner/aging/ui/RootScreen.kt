@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
@@ -161,7 +162,8 @@ fun RootScreen(graph: AppGraph) {
                 containerColor = AgingTheme.colors.background,
                 bottomBar = { TabBar(navigator, isSubject) },
             ) { padding ->
-                Box(Modifier.padding(padding).fillMaxSize().background(AgingTheme.colors.background)) {
+                // Consumed so a screen's imePadding does not add the keyboard on top of the tab bar's height.
+                Box(Modifier.padding(padding).consumeWindowInsets(padding).fillMaxSize().background(AgingTheme.colors.background)) {
                     val top = navigator.stack.lastOrNull()
                     AnimatedContent(
                         targetState = navigator.tab to top,

@@ -19,7 +19,7 @@
     </nav>
 
     <h1>Elderhub Privacy Policy</h1>
-    <p class="date">Last updated: October 20, 2026</p>
+    <p class="date">Last updated: October 21, 2026</p>
 
     <h2>Overview</h2>
     <p>
@@ -41,24 +41,43 @@
 
     <h2>The Android App</h2>
     <p>
-      Elderhub for Android keeps the care record on the phone only. It has no
-      account and no sign-in, does not connect to Supabase, does not sync or
-      share with family members, and sends no notifications. The people,
-      medications, doses, appointments, contacts, and providers you enter are
-      stored in the app's private storage on the device, are excluded from
+      Elderhub for Android works without an account. Until you sign in, the
+      people, medications, doses, appointments, contacts, and providers you
+      enter stay in the app's private storage on the phone, are excluded from
       Android cloud backup and device transfer, and are deleted when you
-      uninstall the app or clear its storage. Elderhub does not receive them.
+      uninstall the app or clear its storage. Dose reminders are local
+      notifications scheduled on the phone; nothing is sent to show them.
+    </p>
+    <p>
+      Family sharing on Android uses <strong>Sign in with Google</strong>.
+      Google gives Elderhub a sign-in token containing your Google account
+      identifier, name, and email address, and the Supabase account created
+      from it stores them. Elderhub never receives your Google password, and
+      asks for nothing Google has already provided. An Android account and an
+      iPhone account (Sign in with Apple) are separate accounts, even for the
+      same person; Elderhub does not link or merge them.
+    </p>
+    <p>
+      Once you start or join a care circle, the records you share (people,
+      medications and dose history, visits and appointments, emergency
+      contacts, and providers) are stored in Supabase and shared with the
+      members of that circle exactly as described below for the iPhone app,
+      under the same access rules. Records you keep only on this phone are
+      never uploaded unless you choose to share them. The Android app shows
+      when a person last pressed their check-in button after it syncs; it does
+      not register for push notifications and receives no Firebase or Google
+      push token.
     </p>
     <p>
       Purchases in the Android app are processed by <strong>Google Play</strong>.
-      Elderhub never receives payment card details or Google account
-      credentials. <strong>RevenueCat</strong> receives the Google Play purchase
-      token, product, and an anonymous app user identifier created on the
-      device, to verify the subscription or lifetime purchase. It does not
-      receive the care record. Manage or cancel a subscription in Google Play
-      under Payments &amp; subscriptions. The sections below describe the
-      iPhone app; where they mention an account, a care circle, sync, push
-      notifications, or Apple, they do not apply to the Android app.
+      Elderhub never receives payment card details. <strong>RevenueCat</strong>
+      receives the Google Play purchase token, product, and an app user
+      identifier (anonymous until you sign in, then your Supabase account
+      identifier so a care circle can receive its entitlement), to verify the
+      subscription or lifetime purchase. It does not receive the care record.
+      Manage or cancel a subscription in Google Play under Payments &amp;
+      subscriptions. Where the sections below mention Apple, StoreKit, or
+      Apple push notifications, they describe the iPhone app.
     </p>
 
     <h2>What Elderhub Collects</h2>
@@ -72,8 +91,8 @@
         account identifier, care-circle name, membership, role, and membership
         dates. Sign in with Apple creates an account. Apple may share your name
         and a private-relay email address. Elderhub never receives your Apple ID
-        password. Sign in with Apple is the only sign-in method currently
-        offered.
+        password. Sign in with Apple is the only sign-in method on iPhone; the
+        Android app uses Sign in with Google.
       </li>
       <li>
         <strong>Invitations:</strong> an invitation email address, invite code,

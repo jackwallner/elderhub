@@ -17,3 +17,4 @@ Developer notes and historical audits for this repository. The published site re
 ## Android
 
 - [port-2026-10-20.md](android/port-2026-10-20.md): Android port, first shift: what ships, evidence, decisions needed
+- [sharing-2026-10-21.md](android/sharing-2026-10-21.md): Android family sharing with Google sign-in: what shipped, evidence, decisions

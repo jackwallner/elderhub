@@ -2,7 +2,9 @@
 
 Source of truth for the Play Console store listing and policy answers for the
 Android build. Adapted from `fastlane/metadata/en-US/` to what the Android app
-actually does: on-device only, no account, no sharing, no notifications. No
+actually does: works on-device with no account; family sharing through Sign
+in with Google and the same Supabase care circles as iOS; local dose
+reminders, no push. No
 prices in copy, no em dashes, and never `caregiver`, `senior care` or
 `home care` (the iOS ASC rule, kept on Play for one consistent listing).
 
@@ -32,30 +34,47 @@ description (74/80), full description (2394/4000). English only for v1.
 - Countries: mirror iOS. Not sold in the EU or UK (`scripts/asc-restrict-territories.py`).
 - Managed publishing off (fleet default).
 
-## App content answers (from the code, 2026-10-20)
+## App content answers (from the code, 2026-10-21)
 
 - Ads: no ads.
-- App access: everything is reachable without login. Elderhub Plus (second
-  person) is behind a purchase: give reviewers the Settings > Reviewer access
-  code (plaintext stays off-repo; only `PLAY_REVIEW_CODE_SHA256` ships in the
+- App access: the whole care record is reachable without login. Family
+  sharing (the Sharing tab) needs Sign in with Google with the reviewer's own
+  Google account; no credentials to hand over. Elderhub Plus (second person)
+  is behind a purchase: give reviewers the Settings > Reviewer access code
+  (plaintext stays off-repo; only `PLAY_REVIEW_CODE_SHA256` ships in the
   release build).
 - Target audience: 18+.
 - Health apps declaration: medication and health record management for a
   family member. Not a medical device; no diagnosis or treatment claims.
 - Government, financial features, news, COVID: no.
 - Advertising ID: not used (no ads SDK; RevenueCat does not collect it here).
-- Data safety:
-  - Data collected: Purchase history (Financial info > Purchase history) via
-    RevenueCat and Google Play, for app functionality (entitlement checks).
-    App activity / identifiers: an anonymous RevenueCat app user id generated
-    on the device. Nothing is shared with third parties for advertising.
-  - Health and medication data: stays on the device, never transmitted.
-    Device-only data is not "collected" under Play's definition.
-  - Encrypted in transit: yes (HTTPS to RevenueCat and Google Play).
-  - Deletion: uninstalling or clearing app storage deletes the record; there
-    is no server copy. RevenueCat purchase records follow its retention.
-- Content rating (IARC): reference app, no user-generated sharing, no
-  violence; expect Everyone / PEGI 3 with In-App Purchases.
+- Data safety (2026-10-21, with family sharing):
+  - Collected, only when the user signs in (optional): Personal info > Name
+    and Email address (from the Google sign-in token, stored by Supabase), and
+    App info > User IDs (Supabase account id). Purpose: app functionality and
+    account management.
+  - Collected, only for records shared to a care circle (optional): Health and
+    fitness > Health info (medications, dose history, allergies, conditions,
+    visits, providers), Personal info > Name and Phone number (people tracked
+    and emergency contacts), Personal info > Other info (relationship, notes).
+    Purpose: app functionality. Shared with: no third party; other members of
+    the user's own care circle see it, which Play counts as user-initiated, not
+    sharing. Processed by Supabase as a service provider.
+  - Collected for purchases: Financial info > Purchase history via RevenueCat
+    and Google Play (entitlement checks), plus the RevenueCat app user id
+    (anonymous until sign-in, then the Supabase id).
+  - Records never shared to a circle stay on the device and are not
+    "collected" under Play's definition. No location, no advertising id, no
+    push token.
+  - Encrypted in transit: yes (HTTPS to Supabase, RevenueCat and Google Play).
+  - Deletion: Settings > Delete account removes the account (the `delete_account`
+    RPC); the family's shared history keeps the author's name snapshot, as on
+    iOS. Uninstalling or clearing storage deletes the phone's copy. Provide
+    the account-deletion URL Play requires (the support page) in Data safety.
+- Content rating (IARC): reference app; users share records only with the
+  care circle they invite (answer the "users can interact or exchange content"
+  question yes, limited to invited family); no violence; expect Everyone /
+  PEGI 3 with In-App Purchases and Users Interact.
 
 ## Products (proposed, not created)
 

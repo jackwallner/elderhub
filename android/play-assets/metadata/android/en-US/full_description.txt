@@ -19,8 +19,11 @@ Log a visit while it is fresh: the provider, the reason, the notes, and the foll
 REFILLS
 Track what is left in the bottle. The count goes down as doses are marked taken, and Today tells you when it is time to refill.
 
+SHARE IT WITH THE FAMILY
+Sign in with Google and invite a brother, a sister or a partner with a link or a code. Everyone in the care circle sees the same list and the same doses, whatever phone each of them has, and a parent invited to their own record sees only that. Helpers never pay.
+
 PRIVATE BY DESIGN
-The record lives on this phone. No account, no sign-in, no ads, no tracking, and no location, ever.
+The record works on this phone with no account and no signal, and it is shared only with the people you invite. No ads, no tracking, and no location, ever.
 
 ONE PERSON, EVERY FEATURE, FREE
 The free version includes every feature for one person. Elderhub Plus adds more people: a second parent, a partner, or anyone else you look after.
