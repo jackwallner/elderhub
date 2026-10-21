@@ -18,6 +18,8 @@ import com.revenuecat.purchases.PurchasesErrorCode
 import com.revenuecat.purchases.PurchasesException
 import com.revenuecat.purchases.PurchasesTransactionException
 import com.revenuecat.purchases.awaitCustomerInfo
+import com.revenuecat.purchases.awaitLogIn
+import com.revenuecat.purchases.awaitLogOut
 import com.revenuecat.purchases.awaitOfferings
 import com.revenuecat.purchases.awaitPurchase
 import com.revenuecat.purchases.awaitRestore
@@ -202,6 +204,25 @@ class StoreService(private val context: Context, private val defaults: KeyValueS
             purchaseOutcome(error.code, error.userCancelled)
                 ?: throw PurchaseException("Couldn't complete the purchase. Please try again.")
         }
+    }
+
+    /**
+     * The RevenueCat customer carries the Supabase user id once signed in, so
+     * the webhook can credit the circle (`group_billing`) and every sibling's
+     * phone unlocks. Before sign-in the customer is anonymous, as on iOS.
+     */
+    suspend fun identify(userId: String) {
+        if (!configureIfNeeded() || isPreview) return
+        runCatching { apply(Purchases.sharedInstance.awaitLogIn(userId).customerInfo) }
+            .onFailure { if (it is CancellationException) throw it }
+    }
+
+    /** Sign-out and account deletion: the next purchase must not credit the account that left. */
+    suspend fun forgetCustomer() {
+        if (!configureIfNeeded() || isPreview) return
+        if (Purchases.sharedInstance.isAnonymous) return
+        runCatching { apply(Purchases.sharedInstance.awaitLogOut()) }
+            .onFailure { if (it is CancellationException) throw it }
     }
 
     /** Returns the message to show: restored, nothing found, or why it failed. */

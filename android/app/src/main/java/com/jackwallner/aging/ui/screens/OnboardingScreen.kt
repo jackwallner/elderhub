@@ -26,6 +26,7 @@ import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.FamilyRestroom
 import androidx.compose.material.icons.filled.LocalHospital
+import androidx.compose.material.icons.filled.MarkEmailRead
 import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.People
@@ -62,8 +63,9 @@ private enum class OnboardingStep { PATH, NAME, FEATURES }
 
 /**
  * Port of `OnboardingFlow`: who you are here for, then the person's name,
- * then what the record holds. The Android build keeps the record on this
- * phone, so there is no account step and nothing follows one.
+ * then what the record holds. No account step: the record works on this
+ * phone alone, and sign-in is asked for on the Sharing tab, where it buys
+ * something. "I have an invitation" goes straight to joining.
  */
 @Composable
 fun OnboardingScreen() {
@@ -82,7 +84,7 @@ fun OnboardingScreen() {
         Modifier.fillMaxSize().background(AgingTheme.colors.background).safeDrawingPadding().imePadding(),
     ) {
         when (step) {
-            OnboardingStep.PATH -> PathStep { solo ->
+            OnboardingStep.PATH -> PathStep(onJoin = if (graph.auth.canSignIn) ({ graph.pendingInviteCode = "" }) else null) { solo ->
                 isSolo = solo
                 relationship = if (solo) "Me" else ""
                 step = OnboardingStep.NAME
@@ -105,7 +107,7 @@ fun OnboardingScreen() {
 }
 
 @Composable
-private fun PathStep(onPick: (Boolean) -> Unit) {
+private fun PathStep(onJoin: (() -> Unit)?, onPick: (Boolean) -> Unit) {
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = Spacing.xl),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -123,6 +125,10 @@ private fun PathStep(onPick: (Boolean) -> Unit) {
         PathOption("Start a care record", "For a parent, partner, or anyone you help.", Icons.Filled.FamilyRestroom, "onboarding.path.supporter") { onPick(false) }
         Spacer(Modifier.height(Spacing.md))
         PathOption("Keep track of myself", "Make a private care record for yourself.", Icons.Filled.Person, "onboarding.path.solo") { onPick(true) }
+        if (onJoin != null) {
+            Spacer(Modifier.height(Spacing.md))
+            PathOption("I have an invitation", "Join the care record your family already keeps.", Icons.Filled.MarkEmailRead, "onboarding.path.join", onJoin)
+        }
         Spacer(Modifier.weight(1f))
         Text(
             "You can change this later.",

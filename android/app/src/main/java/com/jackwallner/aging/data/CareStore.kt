@@ -12,6 +12,7 @@ import com.jackwallner.aging.model.Medication
 import com.jackwallner.aging.model.Person
 import com.jackwallner.aging.model.Provider
 import com.jackwallner.aging.model.Visit
+import com.jackwallner.aging.model.SyncTracker
 import java.io.File
 import java.time.Instant
 import java.util.UUID
@@ -52,25 +53,66 @@ object PaidBoundary {
  * The SwiftData store of this port: every screen renders from here and every
  * write lands here first. Offline is the product, so nothing waits on a network.
  */
-class CareStore(private val persistence: CarePersistence) {
+class CareStore(private val persistence: CarePersistence, private val clock: () -> Instant = Instant::now) {
     var state by mutableStateOf(load())
         private set
 
     /** Called after every saved change (the reminder planner listens). */
     var onChange: (() -> Unit)? = null
 
+    /** Called after a local change that queued something for the family. The sync coordinator listens. */
+    var onQueued: (() -> Unit)? = null
+
+    /**
+     * The care circle this phone is in, set by `GroupService`. New people join
+     * it, and only its rows are ever queued for the server: a record that lives
+     * only on this phone is never uploaded by an edit.
+     */
+    var circleId: UUID? = null
+
     private fun load(): CareState =
         persistence.load()?.let { runCatching { CareCodec.decode(it) }.getOrNull() } ?: CareState()
 
+    /**
+     * Every local write. The sync bookkeeping is derived here from what changed
+     * ([SyncTracker]), so no screen can save a row and forget to queue it, which
+     * is the silent failure `recordLocalChange` exists to prevent on iOS.
+     */
     fun update(transform: (CareState) -> CareState) {
         val next = transform(state)
         if (next == state) return
+        val tracked = SyncTracker.track(state, next, circleId, clock())
+        val queued = tracked.sync.outbox.size > state.sync.outbox.size
+        commit(tracked)
+        if (queued) onQueued?.invoke()
+    }
+
+    /** Writes that came from the server. Nothing here is queued back; the engine sets the bookkeeping itself. */
+    fun applyRemote(transform: (CareState) -> CareState) {
+        val next = transform(state)
+        if (next == state) return
+        commit(next)
+    }
+
+    private fun commit(next: CareState) {
         state = next
         persistence.save(CareCodec.encode(next))
         onChange?.invoke()
     }
 
-    fun reset() = update { CareState() }
+    /** Wipes the phone's copy, bookkeeping included. Never queues a delete for the family. */
+    fun reset() = commit(CareState())
+
+    /**
+     * Moves one private record into the circle, with everything hanging off it.
+     * Only ever from an explicit tap: accepting an invitation adopts nothing.
+     */
+    fun adoptPerson(id: UUID, groupId: UUID) {
+        val person = state.person(id) ?: return
+        if (person.groupId == groupId) return
+        commit(SyncTracker.adopt(state.copy(people = state.people.map { if (it.id == id) it.copy(groupId = groupId) else it }), id, clock()))
+        onQueued?.invoke()
+    }
 
     // MARK: - People
 

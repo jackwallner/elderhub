@@ -29,7 +29,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,38 +62,36 @@ import com.jackwallner.aging.ui.theme.ScreenTitle
 import com.jackwallner.aging.ui.theme.SectionHeader
 import com.jackwallner.aging.ui.theme.Spacing
 import com.jackwallner.aging.ui.theme.StatTile
+import com.jackwallner.aging.model.Person
 import java.time.Instant
 import java.util.UUID
 
-/** Port of `PeopleView`: everyone in the record, and the second person's paywall. */
+/**
+ * Port of `PeopleView`: everyone in the record, and the second person's paywall.
+ *
+ * In a circle, the circle's people and the records only on this phone are
+ * shown apart, never merged: joining a circle adopts nothing, and sharing a
+ * private record is an explicit tap that says what it uploads.
+ */
 @Composable
 fun CareScreen() {
     val graph = LocalGraph.current
     val navigator = LocalNavigator.current
     val state = graph.care.state
-    val canAdd = PaidBoundary.canAddPerson(graph.store.isPro, state.people.size)
+    val circle = graph.circlePeople()
+    val private = graph.privatePeople()
+    // Only the circle's people count toward the free slot: a private record from before joining is not "a second person".
+    val canAdd = PaidBoundary.canAddPerson(graph.isPlus, circle.size)
+    var pendingShare by remember { mutableStateOf<Person?>(null) }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         ScreenTitle("Care")
-        SectionHeader("People")
+        SectionHeader(if (private.isEmpty()) "People" else graph.groups.groupName.ifEmpty { "Shared with the family" })
         Card {
-            state.people.forEachIndexed { index, person ->
+            circle.forEachIndexed { index, person ->
                 if (index > 0) RowDivider()
-                Row(
-                    Modifier.fillMaxWidth().clickable { navigator.push(Route.PersonHub(person.id)) }
-                        .testTag("care.person.$index").padding(horizontal = Spacing.lg, vertical = Spacing.md),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Avatar(person.displayLabel, index)
-                    Spacer(Modifier.width(Spacing.md))
-                    Column(Modifier.weight(1f)) {
-                        Text(person.displayLabel, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = AgingTheme.colors.text)
-                        val sub = listOf(person.relationship, CareOverview.detail(CareFeature.MEDICATIONS, state, person.id))
-                            .filter { it.isNotEmpty() }.joinToString(" · ")
-                        Text(sub, style = MaterialTheme.typography.bodyMedium, color = AgingTheme.colors.secondaryText)
-                    }
-                }
+                PersonRow(state.people.indexOf(person), person) { navigator.push(Route.PersonHub(person.id)) }
             }
-            if (state.people.isNotEmpty()) RowDivider()
+            if (circle.isNotEmpty()) RowDivider()
             NavRow(
                 title = "Add Person",
                 detail = if (canAdd) null else "Elderhub Plus",
@@ -97,13 +101,71 @@ fun CareScreen() {
             )
         }
         Text(
-            if (graph.store.isPro) "Elderhub Plus is active. Add everyone you look after."
+            if (graph.isPlus) "Elderhub Plus is active. Add everyone you look after."
             else "The first person's care record is free, with every feature.",
             style = MaterialTheme.typography.bodySmall,
             color = AgingTheme.colors.secondaryText,
             modifier = Modifier.padding(horizontal = Spacing.lg + 4.dp, vertical = Spacing.sm),
         )
+        if (private.isNotEmpty()) {
+            SectionHeader("Only on this phone")
+            Card {
+                private.forEachIndexed { index, person ->
+                    if (index > 0) RowDivider()
+                    PersonRow(state.people.indexOf(person), person, onShare = if (person.groupId == null) ({ pendingShare = person }) else null) {
+                        navigator.push(Route.PersonHub(person.id))
+                    }
+                }
+            }
+            Text(
+                "Nobody else in your care circle can see these. Share one with the family, or leave it here.",
+                style = MaterialTheme.typography.bodySmall,
+                color = AgingTheme.colors.secondaryText,
+                modifier = Modifier.padding(horizontal = Spacing.lg + 4.dp, vertical = Spacing.sm),
+            )
+        }
         Spacer(Modifier.height(Spacing.xl))
+    }
+    pendingShare?.let { person ->
+        val meds = state.activeMedications(person.id).size
+        val visits = state.visitsOf(person.id).size
+        val counts = listOfNotNull(
+            meds.takeIf { it > 0 }?.let { "$it medication${if (it == 1) "" else "s"}" },
+            visits.takeIf { it > 0 }?.let { "$it visit${if (it == 1) "" else "s"}" },
+        )
+        val detail = if (counts.isEmpty()) "Their whole record is uploaded" else "Their record is uploaded, including ${counts.joinToString(", ")}"
+        val circleName = graph.groups.groupName.ifEmpty { "your care circle" }
+        AlertDialog(
+            onDismissRequest = { pendingShare = null },
+            title = { Text("Share ${person.displayLabel} with the family?") },
+            text = { Text("$detail, and everyone in $circleName can read it from then on. There is no way to make it private again.") },
+            confirmButton = {
+                TextButton(onClick = { graph.sync.adoptPerson(person.id); pendingShare = null }, modifier = Modifier.testTag("care.share.confirm")) { Text("Share") }
+            },
+            dismissButton = { TextButton(onClick = { pendingShare = null }) { Text("Cancel") } },
+        )
+    }
+}
+
+@Composable
+private fun PersonRow(index: Int, person: Person, onShare: (() -> Unit)? = null, onClick: () -> Unit) {
+    val graph = LocalGraph.current
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick)
+            .testTag("care.person.$index").padding(horizontal = Spacing.lg, vertical = Spacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Avatar(person.displayLabel, index)
+        Spacer(Modifier.width(Spacing.md))
+        Column(Modifier.weight(1f)) {
+            Text(person.displayLabel, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold), color = AgingTheme.colors.text)
+            val sub = listOf(person.relationship, CareOverview.detail(CareFeature.MEDICATIONS, graph.care.state, person.id))
+                .filter { it.isNotEmpty() }.joinToString(" · ")
+            Text(sub, style = MaterialTheme.typography.bodyMedium, color = AgingTheme.colors.secondaryText)
+        }
+        if (onShare != null) {
+            TextButton(onClick = onShare, modifier = Modifier.testTag("care.share.$index")) { Text("Share") }
+        }
     }
 }
 
@@ -135,6 +197,15 @@ fun PersonHubScreen(personId: UUID) {
                         Text(person.displayLabel, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), color = AgingTheme.colors.text)
                         val sub = listOfNotNull(person.relationship.ifEmpty { null }, person.age(now.atZone(zone).toLocalDate())?.let { "Age $it" })
                         if (sub.isNotEmpty()) Text(sub.joinToString(" · "), style = MaterialTheme.typography.bodyMedium, color = AgingTheme.colors.secondaryText)
+                        // Pressed on their own phone and stamped by the server; shown as it stood at the last sync.
+                        person.lastCheckInAt?.let {
+                            Text(
+                                "Last check-in ${Format.relativeDayTime(it, now)}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = AgingTheme.colors.taken,
+                                modifier = Modifier.testTag("hub.last-check-in"),
+                            )
+                        }
                     }
                 }
                 Row(Modifier.padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.lg), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {

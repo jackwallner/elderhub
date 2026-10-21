@@ -22,6 +22,18 @@ object Format {
     fun visitDate(instant: Instant, hasTime: Boolean): String =
         if (hasTime) "${date(instant)} at ${time(instant)}" else date(instant)
 
+    /** "today at 9:12 AM", "yesterday at 6:40 PM", or "Tue 24 Sep at 9:30 AM". */
+    fun relativeDayTime(instant: Instant, now: Instant = Instant.now()): String {
+        val day = instant.atZone(zone).toLocalDate()
+        val today = now.atZone(zone).toLocalDate()
+        val label = when (day) {
+            today -> "today"
+            today.minusDays(1) -> "yesterday"
+            else -> date(instant)
+        }
+        return "$label at ${time(instant)}"
+    }
+
     fun daysLeft(daysRemaining: Double?, outOfStock: Boolean): String {
         if (outOfStock) return "None left"
         val days = daysRemaining?.let { maxOf(0, Math.round(it).toInt()) } ?: return "Refill soon"

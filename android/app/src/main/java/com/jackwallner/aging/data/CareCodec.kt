@@ -7,7 +7,14 @@ import com.jackwallner.aging.model.EmergencyContact
 import com.jackwallner.aging.model.Medication
 import com.jackwallner.aging.model.MedicationForm
 import com.jackwallner.aging.model.Person
+import com.jackwallner.aging.model.OutboxEntry
+import com.jackwallner.aging.model.OutboxStatus
 import com.jackwallner.aging.model.Provider
+import com.jackwallner.aging.model.RowMeta
+import com.jackwallner.aging.model.SyncEntity
+import com.jackwallner.aging.model.SyncPage
+import com.jackwallner.aging.model.SyncState
+import com.jackwallner.aging.model.Tombstone
 import com.jackwallner.aging.model.Visit
 import java.time.Instant
 import java.time.LocalDate
@@ -34,6 +41,7 @@ object CareCodec {
         put("visits", JSONArray(state.visits.map(::visit)))
         put("emergency_contacts", JSONArray(state.contacts.map(::contact)))
         put("providers", JSONArray(state.providers.map(::provider)))
+        put("sync", sync(state.sync))
     }.toString()
 
     fun decode(text: String): CareState {
@@ -47,7 +55,67 @@ object CareCodec {
             providers = root.objects("providers").mapNotNull { runCatching { provider(it) }.getOrNull() },
             caregiverName = root.optString("caregiver_name"),
             hasCompletedOnboarding = root.optBoolean("has_completed_onboarding"),
+            sync = root.optJSONObject("sync")?.let { runCatching { sync(it) }.getOrNull() } ?: SyncState(),
         )
+    }
+
+    // MARK: - Sync bookkeeping
+
+    private fun sync(s: SyncState) = JSONObject().apply {
+        put("meta", JSONObject().apply {
+            s.meta.forEach { (id, m) -> put(id.toString(), JSONObject().put("updated_at", m.updatedAt.toString()).put("dirty", m.isDirty)) }
+        })
+        put("tombstones", JSONArray(s.tombstones.map {
+            JSONObject().put("entity", it.entity.table).put("id", it.id.toString())
+                .put("deleted_at", it.deletedAt.toString()).put("payload", it.payload)
+        }))
+        put("outbox", JSONArray(s.outbox.map {
+            JSONObject().put("entity", it.entity.table).put("entity_id", it.entityId.toString())
+                .put("created_at", it.createdAt.toString()).put("attempts", it.attempts).put("status", it.status.raw)
+                .put("last_error", it.lastError).put("not_before", it.notBefore.toString())
+                .put("local_summary", it.localSummary).put("remote_summary", it.remoteSummary)
+        }))
+        put("cursors", JSONObject().apply {
+            s.cursors.forEach { (entity, page) -> put(entity.table, JSONObject().put("updated_at", page.updatedAt.toString()).put("id", page.id.toString())) }
+        })
+    }
+
+    private fun sync(o: JSONObject): SyncState {
+        val metaJson = o.optJSONObject("meta") ?: JSONObject()
+        val meta = metaJson.keys().asSequence().mapNotNull { key ->
+            runCatching {
+                val m = metaJson.getJSONObject(key)
+                UUID.fromString(key) to RowMeta(Instant.parse(m.getString("updated_at")), m.optBoolean("dirty"))
+            }.getOrNull()
+        }.toMap()
+        val tombstones = o.objects("tombstones").mapNotNull {
+            runCatching {
+                Tombstone(SyncEntity.of(it.getString("entity"))!!, UUID.fromString(it.getString("id")), Instant.parse(it.getString("deleted_at")), it.getString("payload"))
+            }.getOrNull()
+        }
+        val outbox = o.objects("outbox").mapNotNull {
+            runCatching {
+                OutboxEntry(
+                    entity = SyncEntity.of(it.getString("entity"))!!,
+                    entityId = UUID.fromString(it.getString("entity_id")),
+                    createdAt = it.instant("created_at") ?: Instant.EPOCH,
+                    attempts = it.optInt("attempts"),
+                    status = OutboxStatus.of(it.optStringOrNull("status")),
+                    lastError = it.optString("last_error"),
+                    notBefore = it.instant("not_before") ?: Instant.EPOCH,
+                    localSummary = it.optString("local_summary"),
+                    remoteSummary = it.optString("remote_summary"),
+                )
+            }.getOrNull()
+        }
+        val cursorJson = o.optJSONObject("cursors") ?: JSONObject()
+        val cursors = cursorJson.keys().asSequence().mapNotNull { key ->
+            runCatching {
+                val c = cursorJson.getJSONObject(key)
+                SyncEntity.of(key)!! to SyncPage(Instant.parse(c.getString("updated_at")), UUID.fromString(c.getString("id")))
+            }.getOrNull()
+        }.toMap()
+        return SyncState(meta, tombstones, outbox, cursors)
     }
 
     private fun person(p: Person) = JSONObject().apply {
@@ -62,6 +130,10 @@ object CareCodec {
         put("notes", p.notes)
         p.surrogateAttestedAt?.let { put("surrogate_attested_at", it.toString()) }
         put("created_at", p.createdAt.toString())
+        p.groupId?.let { put("group_id", it.toString()) }
+        p.linkedUserId?.let { put("linked_user_id", it.toString()) }
+        put("color_index", p.colorIndex)
+        p.lastCheckInAt?.let { put("last_check_in_at", it.toString()) }
     }
 
     private fun person(o: JSONObject) = Person(
@@ -76,6 +148,10 @@ object CareCodec {
         notes = o.optString("notes"),
         surrogateAttestedAt = o.instant("surrogate_attested_at"),
         createdAt = o.instant("created_at") ?: Instant.EPOCH,
+        groupId = o.optStringOrNull("group_id")?.let(UUID::fromString),
+        linkedUserId = o.optStringOrNull("linked_user_id")?.let(UUID::fromString),
+        colorIndex = o.optInt("color_index", 0),
+        lastCheckInAt = o.instant("last_check_in_at"),
     )
 
     private fun medication(m: Medication) = JSONObject().apply {
@@ -158,6 +234,8 @@ object CareCodec {
         put("notes", v.notes)
         put("follow_up", v.followUp)
         put("created_at", v.createdAt.toString())
+        v.providerId?.let { put("provider_id", it.toString()) }
+        v.nextAppointment?.let { put("next_appointment", it.toString()) }
     }
 
     private fun visit(o: JSONObject) = Visit(
@@ -170,6 +248,8 @@ object CareCodec {
         notes = o.optString("notes"),
         followUp = o.optString("follow_up"),
         createdAt = o.instant("created_at") ?: Instant.EPOCH,
+        providerId = o.optStringOrNull("provider_id")?.let(UUID::fromString),
+        nextAppointment = o.instant("next_appointment"),
     )
 
     private fun contact(c: EmergencyContact) = JSONObject().apply {
@@ -199,6 +279,7 @@ object CareCodec {
         put("address", p.address)
         put("notes", p.notes)
         put("is_pharmacy", p.isPharmacy)
+        put("portal_url", p.portalUrl)
     }
 
     private fun provider(o: JSONObject) = Provider(
@@ -210,6 +291,7 @@ object CareCodec {
         address = o.optString("address"),
         notes = o.optString("notes"),
         isPharmacy = o.optBoolean("is_pharmacy"),
+        portalUrl = o.optString("portal_url"),
     )
 
     private fun JSONObject.objects(key: String): List<JSONObject> {

@@ -9,8 +9,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Checklist
+import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
@@ -21,6 +24,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -32,6 +36,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.jackwallner.aging.AppGraph
 import com.jackwallner.aging.DebugLaunchOptions
+import com.jackwallner.aging.data.GroupRole
+import com.jackwallner.aging.ui.screens.ConflictsScreen
+import com.jackwallner.aging.ui.screens.InviteScreen
+import com.jackwallner.aging.ui.screens.JoinCircleScreen
+import com.jackwallner.aging.ui.screens.MemberScreen
+import com.jackwallner.aging.ui.screens.SharingScreen
+import com.jackwallner.aging.ui.screens.TransparencyScreen
 import com.jackwallner.aging.ui.screens.CareScreen
 import com.jackwallner.aging.ui.screens.ContactEditorScreen
 import com.jackwallner.aging.ui.screens.ContactsScreen
@@ -66,11 +77,16 @@ sealed interface Route {
     data class ProviderEditor(val personId: UUID, val providerId: UUID?) : Route
     data class EmergencyCard(val personId: UUID) : Route
     data class PersonDetails(val personId: UUID?) : Route
+    data class Join(val code: String?) : Route
+    object Invite : Route
+    data class Member(val userId: UUID) : Route
+    object Transparency : Route
+    object Conflicts : Route
 }
 
 class Navigator {
     var tab by mutableIntStateOf(DebugLaunchOptions.launchTab ?: 0)
-    private val stacks = List(3) { mutableStateListOf<Route>() }
+    private val stacks = List(TAB_COUNT) { mutableStateListOf<Route>() }
     var showPaywall by mutableStateOf(DebugLaunchOptions.openPaywall)
 
     val stack: List<Route> get() = stacks[tab]
@@ -88,11 +104,21 @@ class Navigator {
         if (index == tab) stacks[index].clear() else tab = index
     }
 
+    /** A tapped invitation: the Sharing tab, with the code already in the join screen. */
+    fun showJoin(code: String) {
+        tab = TAB_SHARING
+        stacks[TAB_SHARING].clear()
+        stacks[TAB_SHARING].add(Route.Join(code))
+    }
+
     /** Adding a person is the paywall's trigger; everyone else gets the editor. */
     fun requestAddPerson(canAdd: Boolean) {
         if (canAdd) push(Route.PersonDetails(null)) else showPaywall = true
     }
 }
+
+const val TAB_SHARING = 2
+private const val TAB_COUNT = 4
 
 val LocalNavigator = staticCompositionLocalOf<Navigator> { error("No Navigator") }
 
@@ -100,17 +126,40 @@ val LocalNavigator = staticCompositionLocalOf<Navigator> { error("No Navigator")
 fun RootScreen(graph: AppGraph) {
     val navigator = remember { Navigator() }
     val state = graph.care.state
+    val pendingCode = graph.pendingInviteCode
+    // A tapped invitation on a phone with no record yet goes straight to joining (iOS `needsOnboarding`).
+    if (!state.hasCompletedOnboarding && pendingCode != null && state.people.isEmpty()) {
+        Box(Modifier.fillMaxSize().background(AgingTheme.colors.background).safeDrawingPadding()) {
+            JoinCircleScreen(pendingCode, onBack = { graph.pendingInviteCode = null }) { graph.finishJoinOnboarding() }
+        }
+        return
+    }
     if (!state.hasCompletedOnboarding) {
         OnboardingScreen()
         return
     }
+    LaunchedEffect(pendingCode) {
+        if (pendingCode != null) {
+            navigator.showJoin(pendingCode)
+            graph.pendingInviteCode = null
+        }
+    }
+    if (graph.groups.requiresTransparency) {
+        CompositionLocalProvider(LocalNavigator provides navigator) {
+            Box(Modifier.fillMaxSize().background(AgingTheme.colors.background).safeDrawingPadding()) {
+                TransparencyScreen(isOnboarding = true)
+            }
+        }
+        return
+    }
+    val isSubject = graph.groups.role == GroupRole.SUBJECT && graph.groups.activeGroupId != null
     CompositionLocalProvider(LocalNavigator provides navigator) {
         BackHandler(enabled = navigator.stack.isNotEmpty() && !navigator.showPaywall) { navigator.pop() }
         BackHandler(enabled = navigator.stack.isEmpty() && navigator.tab != 0 && !navigator.showPaywall) { navigator.tab = 0 }
         Box(Modifier.fillMaxSize()) {
             Scaffold(
                 containerColor = AgingTheme.colors.background,
-                bottomBar = { TabBar(navigator) },
+                bottomBar = { TabBar(navigator, isSubject) },
             ) { padding ->
                 Box(Modifier.padding(padding).fillMaxSize().background(AgingTheme.colors.background)) {
                     val top = navigator.stack.lastOrNull()
@@ -119,7 +168,7 @@ fun RootScreen(graph: AppGraph) {
                         transitionSpec = { fadeIn() togetherWith fadeOut() },
                         label = "route",
                     ) { (tab, route) ->
-                        if (route != null) RouteScreen(route) else TabRoot(tab)
+                        if (route != null) RouteScreen(route) else TabRoot(tab, isSubject)
                     }
                 }
             }
@@ -130,11 +179,21 @@ fun RootScreen(graph: AppGraph) {
     }
 }
 
+/**
+ * The person being looked after gets their own app rather than a caregiver's
+ * with parts greyed out: their day, and who can see them. RLS enforces the
+ * rest whatever this shows.
+ */
 @Composable
-private fun TabRoot(tab: Int) {
+private fun TabRoot(tab: Int, isSubject: Boolean) {
+    if (isSubject) {
+        if (tab == 0) TodayScreen() else TransparencyScreen(isOnboarding = false)
+        return
+    }
     when (tab) {
         0 -> TodayScreen()
         1 -> CareScreen()
+        TAB_SHARING -> SharingScreen()
         else -> SettingsScreen()
     }
 }
@@ -153,16 +212,28 @@ private fun RouteScreen(route: Route) {
         is Route.ProviderEditor -> ProviderEditorScreen(route.personId, route.providerId)
         is Route.EmergencyCard -> EmergencyCardScreen(route.personId)
         is Route.PersonDetails -> PersonDetailsEditorScreen(route.personId)
+        is Route.Join -> {
+            val navigator = LocalNavigator.current
+            JoinCircleScreen(route.code, onBack = navigator::pop) { navigator.pop() }
+        }
+        Route.Invite -> InviteScreen()
+        is Route.Member -> MemberScreen(route.userId)
+        Route.Transparency -> TransparencyScreen(isOnboarding = false)
+        Route.Conflicts -> ConflictsScreen()
     }
 }
 
 @Composable
-private fun TabBar(navigator: Navigator) {
+private fun TabBar(navigator: Navigator, isSubject: Boolean) {
     val colors = AgingTheme.colors
     NavigationBar(containerColor = colors.card) {
-        val items = listOf(
+        val items = if (isSubject) listOf(
+            Triple("Today", Icons.Filled.Checklist, "tab.today"),
+            Triple("You", Icons.Filled.Visibility, "tab.you"),
+        ) else listOf(
             Triple("Today", Icons.Filled.Checklist, "tab.today"),
             Triple("Care", Icons.Filled.People, "tab.care"),
+            Triple("Sharing", Icons.Filled.Groups, "tab.sharing"),
             Triple("Settings", Icons.Filled.Settings, "tab.settings"),
         )
         items.forEachIndexed { index, (label, icon, tag) ->

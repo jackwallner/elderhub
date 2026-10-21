@@ -27,6 +27,13 @@ data class Person(
     /** When the supporter confirmed they may keep this person's information. */
     val surrogateAttestedAt: Instant? = null,
     val createdAt: Instant = Instant.now(),
+    /** The care circle this record belongs to. Null means it lives only on this phone. */
+    val groupId: UUID? = null,
+    /** The account linked to this record by a "person being looked after" invitation. Server-owned. */
+    val linkedUserId: UUID? = null,
+    val colorIndex: Int = 0,
+    /** Stamped by the server when they press their check-in button (`touch_last_check_in`). Read-only here. */
+    val lastCheckInAt: Instant? = null,
 ) {
     /** The name they were entered under, everywhere. The relationship is the subtitle. */
     val displayLabel: String
@@ -175,6 +182,9 @@ data class Visit(
     val notes: String = "",
     val followUp: String = "",
     val createdAt: Instant = Instant.now(),
+    val providerId: UUID? = null,
+    /** Vestigial on iOS too (no screen writes it); carried so a sync round trip never blanks it. */
+    val nextAppointment: Instant? = null,
 ) {
     /** A visit dated later than now is an appointment nobody has been to yet. */
     fun isUpcoming(now: Instant = Instant.now()) = date > now
@@ -207,6 +217,7 @@ data class Provider(
     val address: String = "",
     val notes: String = "",
     val isPharmacy: Boolean = false,
+    val portalUrl: String = "",
 )
 
 /** Everything on this phone. One immutable value, saved whole. */
@@ -219,6 +230,8 @@ data class CareState(
     val providers: List<Provider> = emptyList(),
     val caregiverName: String = "",
     val hasCompletedOnboarding: Boolean = false,
+    /** Sync bookkeeping, kept beside the rows so one file write covers both. See `SyncState`. */
+    val sync: SyncState = SyncState(),
 ) {
     fun person(id: UUID): Person? = people.firstOrNull { it.id == id }
 

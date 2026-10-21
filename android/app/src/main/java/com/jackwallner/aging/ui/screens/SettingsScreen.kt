@@ -10,7 +10,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.Key
@@ -37,7 +43,10 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.jackwallner.aging.BuildConfig
 import com.jackwallner.aging.ui.LocalGraph
+import com.jackwallner.aging.ui.Format
 import com.jackwallner.aging.ui.LocalNavigator
+import com.jackwallner.aging.ui.Route
+import com.jackwallner.aging.ui.TAB_SHARING
 import com.jackwallner.aging.ui.theme.AgingTheme
 import com.jackwallner.aging.ui.theme.Card
 import com.jackwallner.aging.ui.theme.NavRow
@@ -111,12 +120,8 @@ fun SettingsScreen() {
                 onClick = { askName = true },
             )
         }
-        Text(
-            "Everything is saved on this phone, and nowhere else. If you lose the phone, the record goes with it.",
-            style = MaterialTheme.typography.bodySmall,
-            color = AgingTheme.colors.secondaryText,
-            modifier = Modifier.padding(horizontal = Spacing.lg + 4.dp, vertical = Spacing.sm),
-        )
+
+        AccountSection(onError = { message = it })
 
         SectionHeader("Feedback")
         Card {
@@ -139,6 +144,8 @@ fun SettingsScreen() {
         SectionHeader("Privacy")
         Card {
             NavRow("A full copy lives on this phone, so it opens with no signal", null, Icons.Filled.Lock, onClick = null)
+            RowDivider()
+            NavRow("Shared records go only to your care circle, under the same rules on iPhone and Android", null, Icons.Filled.Lock, onClick = null)
             RowDivider()
             NavRow("No location, ever. Nothing is used for advertising or tracking", null, Icons.Filled.Lock, onClick = null)
             RowDivider()
@@ -167,7 +174,7 @@ fun SettingsScreen() {
     message?.let { text ->
         AlertDialog(
             onDismissRequest = { message = null },
-            title = { Text("Restore purchases") },
+            title = { Text("Elderhub") },
             text = { Text(text) },
             confirmButton = { TextButton(onClick = { message = null }) { Text("OK") } },
         )
@@ -182,6 +189,107 @@ fun SettingsScreen() {
             askReviewCode = false
             message = if (graph.store.activateReviewAccess(it)) "Elderhub Plus is unlocked for review on this phone." else "That code was not recognised."
         }, onDismiss = { askReviewCode = false })
+    }
+}
+
+/**
+ * Port of the iOS Account section: who is signed in, whether the last sync
+ * finished, what needs a decision. Reported here and nowhere else, so none of
+ * it ever sits in front of the medication list (I1).
+ */
+@Composable
+private fun AccountSection(onError: (String) -> Unit) {
+    val graph = LocalGraph.current
+    val navigator = LocalNavigator.current
+    val scope = rememberCoroutineScope()
+    var confirmSignOut by remember { mutableStateOf(false) }
+    var deleting by remember { mutableStateOf(false) }
+    val sync = graph.sync
+    SectionHeader("Account")
+    Card {
+        if (graph.auth.isSignedIn) {
+            NavRow("Signed in with Google", graph.auth.displayName.ifEmpty { null }, Icons.Filled.AccountCircle, modifier = Modifier.testTag("settings.account"), onClick = null)
+            if (graph.groups.activeGroupId != null) {
+                RowDivider()
+                val last = sync.lastSyncedAt
+                val status = when {
+                    sync.isOffline || graph.auth.isOffline -> "Showing your saved copy. Changes are sent when you have signal."
+                    sync.lastError != null -> "Couldn't sync. Your changes are saved on this phone and will be sent when this clears. ${sync.lastError}"
+                    last != null -> "Last synced ${Format.relativeDayTime(last)}"
+                    else -> "Not synced yet. Your list is safe on this phone."
+                }
+                NavRow("Sync now", status, Icons.Filled.Sync, modifier = Modifier.testTag("settings.sync"), onClick = if (sync.isSyncing) null else ({ scope.launch { sync.syncNow() } }))
+                if (sync.conflictCount > 0) {
+                    RowDivider()
+                    val n = sync.conflictCount
+                    NavRow("$n change${if (n == 1) "" else "s"} need a look", null, Icons.Filled.Warning, tint = AgingTheme.colors.warning,
+                        modifier = Modifier.testTag("settings.conflicts"), onClick = { navigator.push(Route.Conflicts) })
+                }
+            }
+            RowDivider()
+            NavRow("Sign out", null, Icons.AutoMirrored.Filled.Logout, modifier = Modifier.testTag("settings.sign-out"), onClick = { confirmSignOut = true })
+            RowDivider()
+            NavRow("Delete account", null, Icons.Filled.DeleteForever, tint = AgingTheme.colors.danger, modifier = Modifier.testTag("settings.delete-account"), onClick = { deleting = true })
+        } else {
+            NavRow(
+                "Sign in and share",
+                "Everything is saved on this phone, and nowhere else. Sign in on the Sharing tab to keep a copy with your family.",
+                Icons.Filled.Groups,
+                modifier = Modifier.testTag("settings.sign-in"),
+                onClick = { navigator.select(TAB_SHARING) },
+            )
+        }
+    }
+    Text(
+        if (graph.auth.isSignedIn) "Elderhub for Android signs in with Google, and the iPhone app with Apple. They are separate accounts, even for the same person: " +
+            "each one joins the circle with its own invitation, and nothing is merged between them."
+        else "If you lose the phone, a record that is not shared goes with it.",
+        style = MaterialTheme.typography.bodySmall,
+        color = AgingTheme.colors.secondaryText,
+        modifier = Modifier.padding(horizontal = Spacing.lg + 4.dp, vertical = Spacing.sm),
+    )
+
+    if (confirmSignOut) {
+        AlertDialog(
+            onDismissRequest = { confirmSignOut = false },
+            title = { Text("Sign out?") },
+            text = { Text("The shared record comes off this phone. Records only on this phone stay, and the family keeps everything.") },
+            confirmButton = {
+                TextButton(modifier = Modifier.testTag("settings.sign-out.confirm"), onClick = {
+                    confirmSignOut = false
+                    scope.launch { graph.signOutAndForget() }
+                }) { Text("Sign out") }
+            },
+            dismissButton = { TextButton(onClick = { confirmSignOut = false }) { Text("Cancel") } },
+        )
+    }
+    if (deleting) {
+        var typed by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { deleting = false },
+            title = { Text("Delete account") },
+            text = {
+                Column {
+                    Text("Your account is removed and this phone is signed out. What your family built together stays with them, and anything you entered keeps your name on it.")
+                    Spacer(Modifier.height(Spacing.md))
+                    OutlinedTextField(typed, { typed = it }, singleLine = true, label = { Text("Type DELETE") }, modifier = Modifier.testTag("settings.delete.field"))
+                }
+            },
+            confirmButton = {
+                TextButton(enabled = typed.trim().uppercase() == "DELETE", modifier = Modifier.testTag("settings.delete.confirm"), onClick = {
+                    deleting = false
+                    scope.launch {
+                        try {
+                            graph.auth.deleteAccount()
+                            graph.signOutAndForget()
+                        } catch (e: Exception) {
+                            onError(e.message ?: "Couldn't delete the account. Try again.")
+                        }
+                    }
+                }) { Text("Delete my account", color = AgingTheme.colors.danger) }
+            },
+            dismissButton = { TextButton(onClick = { deleting = false }) { Text("Cancel") } },
+        )
     }
 }
 

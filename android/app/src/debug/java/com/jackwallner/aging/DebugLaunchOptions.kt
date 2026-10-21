@@ -1,6 +1,8 @@
 package com.jackwallner.aging
 
 import android.content.Intent
+import com.jackwallner.aging.data.GroupRole
+import kotlinx.coroutines.runBlocking
 import com.jackwallner.aging.data.PackageKind
 import com.jackwallner.aging.data.PeriodUnit
 import com.jackwallner.aging.data.Plan
@@ -13,6 +15,12 @@ import com.jackwallner.aging.model.SampleData
  *
  *     adb shell am start -n com.jackwallner.aging/.MainActivity \
  *         --ez resetAll true --ez seedDemo true --ez seedDad true --ez demoPro true --ei tab 1
+ *
+ * Sharing runs against [FakeCareServer] with `fakeCloud` (no network, no
+ * Google account): `fakeSignedIn` signs the made-up account in, `fakeCircle`
+ * starts a circle from the seeded record with a sibling in it, `fakeInvite`
+ * seeds somebody else's circle and opens its invitation, `fakeOffline` makes
+ * every request fail as airplane mode would.
  */
 object DebugLaunchOptions {
     var launchTab: Int? = null
@@ -26,6 +34,7 @@ object DebugLaunchOptions {
             graph.care.reset()
             graph.defaults.keys().forEach(graph.defaults::remove)
         }
+        if (extras.getBoolean("fakeCloud")) graph.cloud = FakeCareServer.shared.cloud()
         if (extras.getBoolean("demoPro")) graph.store.forceProForDebug()
         if (extras.getBoolean("previewStore")) {
             graph.store.loadPreviewPlans(previewPlans(extras.getInt("previewTrialDays", 7)), history = extras.getBoolean("previewTrialUsed"))
@@ -34,6 +43,32 @@ object DebugLaunchOptions {
             val mom = SampleData.mom()
             graph.care.update { if (extras.getBoolean("seedDad")) SampleData.withDad(mom) else mom }
         }
+        val server = FakeCareServer.shared
+        if (extras.getBoolean("fakeCloud") && extras.getBoolean("fakeSignedIn")) {
+            runBlocking {
+                graph.auth.bootstrap()
+                if (!graph.auth.isSignedIn) {
+                    server.signInWithIdToken("google", "fake-id-token", "fake-nonce")
+                    server.updateDisplayName(server.signInAs.id, server.signInAs.name)
+                    server.rememberDisplayName(server.signInAs.name)
+                    graph.care.setCaregiverName(server.signInAs.name)
+                }
+                graph.auth.bootstrap()
+                graph.groups.loadFromCache()
+                if (extras.getBoolean("fakeCircle") && graph.groups.activeGroupId == null) {
+                    val first = graph.care.state.people.firstOrNull()
+                    val id = graph.groups.createGroup(first?.let { "${it.displayLabel}'s care circle" } ?: "Care circle")
+                    server.addSibling(id)
+                    graph.groups.loadMembers()
+                    graph.sync.syncNow()
+                    if (extras.getBoolean("fakePendingInvite")) graph.groups.generateInviteCode(GroupRole.CAREGIVER, null, "michael@example.com")
+                }
+            }
+        }
+        if (extras.getBoolean("fakeCloud") && extras.getBoolean("fakeInvite")) {
+            graph.pendingInviteCode = server.seedSarahsCircle()
+        }
+        if (extras.getBoolean("fakeOffline")) server.isOnline = false
         if (extras.containsKey("tab")) launchTab = extras.getInt("tab")
         openPaywall = extras.getBoolean("openPaywall")
     }

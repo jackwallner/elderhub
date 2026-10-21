@@ -16,10 +16,16 @@ val uploadKeyStore = localProperties.getProperty("PLAY_UPLOAD_KEYSTORE", "")
 val uploadKeyAlias = localProperties.getProperty("PLAY_UPLOAD_KEY_ALIAS", "")
 val uploadStorePassword = localProperties.getProperty("PLAY_UPLOAD_STORE_PASSWORD", "")
 val uploadKeyPassword = localProperties.getProperty("PLAY_UPLOAD_KEY_PASSWORD", uploadStorePassword)
+// Sign in with Google needs the Web OAuth client that the Supabase Google provider
+// trusts. Without it the sign-in button is hidden and Android stays local-only.
+val googleWebClientId = localProperties.getProperty("GOOGLE_WEB_CLIENT_ID", "")
 
 val validateReleaseConfiguration = tasks.register("validateReleaseConfiguration") {
     doLast {
         check(playKey.startsWith("goog_")) { "Set REVENUECAT_PLAY_KEY in ignored android/local.properties before release." }
+        check(googleWebClientId.endsWith(".apps.googleusercontent.com")) {
+            "Set GOOGLE_WEB_CLIENT_ID in ignored android/local.properties before release. Without it Android has no sign-in and no family sharing."
+        }
         check(reviewCodeDigest.matches(Regex("[a-f0-9]{64}"))) {
             "Set PLAY_REVIEW_CODE_SHA256 in ignored android/local.properties before release."
         }
@@ -45,6 +51,7 @@ android {
         testInstrumentationRunnerArguments["clearPackageData"] = "true"
         buildConfigField("String", "REVENUECAT_API_KEY", "\"$testKey\"")
         buildConfigField("String", "PLAY_REVIEW_CODE_SHA256", "\"$reviewCodeDigest\"")
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"$googleWebClientId\"")
     }
     buildFeatures {
         buildConfig = true
@@ -105,6 +112,9 @@ dependencies {
     implementation("com.revenuecat.purchases:purchases:10.23.2")
     implementation("androidx.browser:browser:1.10.0")
     implementation("com.google.android.play:review-ktx:2.0.2")
+    implementation("androidx.credentials:credentials:1.5.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.5.0")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
     androidTestImplementation(platform("androidx.compose:compose-bom:2026.06.01"))
