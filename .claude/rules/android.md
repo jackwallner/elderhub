@@ -155,10 +155,9 @@ build is R8-optimized with no key and no debug hooks.
 ## Build and test on jmbp
 
     cd android
-    export JAVA_HOME=~/jdks/temurin-17/Contents/Home
-    ./gradlew --no-daemon :app:testDebugUnitTest                       # 126 JVM tests
-    ./gradlew --no-daemon :app:lintDebug :app:assembleDebug :app:assembleQa
-    ANDROID_SERIAL=emulator-5584 ./gradlew --no-daemon :app:connectedDebugAndroidTest   # device tests
+    fm-gradle :app:testDebugUnitTest                       # 126 JVM tests
+    fm-gradle :app:lintDebug :app:assembleDebug :app:assembleQa
+    ANDROID_SERIAL=emulator-5584 fm-gradle :app:connectedDebugAndroidTest   # device tests
 
 Leased AVD: `agent-emu-1` (API 36 Google Play x86_64), booted headless with
 `emulator -avd agent-emu-1 -port 5584 -no-window -no-audio -no-boot-anim
