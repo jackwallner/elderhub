@@ -47,7 +47,10 @@ interface RCEvent {
 
 Deno.serve(async (req) => {
   const expected = Deno.env.get("REVENUECAT_WEBHOOK_SECRET");
-  if (expected && req.headers.get("authorization") !== expected) {
+  if (!expected?.trim()) {
+    return new Response("webhook not configured", { status: 503 });
+  }
+  if (req.headers.get("authorization") !== expected) {
     return new Response("unauthorized", { status: 401 });
   }
 

@@ -42,6 +42,7 @@ echo "==> apply stubs"
 
 echo "==> apply migrations"
 for f in "$MIG"/*.sql; do
+  [[ "$(basename "$f" | cut -c1-4)" > "${MIGRATIONS_THROUGH:-9999}" ]] && continue
   echo "    - $(basename "$f")"
   "${PSQL[@]}" -d "$DB" -f "$f" >/dev/null
 done
@@ -49,7 +50,7 @@ done
 echo "==> grant (mirrors Supabase default privileges)"
 "${PSQL[@]}" -d "$DB" -f "$TESTS/_grants.sql" >/dev/null
 
-for t in "$TESTS"/*_test.sql; do
+for t in "$TESTS"/${1:-*_test.sql}; do
   echo "==> $(basename "$t")"
   "${PSQL[@]}" -d "$DB" -f "$t"
 done

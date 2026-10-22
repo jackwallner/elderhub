@@ -171,10 +171,18 @@ async function send(
 
 // ---------------------------------------------------------------------------
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!serviceKey?.trim()) {
+    return new Response("escalation not configured", { status: 503 });
+  }
+  if (req.headers.get("authorization") !== `Bearer ${serviceKey}`) {
+    return new Response("unauthorized", { status: 401 });
+  }
+
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    serviceKey,
   );
 
   const { data: queued, error: queueError } = await supabase.rpc(

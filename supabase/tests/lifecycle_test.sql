@@ -20,6 +20,9 @@ insert into _l (k, v) values
     ('alex',  public.make_user('Alex')),
     ('solo',  public.make_user('Solo'));
 
+update auth.users set email = 'mike@example.com', email_confirmed_at = now()
+ where id = (select v from _l where k = 'mike');
+
 set role authenticated;
 
 -- ============================================================
@@ -93,6 +96,10 @@ select public.ok(
 -- Alex already owns another circle, so the same account cannot join this one.
 select public.act_as((select v from _l where k = 'alex'));
 insert into _l (k, v) select 'g_alex', public.create_group('Alex circle');
+insert into public.care_recipients (group_id, name)
+values ((select v from _l where k = 'g_alex'), 'Alex recipient') returning id \gset alex_recipient_
+insert into public.medications (group_id, care_recipient_id, name)
+values ((select v from _l where k = 'g_alex'), :'alex_recipient_id', 'Existing record');
 select public.act_as((select v from _l where k = 'sarah'));
 insert into _lc (k, v)
 select 'alex_code',
