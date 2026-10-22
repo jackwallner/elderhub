@@ -8,6 +8,7 @@ Developer notes and historical audits for this repository. The published site re
 - [audit823.md](audits/audit823.md): Elderhub audit823
 - [ios27Aging.md](audits/ios27Aging.md): iOS 27 compatibility audit: Aging
 - [newcomer-2026-10-22.md](audits/newcomer-2026-10-22.md): Elderhub newcomer persona audit with runtime screenshots
+- [experienced-2026-10-22.md](audits/experienced-2026-10-22.md): Experienced-user persona audit: daily loop, PRN, vitals, search
 - [paudit91.md](audits/paudit91.md): Elderhub persona audit 91
 - [reg93.md](audits/reg93.md): Elderhub release to TestFlight audit
 
