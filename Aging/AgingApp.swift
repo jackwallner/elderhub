@@ -49,7 +49,14 @@ struct AgingApp: App {
         // because it seeds no records at all, only the membership cache, and
         // the flow it is used by types its own tasks in.
         if Self.launchFlag("uitest-family") {
-            SampleData.seedDemoCircle(into: CareModelStore.sharedModelContainer.mainContext)
+            let context = CareModelStore.sharedModelContainer.mainContext
+            if DuoScreenshotTour.isEnabled {
+                // Store captures want the circle and the sample tasks to name
+                // the same two people.
+                SampleData.seedDemoCircle(into: context, selfName: "Sarah", siblingName: "Jack")
+            } else {
+                SampleData.seedDemoCircle(into: context)
+            }
         }
 
         // Store screenshots. `SampleData` already builds two years of history

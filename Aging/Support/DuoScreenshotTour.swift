@@ -26,7 +26,7 @@ enum DuoScreenshotTour {
     static func routes(split: Bool) -> [Route] {
         let list = value(split ? "-DuoRoutesRegular" : "-DuoRoutes")
             ?? (split
-                ? "today+mom,today+mom.card,sharing+mom.tasks,today+dad.visits,settings+mom.timeline"
+                ? "today+mom,today+mom.card,sharing+mom.tasks,today+mom.visits,today+mom.vitals"
                 : "today,care+mom,care+mom.card")
         return list.split(separator: ",").map { Route(String($0)) }
     }

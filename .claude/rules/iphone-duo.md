@@ -22,6 +22,9 @@ paths:
   tab bar and its own pane, which builds a new `PeopleView`, so its stack lives
   in `AppNavigator` (`carePath`, `careHub`) and reopens where it was. Anything
   pushed from the Care stack must go through those, or it is lost on unfold.
+  A hub built with `careHub` already set does not push it
+  (`navigationDestination` follows changes only), so
+  `PersonDetailView.reopenRestoredRoute` clears and rewrites it on appear.
   Search results are still local to `PeopleView`.
 - Each pane gets `horizontalSizeClass = .compact` and
   `horizontalToolbarInPane(true)` (iOS 27.1 `toolbarVerticalBehavior(.disabled)`),
@@ -31,6 +34,9 @@ paths:
 - Unattended captures: `-uitest-family YES -seedDemo YES -DuoTour` plus
   `-DuoTourFirst`, `-DuoTourStep`, `-DuoRoutes`, `-DuoRoutesRegular` (see
   `DuoScreenshotTour`). `DUOTOUR` and `DUOGEOM` lines in app.log map shots to
-  routes and record the measured fold. `simctl openurl` raises an alert on
+  routes and record the measured fold. With `-DuoTour` the seeded circle is
+  Sarah and Jack, the names on the sample tasks; pass gh-sim
+  `--env TZ=America/Los_Angeles` so seed timestamps are not 3 AM UTC. Dad's
+  record is deliberately sparse, so captures use Mom. `simctl openurl` raises an alert on
   iOS 27, so the tour runs on a timer and gh-sim's `--url noop://N` only paces
   the screenshots.

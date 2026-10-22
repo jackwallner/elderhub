@@ -206,6 +206,20 @@ struct PersonDetailView: View {
         .onChange(of: remindersEnabled) { _, enabled in
             setReminders(enabled)
         }
+        .task { await reopenRestoredRoute() }
+    }
+
+    /// A hub built with its route already set (the Duo opening or closing
+    /// moves Care into or out of its pane) does not push it, because
+    /// `navigationDestination` only follows a change. So it is cleared and
+    /// written again once the hub is on screen.
+    private func reopenRestoredRoute() async {
+        guard let restoredRoute, restoredRoute.wrappedValue != HubRoute() else { return }
+        let saved = restoredRoute.wrappedValue
+        restoredRoute.wrappedValue = HubRoute()
+        try? await Task.sleep(for: .milliseconds(300))
+        guard restoredRoute.wrappedValue == HubRoute() else { return }
+        restoredRoute.wrappedValue = saved
     }
 
     // MARK: - Sections
