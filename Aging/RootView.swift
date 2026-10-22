@@ -19,6 +19,7 @@ struct RootView: View {
     @Environment(DeviceModeService.self) private var deviceMode
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @AppStorage("pendingInviteCode") private var pendingInviteCode = ""
@@ -27,6 +28,9 @@ struct RootView: View {
     @State private var authLinkError: String?
     @State private var onboardingSessionActive = false
     @State private var saveFailures = SaveFailureReporter.shared
+    /// The container's width and fold, measured so the unfolded iPhone Duo can
+    /// put the tabs and Care on opposite sides of the fold.
+    @State private var paneGeometry = PaneGeometry(width: 0, fold: nil)
 
     enum Tab: Hashable {
         case today, people, family, settings
@@ -158,26 +162,94 @@ struct RootView: View {
         }
     }
 
+    /// Unfolded, Care has its own pane beside the tabs, so it is never a tab.
+    private var split: UnfoldedSplit? {
+        UnfoldedSplit.make(
+            width: paneGeometry.width,
+            isRegularWidth: horizontalSizeClass == .regular,
+            fold: paneGeometry.fold
+        )
+    }
+
+    /// One tree in every pose. Opening or closing the Duo moves frames and
+    /// drops the Care tab; Today, Sharing and Settings are never rebuilt, so
+    /// they keep their scroll and pushed screens. Care is rebuilt where it
+    /// moves, and reopens from `AppNavigator.carePath`.
     private var caregiverTabs: some View {
         @Bindable var navigator = navigator
-        return TabView(selection: $navigator.tab) {
-            TodayView()
-                .tabItem { Label("Today", systemImage: "checklist") }
-                .tag(Tab.today)
+        let split = split
+        return ZStack(alignment: .topLeading) {
+            // Shows only in the band under the fold, between the panes.
+            Color(uiColor: .systemGroupedBackground).ignoresSafeArea()
 
-            PeopleView()
-                .tabItem { Label("Care", systemImage: "person.2") }
-                .tag(Tab.people)
+            TabView(selection: $navigator.tab) {
+                TodayView()
+                    .tabItem { Label("Today", systemImage: "checklist") }
+                    .tag(Tab.today)
 
-            FamilyView()
-                .tabItem { Label("Sharing", systemImage: "person.3") }
-                .tag(Tab.family)
+                if split == nil {
+                    PeopleView()
+                        .tabItem { Label("Care", systemImage: "person.2") }
+                        .tag(Tab.people)
+                }
 
-            SettingsView()
-                .tabItem { Label("Settings", systemImage: "gear") }
-                .tag(Tab.settings)
+                FamilyView()
+                    .tabItem { Label("Sharing", systemImage: "person.3") }
+                    .tag(Tab.family)
+
+                SettingsView()
+                    .tabItem { Label("Settings", systemImage: "gear") }
+                    .tag(Tab.settings)
+            }
+            // The tab bar stays inside the leading pane, never across the fold.
+            .frame(maxWidth: split?.primaryWidth ?? .infinity, maxHeight: .infinity)
+
+            if let split {
+                PeopleView()
+                    .frame(width: split.secondaryWidth)
+                    .frame(maxHeight: .infinity)
+                    .padding(.leading, split.secondaryX)
+            }
+        }
+        // Each pane is phone-width, so its screens lay out as on a phone.
+        .environment(\.horizontalSizeClass, split == nil ? horizontalSizeClass : .compact)
+        .horizontalToolbarInPane(split != nil)
+        .onGeometryChange(for: PaneGeometry.self) { proxy in
+            PaneGeometry(width: proxy.size.width, fold: proxy.verticalFold())
+        } action: { paneGeometry = $0 }
+        .onChange(of: split != nil) { _, isSplit in
+            if isSplit, navigator.tab == .people { navigator.tab = .today }
+        }
+        .onChange(of: navigator.tab) { _, tab in
+            // Care is already on screen beside whatever tab is showing.
+            if tab == .people, split != nil { navigator.tab = .today }
+        }
+        #if DEBUG
+        .onChange(of: paneGeometry) { _, geometry in
+            guard DuoScreenshotTour.isEnabled else { return }
+            NSLog("DUOGEOM width=%.1f fold=%@ split=%@", geometry.width,
+                  String(describing: geometry.fold), String(describing: self.split))
+        }
+        .task(id: split != nil) { await runDuoTour(split: split != nil) }
+        #endif
+    }
+
+    #if DEBUG
+    private func runDuoTour(split: Bool) async {
+        guard DuoScreenshotTour.isEnabled else { return }
+        let routes = DuoScreenshotTour.routes(split: split)
+        guard !routes.isEmpty else { return }
+        try? await Task.sleep(for: .seconds(DuoScreenshotTour.firstDelay))
+        var index = 0
+        while !Task.isCancelled {
+            let route = routes[index % routes.count]
+            route.apply(to: navigator, people: people)
+            NSLog("DUOTOUR step=%d route=%@ split=%@", index, route.name, split ? "yes" : "no")
+            index += 1
+            try? await Task.sleep(for: .seconds(DuoScreenshotTour.step))
         }
     }
+    #endif
 }
 
 #Preview {

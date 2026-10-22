@@ -39,10 +39,11 @@ enum ReviewPrompt {
     /// year per device and decides each time, so this paces our asks.
     static let cooldownDays = 30
 
-    /// UI tests never count launches or ask.
+    /// UI tests and the Duo screenshot tour never count launches or ask.
     static var skipsAutomation: Bool {
         ProcessInfo.processInfo.arguments.contains {
             $0 == "-uitest-reset" || $0 == "-uitest-wipe-store" || $0 == "-rcfunnelprobe" || $0 == "-FASTLANE_SNAPSHOT"
+                || $0 == "-DuoTour"
         }
     }
 

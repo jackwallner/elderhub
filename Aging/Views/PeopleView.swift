@@ -11,6 +11,7 @@ struct PeopleView: View {
     @Environment(GroupService.self) private var groups
     @Environment(AuthService.self) private var auth
     @Environment(CheckInService.self) private var checkIn
+    @Environment(AppNavigator.self) private var navigator
 
     @State private var isAddingPerson = false
     @State private var showPaywall = false
@@ -88,7 +89,8 @@ struct PeopleView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        @Bindable var navigator = navigator
+        return NavigationStack(path: $navigator.carePath) {
             List {
                 if isSearching {
                     if searchResults.isEmpty {
@@ -161,6 +163,16 @@ struct PeopleView: View {
             // people, allergies and conditions, contacts, and incidents, so a
             // search for "allergy" or "fall" looked unsupported before it ran.
             .searchable(text: $searchText, prompt: "Meds, allergies, people, tasks, contacts, notes")
+            .navigationDestination(for: UUID.self) { personID in
+                if let person = people.first(where: { $0.id == personID }) {
+                    PersonDetailView(person: person, route: $navigator.careHub)
+                }
+            }
+            .onChange(of: navigator.carePath) { _, path in
+                // Popping to the list, or the tab bar's pop-to-root, leaves
+                // the hub's route behind for whichever person opens next.
+                if path.isEmpty { navigator.careHub = HubRoute() }
+            }
             .navigationDestination(item: $searchDestination) { destination in
                 if let person = people.first(where: { $0.id == destination.personID }) {
                     searchScreen(for: destination.kind, person: person)
@@ -322,9 +334,7 @@ struct PeopleView: View {
 
     @ViewBuilder
     private func personLink(_ person: Person) -> some View {
-        NavigationLink {
-            PersonDetailView(person: person)
-        } label: {
+        NavigationLink(value: person.id) {
             PersonRow(person: person, setupSummary: setupSummary(for: person))
         }
     }

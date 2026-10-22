@@ -1,3 +1,4 @@
+import Foundation
 import Observation
 
 /// Which tab is showing.
@@ -19,6 +20,15 @@ final class AppNavigator {
     var pendingInviteCode = ""
     var wantsJoin = false
 
+    /// The Care stack: whose record is open, and what is pushed on it.
+    ///
+    /// Held here rather than in `PeopleView` because unfolding an iPhone Duo
+    /// moves Care out of the tab bar into its own pane beside the fold, which
+    /// builds a new `PeopleView`. This is what reopens it where it was, in
+    /// either direction.
+    var carePath: [UUID] = []
+    var careHub = HubRoute()
+
     func showFamilyInvite() {
         wantsInvite = true
         tab = .family
@@ -29,4 +39,11 @@ final class AppNavigator {
         wantsJoin = true
         tab = .family
     }
+}
+
+/// What a person's hub has pushed. One value, so a whole route can be handed
+/// to the hub and restored in one write.
+struct HubRoute: Equatable {
+    var feature: CareFeature?
+    var showsEmergencyCard = false
 }

@@ -37,8 +37,12 @@ struct PersonDetailView: View {
     @State private var showNotificationsBlocked = false
     @State private var setupHidden = false
     @State private var dismissedSteps: Set<SetupStep.Kind> = []
-    @State private var pushed: CareFeature?
-    @State private var showEmergencyCard = false
+    /// Bound by the Care tab, whose stack outlives this view (see
+    /// `AppNavigator.carePath`). Pushed from anywhere else, the hub keeps its
+    /// own.
+    private let restoredRoute: Binding<HubRoute>?
+    @State private var ownRoute = HubRoute()
+    private var route: Binding<HubRoute> { restoredRoute ?? $ownRoute }
     @State private var pendingDeletion: PendingRecordDeletion?
 
     /// The tiles, in the order a caregiver reaches for them. Check-in is last of
@@ -51,6 +55,11 @@ struct PersonDetailView: View {
             return [GridItem(.flexible())]
         }
         return [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
+    }
+
+    init(person: Person, route: Binding<HubRoute>? = nil) {
+        self.person = person
+        self.restoredRoute = route
     }
 
     var body: some View {
@@ -153,7 +162,7 @@ struct PersonDetailView: View {
                 // the system disclosure chevron outside the card, next to the
                 // one the banner already has.
                 Button {
-                    showEmergencyCard = true
+                    route.wrappedValue.showsEmergencyCard = true
                 } label: {
                     EmergencyCardBanner(personLabel: person.displayLabel)
                 }
@@ -171,10 +180,10 @@ struct PersonDetailView: View {
         // first screen on the one screen whose job is to show what is here.
         .navigationTitle(person.displayLabel)
         .navigationBarTitleDisplayMode(.inline)
-        .navigationDestination(item: $pushed) { feature in
+        .navigationDestination(item: route.feature) { feature in
             destination(for: feature)
         }
-        .navigationDestination(isPresented: $showEmergencyCard) {
+        .navigationDestination(isPresented: route.showsEmergencyCard) {
             EmergencyCardView(person: person)
         }
         .sheet(isPresented: $isAddingMedication) {
@@ -311,7 +320,7 @@ struct PersonDetailView: View {
             if feature == .healthDetails {
                 isEditingDetails = true
             } else {
-                pushed = feature
+                route.wrappedValue.feature = feature
             }
         } label: {
             label
@@ -401,13 +410,13 @@ struct PersonDetailView: View {
         case .healthDetails:
             isEditingDetails = true
         case .emergencyContact:
-            pushed = .contacts
+            route.wrappedValue.feature = .contacts
         case .inviteFamily:
             // The invite lives on the Sharing tab, a peer of this screen's tab
             // that cannot be pushed onto this stack, so this switches tabs.
             navigator.showFamilyInvite()
         case .checkIn:
-            pushed = .checkIn
+            route.wrappedValue.feature = .checkIn
         }
     }
 

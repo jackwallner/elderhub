@@ -83,6 +83,7 @@ These files load automatically when you read a file matching their `paths:`. Age
 | `.claude/rules/sync-circles-and-database.md` | One account one circle, per-recipient access, conflicts, author names, no `date` columns, parent binding, `DoseLog` ids, `tracksRefills`, adopting records | Sync, groups, invitations, migrations, RLS, edge functions |
 | `.claude/rules/paywall-and-review.md` | The three paywall states, the rating ask | `StoreService`, the paywall, the rating funnel |
 | `.claude/rules/listing-site-and-screenshots.md` | The Elderhub rename, acquisition and keywords, the marketing site, `join.html`, the old medlist URLs, App Store screenshots | Metadata, `docs/`, screenshots, ASO |
+| `.claude/rules/iphone-duo.md` | The unfolded two-pane layout (tabs beside Care), `UnfoldedSplit`, the lifted Care stack, the DEBUG Duo screenshot tour | `RootView`, `AppNavigator`, `PeopleView`, Duo captures |
 | `.claude/rules/android.md` | The Kotlin/Compose port in `android/`: parity rules, paid boundary, platform gaps awaiting a decision, jmbp build/test commands, Play release state | Anything under `android/`, Play products or assets |
 
 ## App-specific notes
