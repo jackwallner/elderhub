@@ -616,19 +616,19 @@ final class Visit {
     /// Formatted through the calendar it was asked about rather than through
     /// the ambient one, so "was a time recorded" and "what time is that" cannot
     /// answer in two different time zones.
-    func dateLabel(calendar: Calendar = .current) -> String {
+    func dateLabel(calendar: Calendar = .current, asOf now: Date = Date()) -> String {
         date.formatted(
             style(
                 date: .abbreviated,
-                time: hasTimeOfDay(calendar: calendar) ? .shortened : .omitted,
+                time: hasTimeOfDay(calendar: calendar, asOf: now) ? .shortened : .omitted,
                 calendar: calendar
             )
         )
     }
 
     /// "9:30 AM", or empty when there is no chosen time to show.
-    func timeLabel(calendar: Calendar = .current) -> String {
-        guard hasTimeOfDay(calendar: calendar) else { return "" }
+    func timeLabel(calendar: Calendar = .current, asOf now: Date = Date()) -> String {
+        guard hasTimeOfDay(calendar: calendar, asOf: now) else { return "" }
         return date.formatted(style(date: .omitted, time: .shortened, calendar: calendar))
     }
 

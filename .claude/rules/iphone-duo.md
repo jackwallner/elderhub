@@ -35,8 +35,9 @@ paths:
   `-DuoTourFirst`, `-DuoTourStep`, `-DuoRoutes`, `-DuoRoutesRegular` (see
   `DuoScreenshotTour`). `DUOTOUR` and `DUOGEOM` lines in app.log map shots to
   routes and record the measured fold. With `-DuoTour` the seeded circle is
-  Sarah and Jack, the names on the sample tasks; pass gh-sim
-  `--env TZ=America/Los_Angeles` so seed timestamps are not 3 AM UTC. Dad's
+  Sarah and Jack, the names on the sample tasks; pick gh-sim
+  `--env TZ=Etc/GMT-N` so the launch lands near 7 AM local: seed timestamps
+  are launch time, and after 8 AM every sample dose reads overdue. Dad's
   record is deliberately sparse, so captures use Mom. `simctl openurl` raises an alert on
   iOS 27, so the tour runs on a timer and gh-sim's `--url noop://N` only paces
   the screenshots.

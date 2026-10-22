@@ -126,8 +126,8 @@ struct AppointmentTests {
 
         #expect(!writeUp.hasTimeOfDay(calendar: calendar, asOf: now))
         #expect(booked.hasTimeOfDay(calendar: calendar, asOf: now))
-        #expect(!writeUp.dateLabel(calendar: calendar).contains("5:04"))
-        #expect(booked.dateLabel(calendar: calendar).contains("9:30"))
+        #expect(!writeUp.dateLabel(calendar: calendar, asOf: now).contains("5:04"))
+        #expect(booked.dateLabel(calendar: calendar, asOf: now).contains("9:30"))
     }
 
     @Test func aRowIsTitledByWhoeverOrWhateverItIsAbout() {

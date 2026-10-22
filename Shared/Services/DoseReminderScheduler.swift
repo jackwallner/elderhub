@@ -663,7 +663,7 @@ enum AppointmentReminderPlanner {
                         personID: person.id,
                         personName: person.displayLabel,
                         what: what(visit),
-                        timeLabel: visit.timeLabel(calendar: calendar),
+                        timeLabel: visit.timeLabel(calendar: calendar, asOf: date),
                         dateComponents: calendar.dateComponents(
                             [.year, .month, .day, .hour, .minute], from: fireDate
                         )
