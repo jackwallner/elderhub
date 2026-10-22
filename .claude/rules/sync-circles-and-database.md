@@ -30,6 +30,21 @@ Moved verbatim from AGENTS.md. Loads when a matching file is read; update it her
 
 ### Circles and access
 
+- **Notices obey recipient access (migration 0023).** Check-in notices store
+  `care_recipient_id`; both their RLS policy and `pending_notices_with_targets`
+  check current grants. Historical notices without an id, and circle-wide
+  membership notices, go only to unrestricted staff. Never infer a recipient
+  from `subject_name`, since names can collide. The push query must enforce
+  scope independently because its service role bypasses RLS.
+
+- **Invite acceptance locks both circles before locking the code (0023).**
+  Lock source and destination group rows in id order, then validate current
+  membership and the untouched-circle guard. Concurrent joins and care inserts
+  take FK locks on the group; this prevents a solo swap from deleting a circle
+  after someone else joined it. Recheck that the caller's current circle was
+  among those locked. `swap_concurrency_test.sql` uses two real authenticated
+  sessions and a local table lock to reproduce the unsafe schedule.
+
 - **One account, one circle, and `accept_invite` closes an untouched one for you
   (migrations 0019, 0020).** Onboarding creates a circle for anyone who signs in
   on the "Start a care record" path, so a joiner who did not happen to tap
