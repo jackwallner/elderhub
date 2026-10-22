@@ -39,5 +39,11 @@ paths:
   `--env TZ=Etc/GMT-N` so the launch lands near 7 AM local: seed timestamps
   are launch time, and after 8 AM every sample dose reads overdue. Dad's
   record is deliberately sparse, so captures use Mom. `simctl openurl` raises an alert on
-  iOS 27, so the tour runs on a timer and gh-sim's `--url noop://N` only paces
-  the screenshots.
+  iOS 27, so the tour runs on a timer and never takes a URL. Never pace gh-sim
+  shots with made-up URLs (`noop://N`): run 2's capture was rejected for it.
+  Without URLs gh-sim takes one shot per display, so the store set needs a
+  timed-shot option in gh-sim (`--shots N`, drafted 2026-10-22 in the
+  evidence folder of fleet run `shift-duo-elderhub-3-1792673987`). Once it
+  lands, one `gh-sim all --device 'iPhone Duo' --shots 5 --wait 10` with
+  `-DuoTourStep 11` (a shot takes about a second, so the dwell is a little
+  longer than the wait) gives the tests and every outer and inner shot.
