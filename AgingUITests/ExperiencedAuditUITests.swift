@@ -68,7 +68,7 @@ final class ExperiencedAuditUITests: XCTestCase {
         let app = launchSeeded()
         shot(app, "01-today-everyone-first")
         probe(app.buttons["today.person-picker"], "everyone.picker")
-        probe(app.staticTexts["today.everyone-headline"], "everyone.headline")
+        probe(app.staticTexts["today.everyone-headline"].firstMatch, "everyone.headline")
         note("Taken buttons on first screen: \(count(app.buttons.matching(identifier: "today.dose.take")))")
         note("Status menus on first screen: \(count(app.buttons.matching(identifier: "today.dose.status")))")
 
@@ -173,6 +173,7 @@ final class ExperiencedAuditUITests: XCTestCase {
 
         // Edit an existing medication in place.
         let med = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'person-detail.medication.'")).firstMatch
+        for _ in 0..<4 where med.exists && med.frame.minY < 160 { app.swipeDown() }
         scrollUpTo(med, app)
         probe(med, "hub.medication-row")
         if med.exists, med.isHittable {
@@ -185,7 +186,7 @@ final class ExperiencedAuditUITests: XCTestCase {
             shot(app, "34-med-editor-scrolled-2")
             probe(app.buttons["medication-editor.save"], "med-editor.save")
             probe(app.buttons["Cancel"], "med-editor.cancel")
-            app.buttons["Cancel"].firstMatch.tap()
+            if app.buttons["Cancel"].firstMatch.exists { app.buttons["Cancel"].firstMatch.tap() }
             sleep(1)
         }
 
@@ -278,6 +279,8 @@ final class ExperiencedAuditUITests: XCTestCase {
         sleep(1)
         shot(app, "50-tasks-list")
         probe(app.segmentedControls["tasks.scope"], "tasks.scope")
+        let circle = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Mark '")).firstMatch
+        probe(circle, "tasks.complete-circle")
         app.swipeUp()
         shot(app, "51-tasks-scrolled")
         app.swipeDown()
@@ -311,6 +314,27 @@ final class ExperiencedAuditUITests: XCTestCase {
         shot(app, "60-bills")
         app.swipeUp()
         shot(app, "61-bills-scrolled")
+        app.swipeDown()
+        app.swipeDown()
+        let addBill = app.buttons["bills.add"]
+        if addBill.exists {
+            addBill.tap()
+            let payee = app.textFields["bill-editor.payee"]
+            if payee.waitForExistence(timeout: 5) {
+                shot(app, "67-bill-editor-defaults")
+                payee.tap()
+                payee.typeText("Dentist invoice")
+                let amount = app.textFields["bill-editor.amount"]
+                amount.tap()
+                amount.typeText("45")
+                shot(app, "68-bill-editor-typed-amount")
+                note("Amount field value after typing 45: \(amount.value as? String ?? "nil")")
+                app.swipeUp()
+                shot(app, "69-bill-editor-scrolled")
+            }
+            if app.buttons["Cancel"].firstMatch.exists { app.buttons["Cancel"].firstMatch.tap() }
+            sleep(1)
+        }
         back(app)
 
         let notes = app.buttons["today.quick.notes"]
@@ -340,6 +364,9 @@ final class ExperiencedAuditUITests: XCTestCase {
         app.tabBars.buttons["Care"].tap()
         sleep(1)
         shot(app, "65-care-tab")
+        app.swipeDown()
+        sleep(1)
+        shot(app, "65b-care-tab-pulled-down")
         let search = app.searchFields.firstMatch
         probe(search, "care.search-field")
         if search.exists {
