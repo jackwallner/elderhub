@@ -70,4 +70,16 @@ Deno.test("escalation_requires_service_authorization_before_cross_circle_writes"
     headers: { authorization: "Bearer test-service-role" },
   })), 503);
   if (!calls.includes("rpc:queue_check_in_notices")) throw new Error("authorized worker must still queue notices");
+  Deno.env.set("ESCALATION_SERVICE_KEY", "test-cron-jwt");
+  calls.length = 0;
+  expectStatus(await handler(new Request("http://localhost/escalate", {
+    headers: { authorization: "Bearer test-cron-jwt" },
+  })), 503);
+  if (!calls.includes("rpc:queue_check_in_notices")) throw new Error("the cron's key must still queue notices");
+  calls.length = 0;
+  expectStatus(await handler(new Request("http://localhost/escalate", {
+    headers: { authorization: "Bearer test-anon-jwt" },
+  })), 401);
+  expectNoServiceCalls();
+  Deno.env.delete("ESCALATION_SERVICE_KEY");
 });

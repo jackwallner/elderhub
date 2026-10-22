@@ -176,7 +176,13 @@ Deno.serve(async (req) => {
   if (!serviceKey?.trim()) {
     return new Response("escalation not configured", { status: 503 });
   }
-  if (req.headers.get("authorization") !== `Bearer ${serviceKey}`) {
+  // The cron sends the legacy service_role JWT from Vault, because this function
+  // sits behind the JWT gateway, while SUPABASE_SERVICE_ROLE_KEY is now the
+  // sb_secret key. ESCALATION_SERVICE_KEY holds the same value as the Vault secret.
+  const accepted = [serviceKey, Deno.env.get("ESCALATION_SERVICE_KEY")]
+    .filter((key): key is string => !!key?.trim())
+    .map((key) => `Bearer ${key}`);
+  if (!accepted.includes(req.headers.get("authorization") ?? "")) {
     return new Response("unauthorized", { status: 401 });
   }
 
