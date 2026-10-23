@@ -215,7 +215,13 @@ final class ExperiencedAuditUITests: XCTestCase {
                     sleep(1)
                     shot(app, "37-new-med-refills-on")
                 }
-                app.buttons["Cancel"].firstMatch.tap()
+                probe(app.buttons["Cancel"].firstMatch, "new-med.cancel")
+                if app.buttons["Cancel"].firstMatch.exists {
+                    app.buttons["Cancel"].firstMatch.tap()
+                } else {
+                    note("Cancel not in the tree after refills toggle, swiping sheet down")
+                    app.swipeDown(velocity: .fast)
+                }
             }
         }
     }
@@ -443,6 +449,99 @@ final class ExperiencedAuditUITests: XCTestCase {
         probe(again.buttons["today.person-picker"], "relaunch.picker")
         note("Taken buttons after relaunch: \(count(again.buttons.matching(identifier: "today.dose.take")))")
         note("Everyone headline present after relaunch: \(again.staticTexts["today.everyone-headline"].exists)")
+    }
+
+    // MARK: - Restock and as-needed paths (rerun 3)
+
+    /// Adds a bottle with two tablets left and an as-needed medication, then
+    /// looks at what Today offers for each: is the Running low row tappable,
+    /// and is there any way to log a PRN dose.
+    func testExperiencedRestockAndAsNeeded() {
+        let app = launchSeeded()
+        selectPersonOnToday(app, named: "Eleanor Wallner")
+        openNewMedication(app)
+        guard app.textFields["Medication name"].waitForExistence(timeout: 5) else {
+            note("new medication sheet did not open")
+            return
+        }
+        app.textFields["Medication name"].tap()
+        app.textFields["Medication name"].typeText("Zlow")
+        let track = app.switches["Track refills"]
+        scrollUntilHittable(track, in: app, attempts: 4)
+        if track.isHittable {
+            track.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+            sleep(1)
+        }
+        let onHand = app.textFields["Quantity"]
+        probe(onHand, "restock.on-hand-field")
+        if onHand.exists {
+            note("on-hand initial value: \(onHand.value ?? "nil")")
+            onHand.tap()
+            onHand.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 8) + "2")
+            note("on-hand after delete+2: \(onHand.value ?? "nil")")
+        }
+        shot(app, "90-restock-editor-two-left")
+        saveMedicationSheet(app)
+        shot(app, "91-hub-after-save-zlow")
+
+        // Second medication: as needed.
+        openNewMedication(app)
+        if app.textFields["Medication name"].waitForExistence(timeout: 5) {
+            app.textFields["Medication name"].tap()
+            app.textFields["Medication name"].typeText("Zprn")
+            let prn = app.switches["As needed"]
+            scrollUntilHittable(prn, in: app, attempts: 4)
+            probe(prn, "prn.toggle")
+            if prn.isHittable {
+                prn.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+                sleep(1)
+            }
+            shot(app, "92-prn-editor")
+            saveMedicationSheet(app)
+        }
+
+        // Back to Today for Mom.
+        for _ in 0..<2 { back(app) }
+        app.tabBars.buttons.element(boundBy: 0).tap()
+        sleep(1)
+        shot(app, "93-today-mom-after-add")
+        for index in 0..<3 {
+            app.swipeUp()
+            shot(app, "94-today-mom-scroll-\(index)")
+        }
+        let low = app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'Zlow'")).firstMatch
+        probe(low, "restock.running-low-row")
+        note("Zprn visible on Today: \(app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'Zprn'")).count)")
+        if low.exists, low.isHittable {
+            low.tap()
+            sleep(1)
+            shot(app, "95-after-tap-running-low")
+        }
+    }
+
+    private func openNewMedication(_ app: XCUIApplication) {
+        let full = app.buttons["today.medications"]
+        if full.exists || app.buttons["today.quick.medications"].exists {
+            scrollUntilHittable(full, in: app)
+            if full.isHittable { full.tap() }
+            sleep(1)
+        }
+        let add = app.buttons["person-detail.add-medication"]
+        scrollUntilHittable(add, in: app)
+        if add.isHittable { add.tap() }
+    }
+
+    /// Saves the open medication sheet, or swipes it away so one script fault
+    /// cannot hide the rest of the walk.
+    private func saveMedicationSheet(_ app: XCUIApplication) {
+        let save = app.buttons["medication-editor.save"]
+        if save.waitForExistence(timeout: 3), save.isHittable {
+            save.tap()
+        } else {
+            note("save button missing, swiping sheet down")
+            app.swipeDown(velocity: .fast)
+        }
+        sleep(1)
     }
 
     // MARK: - Helpers
