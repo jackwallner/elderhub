@@ -31,12 +31,16 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -203,6 +207,8 @@ private fun AccountSection(onError: (String) -> Unit) {
     val navigator = LocalNavigator.current
     val scope = rememberCoroutineScope()
     var confirmSignOut by remember { mutableStateOf(false) }
+    var signOutWarning by remember { mutableStateOf<String?>(null) }
+    var isSigningOut by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf(false) }
     val sync = graph.sync
     SectionHeader("Account")
@@ -227,9 +233,9 @@ private fun AccountSection(onError: (String) -> Unit) {
                 }
             }
             RowDivider()
-            NavRow("Sign out", null, Icons.AutoMirrored.Filled.Logout, modifier = Modifier.testTag("settings.sign-out"), onClick = { confirmSignOut = true })
+            NavRow("Sign out", null, Icons.AutoMirrored.Filled.Logout, modifier = Modifier.testTag("settings.sign-out"), onClick = if (isSigningOut) null else ({ confirmSignOut = true }))
             RowDivider()
-            NavRow("Delete account", null, Icons.Filled.DeleteForever, tint = AgingTheme.colors.danger, modifier = Modifier.testTag("settings.delete-account"), onClick = { deleting = true })
+            NavRow("Delete account", null, Icons.Filled.DeleteForever, tint = AgingTheme.colors.danger, modifier = Modifier.testTag("settings.delete-account"), onClick = if (isSigningOut) null else ({ deleting = true }))
         } else {
             NavRow(
                 "Sign in and share",
@@ -257,10 +263,45 @@ private fun AccountSection(onError: (String) -> Unit) {
             confirmButton = {
                 TextButton(modifier = Modifier.testTag("settings.sign-out.confirm"), onClick = {
                     confirmSignOut = false
-                    scope.launch { graph.signOutAndForget() }
+                    isSigningOut = true
+                    scope.launch {
+                        try {
+                            signOutWarning = graph.signOutAndForget()
+                        } catch (e: Exception) {
+                            onError("Couldn't check your unsent changes. You are still signed in. ${e.message.orEmpty()}")
+                        } finally {
+                            isSigningOut = false
+                        }
+                    }
                 }) { Text("Sign out") }
             },
             dismissButton = { TextButton(onClick = { confirmSignOut = false }) { Text("Cancel") } },
+        )
+    }
+    if (signOutWarning != null) {
+        val cancelFocus = remember { FocusRequester() }
+        AlertDialog(
+            onDismissRequest = { signOutWarning = null },
+            title = { Text("Discard unsent changes?") },
+            text = { Text(signOutWarning.orEmpty()) },
+            confirmButton = {
+                TextButton(modifier = Modifier.testTag("settings.sign-out.discard"), onClick = {
+                    signOutWarning = null
+                    isSigningOut = true
+                    scope.launch {
+                        try {
+                            graph.signOutAndForget(discardPendingChanges = true)
+                        } finally {
+                            isSigningOut = false
+                        }
+                    }
+                }) { Text("Discard changes and sign out", color = AgingTheme.colors.danger) }
+            },
+            dismissButton = {
+                TextButton(modifier = Modifier.focusRequester(cancelFocus).focusProperties { canFocus = true }.testTag("settings.sign-out.cancel"),
+                    onClick = { signOutWarning = null }) { Text("Cancel") }
+                LaunchedEffect(Unit) { cancelFocus.requestFocus() }
+            },
         )
     }
     if (deleting) {
@@ -281,7 +322,7 @@ private fun AccountSection(onError: (String) -> Unit) {
                     scope.launch {
                         try {
                             graph.auth.deleteAccount()
-                            graph.signOutAndForget()
+                            graph.signOutAndForget(discardPendingChanges = true)
                         } catch (e: Exception) {
                             onError(e.message ?: "Couldn't delete the account. Try again.")
                         }

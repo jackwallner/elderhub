@@ -31,6 +31,7 @@ final class SyncCoordinator {
 
     private let log = Logger(subsystem: "com.jackwallner.aging", category: "sync")
     private let engine = SyncEngine(modelContainer: CareModelStore.sharedModelContainer)
+    private var syncTask: Task<Void, Never>?
 
     private var auth: AuthService { .shared }
     private var groups: GroupService { .shared }
@@ -45,16 +46,26 @@ final class SyncCoordinator {
     }
 
     func syncNow() async {
-        guard !isSyncing else { return }
+        if let syncTask {
+            await syncTask.value
+            return
+        }
         guard auth.isSignedIn, let groupID = groups.activeGroupID else { return }
         guard !groups.requiresTransparency else { return }
 
         isSyncing = true
-        defer { isSyncing = false }
+        defer {
+            isSyncing = false
+            syncTask = nil
+        }
 
         let remote = SupabaseSyncRemote(client: auth.client, groupID: groupID)
-        let outcome = await engine.sync(remote: remote, groupID: groupID)
-        apply(outcome)
+        let task = Task {
+            let outcome = await engine.sync(remote: remote, groupID: groupID)
+            apply(outcome)
+        }
+        syncTask = task
+        await task.value
     }
 
     /// Folds one cycle's result into the published state.

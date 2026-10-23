@@ -3,6 +3,7 @@ package com.jackwallner.aging
 import com.jackwallner.aging.data.CareCodec
 import com.jackwallner.aging.data.CareStore
 import com.jackwallner.aging.data.MemoryPersistence
+import com.jackwallner.aging.data.SignOutProtection
 import com.jackwallner.aging.data.SyncEngine
 import com.jackwallner.aging.data.SyncFailure
 import com.jackwallner.aging.data.SyncRemote
@@ -12,6 +13,7 @@ import com.jackwallner.aging.model.DoseStatus
 import com.jackwallner.aging.model.EmergencyContact
 import com.jackwallner.aging.model.Medication
 import com.jackwallner.aging.model.OutboxStatus
+import com.jackwallner.aging.model.OutboxEntry
 import com.jackwallner.aging.model.Person
 import com.jackwallner.aging.model.SyncEntity
 import com.jackwallner.aging.model.SyncPage
@@ -175,6 +177,62 @@ class SyncWireTest {
 class SyncEngineTest {
     private val group = UUID.randomUUID()
     private val clock = Clock()
+
+    @Test fun signOutSyncsBeforeAllowingTheSharedVisitToBeRemoved() = runBlocking {
+        val store = circleStore(group, clock)
+        val mom = Person(name = "Mom", groupId = group)
+        store.applyRemote { it.copy(people = listOf(mom)) }
+        store.upsertVisit(Visit(personId = mom.id, provider = "Dr. Patel", date = T0))
+        val remote = Remote()
+        val warning = SignOutProtection.prepare(store) { SyncEngine(store, { clock.now }).sync(remote, group) }
+        assertNull(warning)
+        assertEquals(1, remote.pushes.count { it.first == SyncEntity.VISIT })
+        assertTrue(store.state.sync.outbox.isEmpty())
+    }
+
+    @Test fun failedSignOutSyncNamesWhatWouldBeLostAndKeepsTheVisitForCancel() = runBlocking {
+        for (failure in listOf(SyncFailure.Offline, SyncFailure.Rejected("Access changed"), SyncFailure.Server("Unavailable"))) {
+            val store = circleStore(group, clock)
+            val mom = Person(name = "Mom", groupId = group)
+            store.applyRemote { it.copy(people = listOf(mom)) }
+            store.upsertVisit(Visit(personId = mom.id, provider = "Dr. Patel", date = T0))
+            val remote = Remote().apply { failPush = failure }
+            val warning = SignOutProtection.prepare(store) { SyncEngine(store, { clock.now }).sync(remote, group) }
+            assertTrue(warning!!.contains("1 visit"))
+            assertTrue(warning.contains("permanently discard"))
+            assertTrue(warning.contains("Cancel"))
+            assertEquals(1, store.state.visits.size)
+            assertEquals(1, store.state.sync.outbox.size)
+        }
+    }
+
+    @Test fun signOutIncludesConflictsDeferredRetriesAndTombstonesWithoutDoubleCounting() = runBlocking {
+        val store = circleStore(group, clock)
+        val mom = Person(name = "Mom", groupId = group)
+        store.applyRemote { it.copy(people = listOf(mom)) }
+        val visit = Visit(personId = mom.id, date = T0)
+        store.upsertVisit(visit)
+        store.deleteVisit(visit.id)
+        store.applyRemote { s -> s.copy(sync = s.sync.copy(outbox = listOf(
+            s.sync.outbox.single().copy(status = OutboxStatus.RETRYING, notBefore = T0.plusSeconds(3600)),
+            OutboxEntry(SyncEntity.MEDICATION, UUID.randomUUID(), status = OutboxStatus.NEEDS_REVIEW),
+        ))) }
+        val warning = SignOutProtection.prepare(store) {
+            assertTrue(SyncEngine(store, { clock.now }).sync(Remote(), group).isComplete)
+        }
+        assertTrue(warning!!.contains("1 visit"))
+        assertTrue(warning.contains("1 medication"))
+        assertEquals(listOf("1 medication", "1 visit"), SignOutProtection.pendingChanges(store.state))
+    }
+
+    @Test fun signOutWithOnlyPrivateEditsNeedsNoSyncOrDiscardWarning() = runBlocking {
+        val store = circleStore(null, clock)
+        store.upsertPerson(Person(name = "Private record"))
+        var synced = false
+        assertNull(SignOutProtection.prepare(store) { synced = true })
+        assertFalse(synced)
+        assertEquals(1, store.state.people.size)
+    }
 
     /** A Postgres table in miniature: server-owned updated_at, (updated_at, id) cursor order. */
     private inner class Remote : SyncRemote {

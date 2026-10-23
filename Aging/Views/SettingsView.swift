@@ -23,8 +23,25 @@ struct SettingsView: View {
     @State private var setupPerson: Person?
     @State private var isSettingPIN = false
     @State private var isConfirmingHandover = false
+    @State private var isSigningOut = false
+    @State private var signOutWarning: String?
+    @State private var signOutError: String?
 
     private var isUnlocked: Bool { store.isPro || groups.hasPlus }
+
+    private func prepareToSignOut() async {
+        isSigningOut = true
+        defer { isSigningOut = false }
+        do {
+            try context.save()
+            signOutWarning = try await SignOutProtection.prepare(in: context.container) {
+                await sync.syncNow()
+            }
+            if signOutWarning == nil { await signOutAndForget() }
+        } catch {
+            signOutError = "Couldn't check your unsent changes. You are still signed in. \(error.localizedDescription)"
+        }
+    }
 
     /// Signing out closes the account boundary on this handset, it does not
     /// merely stop the network calls.
@@ -108,7 +125,7 @@ struct SettingsView: View {
                     .disabled(isRestoring)
                     if auth.isSignedIn {
                         Button("Sign out") {
-                            Task { await signOutAndForget() }
+                            Task { await prepareToSignOut() }
                         }
                         Button("Delete my account", role: .destructive) {
                             isDeletingAccount = true
@@ -125,7 +142,31 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            .disabled(isSigningOut)
             .navigationTitle("Settings")
+            .alert("Discard unsent changes?", isPresented: Binding(
+                get: { signOutWarning != nil }, set: { if !$0 { signOutWarning = nil } }
+            )) {
+                Button("Cancel", role: .cancel) { signOutWarning = nil }
+                    .keyboardShortcut(.defaultAction)
+                Button("Discard changes and sign out", role: .destructive) {
+                    signOutWarning = nil
+                    isSigningOut = true
+                    Task {
+                        await signOutAndForget()
+                        isSigningOut = false
+                    }
+                }
+            } message: {
+                Text(signOutWarning ?? "")
+            }
+            .alert("Couldn't sign out", isPresented: Binding(
+                get: { signOutError != nil }, set: { if !$0 { signOutError = nil } }
+            )) {
+                Button("OK", role: .cancel) { signOutError = nil }
+            } message: {
+                Text(signOutError ?? "")
+            }
             .sheet(isPresented: $showPaywall) {
                 PaywallView()
             }

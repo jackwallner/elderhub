@@ -9,6 +9,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * Drives the [SyncEngine] from the UI layer, port of `SyncCoordinator.swift`.
@@ -39,6 +41,7 @@ class SyncCoordinator(
     val pendingCount: Int get() = care.state.sync.pendingCount
 
     private var scheduled: Job? = null
+    private val syncMutex = Mutex()
 
     /** Called when a local write queued something. Coalesces a burst of edits into one cycle. */
     fun schedule(scope: CoroutineScope, delayMillis: Long = 1_500) {
@@ -53,9 +56,9 @@ class SyncCoordinator(
     private val canSync: Boolean
         get() = auth.isSignedIn && groups.activeGroupId != null && !groups.requiresTransparency
 
-    suspend fun syncNow() {
-        if (isSyncing || !canSync) return
-        val groupId = groups.activeGroupId ?: return
+    suspend fun syncNow() = syncMutex.withLock {
+        if (!canSync) return@withLock
+        val groupId = groups.activeGroupId ?: return@withLock
         isSyncing = true
         try {
             apply(engine.sync(cloud().sync, groupId))

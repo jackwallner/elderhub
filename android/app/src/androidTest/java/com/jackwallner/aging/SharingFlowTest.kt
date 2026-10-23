@@ -3,6 +3,7 @@ package com.jackwallner.aging
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
@@ -16,6 +17,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jackwallner.aging.model.SyncEntity
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -144,5 +146,37 @@ class SharingFlowTest {
         waitForTag("today.dose.take")
         compose.onAllNodesWithTag("today.dose.take")[0].performClick()
         compose.waitUntil(5_000) { (ApplicationProvider.getApplicationContext<AgingApplication>()).graph.care.state.sync.outbox.isNotEmpty() }
+    }
+
+    @Test fun offlineSignOutRequiresExplicitDiscardAndCancelKeepsTheDose() {
+        ActivityScenario.launch<MainActivity>(intent("seedDemo", "fakeSignedIn", "fakeCircle", "fakeOffline", tab = 0))
+        val graph = ApplicationProvider.getApplicationContext<AgingApplication>().graph
+        val uploadedDoses = server.tables.getValue(SyncEntity.DOSE_LOG).size
+        waitForTag("today.dose.take")
+        compose.onAllNodesWithTag("today.dose.take")[0].performClick()
+        compose.waitUntil(5_000) { graph.care.state.sync.outbox.isNotEmpty() }
+        val pending = graph.care.state.sync.outbox
+        val doses = graph.care.state.doses
+
+        compose.onNodeWithTag("tab.settings").performClick()
+        waitForTag("settings.sign-out")
+        compose.onNodeWithTag("settings.sign-out").performScrollTo().performClick()
+        compose.onNodeWithTag("settings.sign-out.confirm").performClick()
+        waitForTag("settings.sign-out.cancel")
+        compose.onNodeWithText("1 dose", substring = true).assertIsDisplayed()
+        compose.onNodeWithTag("settings.sign-out.cancel").assertIsFocused().performClick()
+        assertTrue(graph.auth.isSignedIn)
+        assertEquals(pending, graph.care.state.sync.outbox)
+        assertEquals(doses, graph.care.state.doses)
+
+        compose.onNodeWithTag("settings.sign-out").performScrollTo().performClick()
+        compose.onNodeWithTag("settings.sign-out.confirm").performClick()
+        waitForTag("settings.sign-out.discard")
+        compose.onNodeWithTag("settings.sign-out.discard").performClick()
+        compose.waitUntil(5_000) { !graph.auth.isSignedIn }
+        assertFalse(graph.auth.isSignedIn)
+        assertTrue(graph.care.state.sync.outbox.isEmpty())
+        assertTrue(graph.care.state.people.none { it.groupId != null })
+        assertEquals(uploadedDoses, server.tables.getValue(SyncEntity.DOSE_LOG).size)
     }
 }

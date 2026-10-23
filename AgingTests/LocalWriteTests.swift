@@ -4,6 +4,106 @@ import Testing
 
 @testable import Aging
 
+@MainActor
+@Suite("Sign-out protects unsent changes")
+struct SignOutProtectionTests {
+    private func sharedVisit() throws -> (ModelContainer, UUID) {
+        let container = CareModelStore.makeInMemoryContainer()
+        let context = ModelContext(container)
+        let group = UUID()
+        let person = Person(name: "Mom")
+        person.groupID = group
+        person.isDirty = false
+        context.insert(person)
+        let visit = Visit(provider: "Dr. Patel", person: person)
+        visit.groupID = group
+        context.insert(visit)
+        context.insert(OutboxEntry(entityType: .visit, entityID: visit.id, groupID: group))
+        try context.save()
+        return (container, group)
+    }
+
+    @Test("A successful upload permits sign-out only after the shared visit reaches the server")
+    func syncBeforeSignOut() async throws {
+        let (container, group) = try sharedVisit()
+        let engine = SyncEngine(modelContainer: container)
+        let remote = FakeRemote()
+        let warning = try await SignOutProtection.prepare(in: container) {
+            _ = await engine.sync(remote: remote, groupID: group)
+        }
+        #expect(warning == nil)
+        #expect(try await remote.rows(VisitDTO.self).count == 1)
+        #expect(try SignOutProtection.pendingChanges(in: container).isEmpty)
+    }
+
+    @Test("Offline and refused uploads name the unsent visit and leave it available to Cancel",
+          arguments: [SyncError.offline, .rejected("Access changed"), .server("Unavailable")])
+    func failedSyncKeepsChanges(error: SyncError) async throws {
+        let (container, group) = try sharedVisit()
+        let engine = SyncEngine(modelContainer: container)
+        let remote = FakeRemote()
+        await remote.setNextPushError(error)
+        let warning = try await SignOutProtection.prepare(in: container) {
+            _ = await engine.sync(remote: remote, groupID: group)
+        }
+        #expect(warning?.contains("1 visit") == true)
+        #expect(warning?.contains("permanently discard") == true)
+        #expect(warning?.contains("Cancel") == true)
+        let context = ModelContext(container)
+        #expect(try context.fetchCount(FetchDescriptor<Visit>()) == 1)
+        #expect(try context.fetchCount(FetchDescriptor<OutboxEntry>()) == 1)
+    }
+
+    @Test("Conflicts and deferred retries still warn even when a sync reports completion")
+    func skippedUploadsStillWarn() async throws {
+        let (container, group) = try sharedVisit()
+        let context = ModelContext(container)
+        let entry = try #require(context.fetch(FetchDescriptor<OutboxEntry>()).first)
+        entry.status = .retrying
+        entry.notBefore = .distantFuture
+        context.insert(OutboxEntry(entityType: .medication, entityID: UUID(), groupID: group))
+        let conflict = try #require(context.fetch(FetchDescriptor<OutboxEntry>()).first { $0.entityType == .medication })
+        conflict.status = .needsReview
+        try context.save()
+        let engine = SyncEngine(modelContainer: container)
+        let remote = FakeRemote()
+        let warning = try await SignOutProtection.prepare(in: container) {
+            let outcome = await engine.sync(remote: remote, groupID: group)
+            #expect(outcome.isComplete)
+        }
+        #expect(warning?.contains("1 visit") == true)
+        #expect(warning?.contains("1 medication") == true)
+    }
+
+    @Test("Dirty rows, tombstones and duplicate queue entries count once; private records stay private")
+    func countsAtRiskRecords() throws {
+        let (container, group) = try sharedVisit()
+        let context = ModelContext(container)
+        let visit = try #require(context.fetch(FetchDescriptor<Visit>()).first)
+        visit.deletedAt = Date()
+        context.insert(OutboxEntry(entityType: .visit, entityID: visit.id, groupID: group))
+        let person = try #require(context.fetch(FetchDescriptor<Person>()).first)
+        let medication = Medication(name: "Lisinopril", person: person)
+        medication.groupID = group
+        context.insert(medication)
+        context.insert(Person(name: "Private record"))
+        try context.save()
+        #expect(try SignOutProtection.pendingChanges(in: container) == ["1 medication", "1 visit"])
+    }
+
+    @Test("No unsent shared changes needs no network request or discard confirmation")
+    func noPendingChanges() async throws {
+        let container = CareModelStore.makeInMemoryContainer()
+        let context = ModelContext(container)
+        context.insert(Person(name: "Private record"))
+        try context.save()
+        var synced = false
+        let warning = try await SignOutProtection.prepare(in: container) { synced = true }
+        #expect(warning == nil)
+        #expect(!synced)
+    }
+}
+
 /// The rules that make a local write actually leave the phone.
 ///
 /// Every one of these covers a failure that is invisible on the device that

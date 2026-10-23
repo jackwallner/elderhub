@@ -13,6 +13,7 @@ import com.jackwallner.aging.data.GroupService
 import com.jackwallner.aging.data.KeyValueStore
 import com.jackwallner.aging.data.ReminderService
 import com.jackwallner.aging.data.SharedPreferencesStore
+import com.jackwallner.aging.data.SignOutProtection
 import com.jackwallner.aging.data.StoreService
 import com.jackwallner.aging.data.SyncCoordinator
 import java.io.File
@@ -56,10 +57,15 @@ class AppGraph(context: Context) {
      * (a wipe, never a delete sent to the family), the RevenueCat customer is
      * released, and reminders re-plan from what is left. Private records stay.
      */
-    suspend fun signOutAndForget() {
+    suspend fun signOutAndForget(discardPendingChanges: Boolean = false): String? {
+        if (!discardPendingChanges) {
+            val warning = SignOutProtection.prepare(care) { sync.syncNow() }
+            if (warning != null) return warning
+        }
         auth.signOut()
         groups.forgetGroupLocally()
         store.forgetCustomer()
+        return null
     }
 
     /** Network-free: the cached session and circle, so first paint never waits on a server. */
