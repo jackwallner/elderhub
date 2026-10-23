@@ -31,19 +31,26 @@ paths:
   so it lays out as on a phone with its back button leading.
 - Still across the fold: onboarding (the root before any person exists) and the
   form sheets (editors, paywall), which present as centred sheets.
-- Unattended captures: `-uitest-family YES -seedDemo YES -DuoTour` plus
-  `-DuoTourFirst`, `-DuoTourStep`, `-DuoRoutes`, `-DuoRoutesRegular` (see
-  `DuoScreenshotTour`). `DUOTOUR` and `DUOGEOM` lines in app.log map shots to
-  routes and record the measured fold. With `-DuoTour` the seeded circle is
-  Sarah and Jack, the names on the sample tasks; pick gh-sim
-  `--env TZ=Etc/GMT-N` so the launch lands near 7 AM local: seed timestamps
-  are launch time, and after 8 AM every sample dose reads overdue. Dad's
-  record is deliberately sparse, so captures use Mom. `simctl openurl` raises an alert on
-  iOS 27, so the tour runs on a timer and never takes a URL. Never pace gh-sim
-  shots with made-up URLs (`noop://N`): run 2's capture was rejected for it.
-  Without URLs gh-sim takes one shot per display, so the store set needs a
-  timed-shot option in gh-sim (`--shots N`, drafted 2026-10-22 in the
-  evidence folder of fleet run `shift-duo-elderhub-3-1792673987`). Once it
-  lands, one `gh-sim all --device 'iPhone Duo' --shots 5 --wait 10` with
-  `-DuoTourStep 11` (a shot takes about a second, so the dwell is a little
-  longer than the wait) gives the tests and every outer and inner shot.
+- The floating tab bar sits inside the leading pane, which is only 669 pt
+  tall, so it covered Today's last visible rows and they showed through its
+  glass. `endsAboveTabBar(_:)` masks each tab at its bottom safe-area edge (the
+  bar's top) in a pane and puts grouped background under the bar. Folded, the
+  mask covers everything; it stays in both poses so folding rebuilds nothing.
+- iOS 27.1 draws the inner display's status bar (time, wifi, battery) in the
+  trailing pane's navigation-bar row; the bar moves its trailing items clear of
+  it. System behaviour, nothing is under it.
+- Unattended captures: `-uitest-family YES -seedDemo YES -DuoTour`, plus one
+  gh-sim `--screen "-DuoScreen <route>"` per surface (`DuoScreenshotTour`):
+  gh-sim relaunches the app per `--screen` and shoots it folded and unfolded.
+  Folded, a route naming a person opens it on the Care tab. Without
+  `-DuoScreen`, `-DuoTour` walks `-DuoRoutes`/`-DuoRoutesRegular` on a timer
+  (`-DuoTourFirst`, `-DuoTourStep`); pass a long step so the launch shot holds
+  still. `DUOTOUR` and `DUOGEOM` lines in app.log map shots to routes and
+  record the measured fold. With `-DuoTour` the seeded circle is Sarah and
+  Jack, the names on the sample tasks. Seed timestamps are first-launch time
+  and every sample dose reads overdue after 8 AM, so pick gh-sim
+  `--env TZ=<zone>` so the launch lands between about 6 and 7:45 local. Dad's
+  record is deliberately sparse, so captures use Mom. Never use `--url`
+  (iOS 27.1 raises an "Open in" alert) or made-up URLs (`noop://N`).
+  The capture command is in the evidence folder of fleet run
+  `shift-duo-elderhub-1-1792799687` (`duo-run.sh`).
