@@ -70,5 +70,18 @@ extension View {
             self
         }
     }
+
+    /// A pane is only phone-height, so the floating tab bar sat over the
+    /// leading pane's last visible rows and they showed through its glass.
+    /// In a pane, a tab's content stops at its bottom safe-area edge (the
+    /// top of the tab bar) and the bar floats over plain background. Folded,
+    /// the mask covers everything and the phone layout is untouched; the mask
+    /// stays in both poses so folding never rebuilds the tab.
+    func endsAboveTabBar(_ isPane: Bool) -> some View {
+        mask {
+            Rectangle().ignoresSafeArea(.all, edges: isPane ? [.top, .horizontal] : .all)
+        }
+        .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
+    }
 }
 #endif

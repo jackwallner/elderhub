@@ -62,3 +62,26 @@ struct UnfoldedSplitTests {
         }
     }
 }
+
+#if DEBUG
+/// `-DuoScreen` captures one surface per launch, folded and unfolded.
+struct DuoScreenRouteTests {
+    @Test func splitRouteKeepsItsTabBesideCare() {
+        let route = DuoScreenshotTour.Route("sharing+mom.tasks")
+        #expect(route.tab == .family)
+        #expect(route.person == "mom")
+        #expect(route.screen == "tasks")
+    }
+
+    @Test func foldedRouteAboutAPersonOpensCare() {
+        let route = DuoScreenshotTour.Route("today+mom.card").folded
+        #expect(route.tab == .people)
+        #expect(route.person == "mom")
+        #expect(route.screen == "card")
+    }
+
+    @Test func foldedRouteWithoutAPersonKeepsItsTab() {
+        #expect(DuoScreenshotTour.Route("sharing").folded.tab == .family)
+    }
+}
+#endif

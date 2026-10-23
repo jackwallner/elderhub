@@ -18,10 +18,17 @@ import Foundation
 /// ("mom", "dad"); `screen` is `card` (the emergency card) or a
 /// `CareFeature` raw value pushed on that person's hub. No `+` leaves Care on
 /// its list.
+///
+/// `-DuoScreen <route>` holds one route for the whole launch instead of the
+/// walk. gh-sim `--screen` relaunches the app once per surface and shoots it
+/// folded and unfolded, so that is how one run captures every surface.
 enum DuoScreenshotTour {
     private static let arguments = ProcessInfo.processInfo.arguments
 
     static var isEnabled: Bool { arguments.contains("-DuoTour") }
+
+    /// The one route this launch shows, or `nil` to walk them.
+    static var screen: Route? { value("-DuoScreen").map(Route.init) }
 
     static func routes(split: Bool) -> [Route] {
         let list = value(split ? "-DuoRoutesRegular" : "-DuoRoutes")
@@ -57,6 +64,19 @@ enum DuoScreenshotTour {
             let target = parts.count > 1 ? parts[1].split(separator: ".").map(String.init) : []
             person = target.first
             screen = target.count > 1 ? target[1] : nil
+        }
+
+        private init(name: String, tab: RootView.Tab, person: String?, screen: String?) {
+            self.name = name
+            self.tab = tab
+            self.person = person
+            self.screen = screen
+        }
+
+        /// Folded there is one screen at a time, so a route about a person
+        /// opens it on the Care tab, where the split shows it beside the tab.
+        var folded: Route {
+            person == nil ? self : Route(name: name, tab: .people, person: person, screen: screen)
         }
 
         /// Writes the route into the navigator, which is all either layout

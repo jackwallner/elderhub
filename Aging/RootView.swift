@@ -184,6 +184,7 @@ struct RootView: View {
 
             TabView(selection: $navigator.tab) {
                 TodayView()
+                    .endsAboveTabBar(split != nil)
                     .tabItem { Label("Today", systemImage: "checklist") }
                     .tag(Tab.today)
 
@@ -194,10 +195,12 @@ struct RootView: View {
                 }
 
                 FamilyView()
+                    .endsAboveTabBar(split != nil)
                     .tabItem { Label("Sharing", systemImage: "person.3") }
                     .tag(Tab.family)
 
                 SettingsView()
+                    .endsAboveTabBar(split != nil)
                     .tabItem { Label("Settings", systemImage: "gear") }
                     .tag(Tab.settings)
             }
@@ -237,6 +240,14 @@ struct RootView: View {
     #if DEBUG
     private func runDuoTour(split: Bool) async {
         guard DuoScreenshotTour.isEnabled else { return }
+        if let screen = DuoScreenshotTour.screen {
+            // Late enough for the seeded people and the measured fold.
+            try? await Task.sleep(for: .seconds(1))
+            guard !Task.isCancelled else { return }
+            (split ? screen : screen.folded).apply(to: navigator, people: people)
+            NSLog("DUOTOUR screen=%@ split=%@", screen.name, split ? "yes" : "no")
+            return
+        }
         let routes = DuoScreenshotTour.routes(split: split)
         guard !routes.isEmpty else { return }
         try? await Task.sleep(for: .seconds(DuoScreenshotTour.firstDelay))
