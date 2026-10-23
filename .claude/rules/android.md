@@ -189,17 +189,36 @@ Debug launch extras (`src/debug/.../DebugLaunchOptions.kt`): `resetAll`,
 - 2026-10-21: family sharing ported (fleet run
   `shift-android-elderhub-google-1-1792573537`). Release now also needs
   `GOOGLE_WEB_CLIENT_ID` in the Air's `local.properties`.
+- 2026-10-23 (Air package run `shift-android-package-elderhub-3-1792776608`,
+  source `f87fabc`, Google sign-in included): signed release artifacts made
+  and verified. `~/fleet-artifacts/shift-android-package-elderhub-3-1792776608/`
+  `elderhub-1.0.4-vc1.apk` and `elderhub-1.0.4-vc1.aab`: `com.jackwallner.aging`
+  1.0.4 (versionCode 1), min SDK 26, target SDK 36, signed by the upload key
+  `~/.android/keystores/aging-upload.p12` (alias `upload`, backup identical in
+  `backups/`), certificate SHA-256 `aa7eb421...44bbb827`, SHA-1
+  `8cdae639ce8ab7d4170dadfcfcec12c43aac8270` (use it for the upload-key Android
+  OAuth client). APK v2 signed and 16 KB zip-aligned; all 8 native libraries
+  (`libandroidx.graphics.path.so`, four ABIs) have 16 KB LOAD alignment; no
+  debug hook strings or `test_` key in the release dex, `goog_` key present.
+  The signed build runs locally on the Air (`./gradlew` with Temurin 17 and
+  `ANDROID_HOME=~/Library/Android/sdk`): `fm-gradle` strips the upload key, so
+  it cannot sign. RevenueCat `proj9692114f` now has the `play_store` app
+  ("elderhub (Play)", `appeedc2dd8ca`) and `~/.rc-clean/apps.json` lists it,
+  but it has no products yet. Play state: the
+  Android Publisher API returns 404 "Package not found" for
+  `com.jackwallner.aging` with the fleet service account, so there is no Play
+  app (or that account has no access), no products, nothing staged, nothing in
+  review.
 - Remaining, in order: the Google Cloud Android OAuth clients (debug, upload
   and Play app-signing SHA-1) beside the web client Supabase trusts, then one
   real sign-in on a device with a Google account; Jack approves the Android
-  price ladder; create the upload keystore on the Air
-  (`~/.android/keystores/aging-upload.p12`, passwords in `~/.aging_credentials`);
-  create the Play app and run `scripts/play-products.py`; add the Play app to the
-  existing RevenueCat project with the same `Aging+` entitlement and packages,
-  register it in `~/.rc-clean/apps.json`; signed AAB with 16 KB alignment check;
-  internal track, licensed purchase/restore, a real Google sign-in, invite and
-  sync with an iPhone in the same circle; publish `assetlinks.json` with the
-  Play app-signing SHA-256; App content forms (Data safety now declares name,
-  email, user ids and the shared health record, see the listing file); update
-  `docs/join.html` for Android when the listing is live; production only in its
-  pacing slot. FCM check-in push stays a separate decision.
+  price ladder; create the Play app in Console and grant the fleet service
+  account, then run `scripts/play-products.py`; import those products into the RevenueCat
+  Play app and attach them to `Aging+` and the offering packages; upload the verified AAB above
+  to the internal track; internal track, licensed purchase/restore, a real
+  Google sign-in, invite and sync with an iPhone in the same circle; publish
+  `assetlinks.json` with the Play app-signing SHA-256; App content forms (Data
+  safety now declares name, email, user ids and the shared health record, see
+  the listing file); update `docs/join.html` for Android when the listing is
+  live; production only in its pacing slot. FCM check-in push stays a separate
+  decision.
