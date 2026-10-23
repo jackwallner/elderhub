@@ -24,8 +24,8 @@ Fix: focus Systolic on open, add a keyboard toolbar with Next and Done, jump to 
 `41`: Vitals is a flat newest-first list of 53 values. No latest, 30-day average, range or sparkline; the project does not import Charts at all. The Timeline (`63`) has a single "Filter" menu and no search field (`timeline.search-field: MISSING`). In code `loadWindow` fetches only non-taken doses, so the Timeline cannot show that a dose was taken, and "Load earlier history" widens only the dose and check-in window, not visits or vitals. What this app is for, answering a doctor's "how has her pressure been", means scrolling and reading.
 Fix: a header above the list (last, 30-day average, high/low) with a small Charts line for the selected kind; a search field on Timeline; include taken doses in a "Doses" filter.
 
-### E-05 (P2, RUNTIME) The cross-record search is not visible on the Care tab
-`65-care-tab.png`: no search field under the "Care" title and `searchFields` matched nothing (`care.search-field: MISSING`), although `PeopleView` declares `.searchable` (prompt "Meds, allergies, people, tasks, contacts, notes") and the code comments call it a feature (plan82 slice F). A power user cannot find the fastest route to "that note about the side door". See "Rerun" for whether pulling the list down reveals it.
+### E-05 (P2, RUNTIME, rerun confirmed) The cross-record search is hidden until the list is pulled down
+`65-care-tab.png`: no search field under the "Care" title and `searchFields` matched nothing (`care.search-field: MISSING`), although `PeopleView` declares `.searchable` (prompt "Meds, allergies, people, tasks, contacts, notes") and the code comments call it a feature (plan82 slice F). A power user cannot find the fastest route to "that note about the side door". Rerun: pulling the list down reveals it (`r2-65b`, field 370x44), and it works: 'hearing' returned 6 rows across tasks, a medication and a symptom note (`r2-66`). So the feature exists but nothing on the resting screen says so.
 Fix: confirm the field renders on iOS 27 inside the tab bar's glass layout; if it only appears on pull-down, pin it (`.searchable(placement: .navigationBarDrawer(displayMode: .always))`) or add a visible search button.
 
 ### E-06 (P2, RUNTIME + SOURCE) The Tasks screen's tick-off circle is a bare glyph with no undo; Today's is not
@@ -42,8 +42,8 @@ Fix: an orange "Overdue 10 hours" caption on overdue rows, and keep "Skip" visib
 ### E-09 (P2, SOURCE) Restocking a bottle means opening the editor and retyping the on-hand number
 `RefillRow` on Today is not tappable, no "Refilled" action exists (`quantityRemaining` is written only by dose ticks and the editor), and the "Running low" row has no way to say "picked up 90". Not exercised at runtime (the demo fixture has nothing low: `mom.running-low-row: MISSING`). Fix: tap the row for "Picked up: + 30 / 60 / 90 / type".
 
-### E-10 (P2, SOURCE, bill editor not reached at runtime in run 1) A one-off bill saves as monthly by default
-`BillEditorSheet` initialises `recurrence = .monthly` and `hasDueDate = true`, so a dentist invoice entered by typing a payee and amount repeats next month once marked paid (footer: "Marking this paid adds the next one automatically"). The amount field is a currency-formatted `TextField(value:format:)`, a known awkward control with the decimal pad. Fix: default Repeat to Never; check the amount typing at runtime (see "Rerun").
+### E-10 (P1, RUNTIME in rerun) A one-off bill defaults to repeating monthly, and typing 45 in Amount gives $450.00
+`BillEditorSheet` initialises `recurrence = .monthly` and `hasDueDate = true`, so a dentist invoice entered by typing a payee and amount repeats next month once marked paid (footer: "Marking this paid adds the next one automatically"). The amount field is a currency-formatted `TextField(value:format:)`, a known awkward control with the decimal pad. Rerun, `r2-67`/`r2-68`: the New Bill sheet opens with Due date on (today) and Repeat 'Every month'. Control log: `Amount field value after typing 45: $450.00`; the field starts as '$0.00' and typed digits are inserted at the tap point, so the cursor sits inside the string (`r2-68`). A caregiver typing a $45 bill can save $450 with no warning (caveat: XCUITest taps the field centre; a real thumb may land at the end, but the pre-filled '0.00' makes the failure easy to hit). Fix: default Repeat to Never, start the Amount empty with a placeholder (or select-all on focus), and show the formatted value only after editing ends.
 
 ### E-11 (P3, RUNTIME) Repeat is hidden until a due date is switched on
 `54-task-editor-scrolled.png`: only Due date, Priority and Who's doing it; Repeat appears after the toggle. A weekly errand takes two extra steps and the missing field reads as no recurrence support. Fix: show Repeat disabled with "Set a due date first" or switch the due date on when Repeat is chosen.
@@ -70,7 +70,14 @@ Control log: emergency-card Share 38x36 pt, Vitals Save 62x36 pt, Today person p
 - Medication editor, task recurrence, restock and PRN paths were read from source, not walked, except where a finding says RUNTIME.
 
 ## Rerun
-See the appended section below once the second gh-sim run (Morning round, Hub and editors, Bills/notes/timeline/search) is in.
+Run 2 (gh-sim run 39832550592, Morning round, Hub and editors, Bills/notes/timeline/search): 2 passed, 1 failed (`testExperiencedHubAndEditors`: `Failed to tap "Cancel" Button` after the new-medication steps; the same control log shows `med-editor.cancel` hittable at 76x36 earlier in the walk, so this is a script fault, probably a Cancel button hidden by an open confirmation or focus state, not an app defect; unresolved and not re-run for lack of time). Records: `test-summary-run2.json`, `test-run2-get.json`, control logs `control-logs-run2.txt`, PNGs `screenshots/r2-*`.
+
+- E-05 and E-10: updated above.
+- E-15 (P3, RUNTIME) Tapping Taken removes the row from the pending list with no confirmation (`r2-05`: Lisinopril vanished from Mom's group; control log `everyone.undo-banner-after-dose: MISSING`), whereas marking a task done shows an Undo bar (`r2-10`, Undo 60x44). SOURCE: undo for a dose lives in the recorded row's status menu or a swipe (`TodayView.swift:1281-1342`), neither visible after the tap. A mistap on the busiest button in the app has no obvious way back. Fix: reuse `offerUndo` for dose records.
+- E-16 (P3, RUNTIME) Care search results repeat the title as the subtitle for tasks and medications (`r2-66`: 'Replace hearing aid batteries' twice, 'Hearing Aid Batteries size 312' then 'Hearing Aid Batteries'). Fix: show the notes or schedule line, or nothing.
+- Confirmed OK: Today's task circle is 44x44 and gives an Undo bar (`r2-10`); the New Bill sheet's Save stays disabled until a payee is entered (`r2-67`); the new-medication sheet shows Track refills (`r2-37`) and the Time picker (87x36). `new-med.weekday-mon` was MISSING in the control log: not investigated (weekday chips may sit below the fold).
+
+Time and queue: run 2 sat on GitHub from the previous attempt and finished in 27m38s. Nothing was left in flight. Frame rate not measured.
 
 ## Next action
-Fix E-01, E-02 and E-03 first (they decide whether the daily loop is fast and whether PRN doses are safe), then E-05 (find out why search is missing), E-06 and E-07. The walks are rerunnable: `gh-sim test --scheme AgingUITests --only AgingUITests/ExperiencedAuditUITests`.
+Fix E-01, E-02, E-03 and E-10 first (they decide whether the daily loop is fast and whether PRN doses are safe), then E-05 (find out why search is missing), E-06 and E-07. The walks are rerunnable: `gh-sim test --scheme AgingUITests --only AgingUITests/ExperiencedAuditUITests`.
