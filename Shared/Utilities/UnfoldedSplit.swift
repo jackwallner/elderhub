@@ -45,8 +45,12 @@ struct UnfoldedSplit: Equatable, Sendable {
 /// strip across the top of the leading pane instead, and both panes' lists
 /// run off the display's bottom edge, as any scrolling list does.
 struct PaneTabChrome: Equatable, Sendable {
-    /// The strip, from the top safe-area edge to the leading pane's first bar.
-    static let stripHeight: CGFloat = 56
+    /// The strip, from the display's top edge to the leading pane's first bar.
+    static let stripHeight: CGFloat = 80
+    /// Where iOS 27.1 centres a pane's navigation-bar row on the inner
+    /// display (measured on the trailing pane's back button). The strip's
+    /// 46 pt capsule is centred on it, so both panes' top rows line up.
+    static let navigationRowCenter: CGFloat = 48
 
     var stripHeight: CGFloat
     var showsSystemTabBar: Bool

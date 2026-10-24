@@ -215,6 +215,10 @@ struct RootView: View {
                         .tag(Tab.settings)
                 }
             }
+            // iOS 27.1 lays a pane's navigation bar into the inner display's
+            // tall status row, so the strip goes up there with it rather than
+            // under it. Folded nothing is ignored and the phone is unchanged.
+            .ignoresSafeArea(.container, edges: chrome.showsSystemTabBar ? [] : .top)
             // The tabs stay inside the leading pane, never across the fold.
             .frame(maxWidth: split?.primaryWidth ?? .infinity, maxHeight: .infinity)
 
@@ -301,7 +305,7 @@ private struct PaneTabStrip: View {
         .background(Color(uiColor: .secondarySystemGroupedBackground), in: Capsule())
         .shadow(color: .black.opacity(0.06), radius: 6, y: 2)
         .padding(.horizontal, 16)
-        .padding(.bottom, 6)
+        .padding(.bottom, PaneTabChrome.stripHeight - PaneTabChrome.navigationRowCenter - 23)
         // Fixed height, like the system bar, so its type is capped like one.
         .dynamicTypeSize(...DynamicTypeSize.xLarge)
     }
@@ -312,9 +316,11 @@ private struct PaneTabStrip: View {
             selection = tab
         } label: {
             HStack(spacing: 6) {
+                // Wide enough for the three-person symbol, so it never
+                // touches its title.
                 Image(systemName: symbol)
-                    .font(.body.weight(.semibold))
-                    .frame(width: 24, height: 22)
+                    .font(.subheadline.weight(.semibold))
+                    .frame(width: 32, height: 20)
                 Text(title)
                     .font(.subheadline.weight(.semibold))
                     .lineLimit(1)

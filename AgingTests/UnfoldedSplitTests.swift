@@ -68,8 +68,11 @@ struct UnfoldedSplitTests {
         // Nothing sits at the bottom of either pane, so no row is ever under a bar.
         #expect(!chrome.showsSystemTabBar)
         #expect(chrome.stripHeight == PaneTabChrome.stripHeight)
-        // Room for a 44 pt-class tap target, and still under a tenth of the pane.
-        #expect(chrome.stripHeight >= 44 && chrome.stripHeight < 669 / 10)
+        // The 46 pt capsule, centred on the trailing pane's bar row, fits
+        // inside the strip with room below it, in under an eighth of the pane.
+        #expect(PaneTabChrome.navigationRowCenter - 23 >= 0)
+        #expect(PaneTabChrome.navigationRowCenter + 23 < chrome.stripHeight)
+        #expect(chrome.stripHeight < 669 / 8)
     }
 
     @Test func foldedKeepsTheSystemTabBarAndNoStrip() {
