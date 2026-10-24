@@ -35,13 +35,14 @@ paths:
   tall, so some rows are always under it. Both ways of hiding that were
   rejected by the visual review: rows crisp through and around the glass, and
   (2026-10-23) a list masked to end in a fade above the bar, which sliced the
-  last visible row. `blursUnderTabBar(_:)` lets the rows run under the bar to
-  the display edge and lays a thin material over them that starts 28 pt above
-  the bar (`TabBarEdgeBlur.leadIn`), is full by the bar's top and fades out
-  over the pane's last 12% before the fold; the same 28 pt bottom content
-  margin keeps the last row clear of it. Folded it is invisible and stays in
-  the tree, so folding rebuilds nothing. Same approach the review accepted for
-  Shop.
+  row sitting on it. `blursUnderTabBar(_:)` lets the rows run under the bar to
+  the display edge under an ultra-thin material washed 60% toward grouped
+  background. It starts only 6 pt above the bar (`TabBarEdgeBlur.leadIn`) and
+  is full 10 pt into it (`settle`): a 28 pt lead-in still faded the last line
+  of the row on the bar. No fade toward the fold: the wash matches the band
+  there, and a fade let a blue Taken button show through beside the bar. The
+  same 6 pt bottom content margin keeps the last row clear of it. Folded it is
+  invisible and stays in the tree, so folding rebuilds nothing.
 - iOS 27.1 draws the inner display's status bar (time, wifi, battery) in the
   trailing pane's navigation-bar row; the bar moves its trailing items clear of
   it. System behaviour, nothing is under it, but it leaves a pushed screen with

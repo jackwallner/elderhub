@@ -62,23 +62,22 @@ struct UnfoldedSplitTests {
         }
     }
 
-    @Test func edgeBlurIsFullByTheTabBarTop() {
+    @Test func edgeBlurStartsJustAboveTheTabBar() {
         // The leading pane's bottom inset on the inner display: bar plus margin.
-        let blur = TabBarEdgeBlur(bottomInset: 82)
-        #expect(blur.height == 82 + TabBarEdgeBlur.leadIn)
-        // Full strength exactly `bottomInset` above the display edge, so no row
-        // shows crisp around or below the bar.
-        #expect(abs(blur.height * (1 - blur.fullStrengthAt) - 82) < 0.001)
+        let blur = TabBarEdgeBlur(bottomInset: 79)
+        #expect(blur.height == 79 + TabBarEdgeBlur.leadIn)
+        // It starts only a few points above the bar, so the row on the bar
+        // keeps its last line, and is full a little way into the bar.
+        #expect(TabBarEdgeBlur.leadIn <= 8)
+        let fullAboveEdge = blur.height * (1 - blur.fullStrengthAt)
+        #expect(abs(fullAboveEdge - (79 - TabBarEdgeBlur.settle)) < 0.001)
+        #expect(fullAboveEdge > 0 && fullAboveEdge < 79)
     }
 
     @Test func edgeBlurWithoutAnInsetIsOnlyTheLeadIn() {
         let blur = TabBarEdgeBlur(bottomInset: -4)
         #expect(blur.height == TabBarEdgeBlur.leadIn)
         #expect(blur.fullStrengthAt == 1)
-    }
-
-    @Test func edgeBlurFadesOutBeforeTheFold() {
-        #expect(TabBarEdgeBlur.foldFade > 0 && TabBarEdgeBlur.foldFade < 0.5)
     }
 }
 
