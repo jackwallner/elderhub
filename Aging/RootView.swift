@@ -206,11 +206,14 @@ struct RootView: View {
                     .tabItem { Label("Settings", systemImage: "gear") }
                     .tag(Tab.settings)
             }
-            // iOS 27.1 lays a pane's bar row into the inner display's tall
-            // status band. The strip takes that row in the leading pane, and
-            // any top inset moves each tab's own bar down below the band.
-            // Folded the inset is zero and the phone is unchanged.
-            .safeAreaPadding(.top, chrome.contentInset)
+            // iOS 27.1 lays the bar row of a stack that reaches the top safe
+            // edge into the inner display's tall status band. Split, the strip
+            // takes that row in the leading pane, and the TabView starts a few
+            // points below the edge so each tab's own bar (its back button,
+            // Everyone, Rename) sits whole under the strip. A safe-area inset
+            // alone left the bars in the band, under the strip. Folded the
+            // padding is zero and the phone is unchanged.
+            .padding(.top, chrome.contentInset)
             .overlay(alignment: .top) {
                 PaneTabStrip(selection: $navigator.tab)
                     .padding(.top, PaneTabChrome.stripTop)

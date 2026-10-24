@@ -52,8 +52,9 @@ struct PaneTabChrome: Equatable, Sendable {
     static let capsuleHeight: CGFloat = 46
     /// The strip's top, from the display's top edge.
     static let stripTop: CGFloat = navigationRowCenter - capsuleHeight / 2
-    /// Added to each tab's top safe area while split. Any inset there drops
-    /// the tab's own bar row out of the status band, below the strip.
+    /// How far below the top safe edge the TabView starts while split. Not
+    /// touching the edge is what drops each tab's own bar row out of the
+    /// status band, below the strip.
     static let splitContentInset: CGFloat = 4
 
     var contentInset: CGFloat
