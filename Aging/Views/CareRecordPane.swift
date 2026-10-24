@@ -7,8 +7,8 @@ import SwiftUI
 /// the pane is a detail column, and a back chevron there reads as a screen
 /// that slid in from the tabs (visual review, 2026-10-23). So the pane
 /// swaps its root instead, and the record menu at its leading edge (the
-/// person's initials) moves between the overview, every screen, and the
-/// other people in the circle.
+/// person's initials and the screen's name) moves between the overview,
+/// every screen, and the other people in the circle.
 struct CareRecordPane: View {
     let person: Person
     let people: [Person]
@@ -18,6 +18,12 @@ struct CareRecordPane: View {
 
     var body: some View {
         screen
+            // The menu carries the screen's name, so every root in the pane
+            // titles itself the same way, leading. Centred bar titles moved
+            // to the leading edge whenever one did not fit beside the
+            // trailing buttons and the status bar ("Appointments", review
+            // 2026-10-23), so the pane's screens did not match each other.
+            .barTitleInContent(true)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     recordMenu
@@ -63,15 +69,33 @@ struct CareRecordPane: View {
                 }
             }
         } label: {
-            Text(person.initials)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(person.color)
-                .frame(width: 34, height: 34)
-                .background(person.color.opacity(0.18), in: Circle())
+            HStack(spacing: 8) {
+                Text(person.initials)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(person.color)
+                    .frame(width: 28, height: 28)
+                    .background(person.color.opacity(0.18), in: Circle())
+                Text(screenTitle)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                Image(systemName: "chevron.down")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
         }
-        .accessibilityLabel("\(person.displayLabel)'s record")
+        .accessibilityLabel("\(screenTitle), \(person.displayLabel)'s record")
         .accessibilityHint("Switches between the overview, each screen and the other people.")
         .accessibilityIdentifier("care-pane.record-menu")
+    }
+
+    /// The hub is the person; every other screen goes by its tile's name.
+    private var screenTitle: String {
+        if route.showsEmergencyCard { return "Emergency card" }
+        if let feature = route.feature, CarePaneScreen.menuFeatures.contains(feature) {
+            return feature.title
+        }
+        return person.displayLabel
     }
 
     /// Another person opens on their overview, as tapping them in the list would.

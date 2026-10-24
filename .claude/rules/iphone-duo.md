@@ -33,8 +33,12 @@ paths:
   `carePath`/`careHub` state as one root screen (`CarePaneScreen.resolve`):
   the list, then `CareRecordPane`, which swaps the hub, a feature screen
   (`CareFeatureScreen`) or the emergency card in place. Its leading item is
-  the person's initials, a menu of Overview, every screen the hub opens
-  (`CarePaneScreen.menuFeatures`), the other people and All people. The hub
+  the person's initials and the screen's name, a menu of Overview, every
+  screen the hub opens (`CarePaneScreen.menuFeatures`), the other people and
+  All people. It stands in for the bar title (`barTitleInContent`) on every
+  pane root: a centred title that did not fit beside the trailing buttons
+  and the status bar jumped to the leading edge, so "Appointments" sat
+  unlike the rest (run shift-duo-elderhub-4, run 1). The hub
   there is built with `pushesRoute: false`. Folded, the same state pushes as
   before, so folding or unfolding lands on the same screen.
 - Each pane gets `horizontalSizeClass = .compact` and
