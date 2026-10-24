@@ -104,18 +104,25 @@ extension NotificationService: UNUserNotificationCenterDelegate {
     /// reminder opened the app on whatever record was last selected. The body
     /// has always said whose dose it is ("Dad: Warfarin"); the app just did not
     /// act on it.
+    // Completion handler form, answered on the main thread. The async form's
+    // compiler-made thunk calls UIKit's handler from a background thread, and
+    // UIKit asserts the main thread there, so a tap could abort the app (the
+    // crash Baby build 66 and Recharge build 39 shipped).
     nonisolated func userNotificationCenter(
         _ center: UNUserNotificationCenter,
-        didReceive response: UNNotificationResponse
-    ) async {
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
         // Pull the one value out before hopping: `userInfo` is
         // [AnyHashable: Any] and so not Sendable, and sending it across the
         // actor boundary is a data race the compiler correctly refuses.
         let raw = response.notification.request.content
             .userInfo[NotificationRoute.personKey] as? String
-        guard let personID = raw.flatMap(UUID.init(uuidString:)) else { return }
-        await MainActor.run {
-            NotificationRoute.shared.route(to: personID)
+        let personID = raw.flatMap(UUID.init(uuidString:))
+        nonisolated(unsafe) let done = completionHandler
+        Task { @MainActor in
+            if let personID { NotificationRoute.shared.route(to: personID) }
+            done()
         }
     }
 }
