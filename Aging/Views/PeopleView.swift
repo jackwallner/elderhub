@@ -2,6 +2,11 @@ import SwiftData
 import SwiftUI
 
 struct PeopleView: View {
+    /// True for the Care pane of the unfolded iPhone Duo, which shows the
+    /// list, a hub or a hub's screen as its root rather than pushing them
+    /// (`CarePaneScreen`). Folded, Care is the phone's ordinary stack.
+    var isPane = false
+
     // Tombstoned rows stay in the store until the outbox has pushed them, so
     // every list of people has to filter them out.
     @Query(filter: #Predicate<Person> { $0.deletedAt == nil }, sort: \Person.createdAt)
@@ -90,168 +95,196 @@ struct PeopleView: View {
 
     var body: some View {
         @Bindable var navigator = navigator
-        return NavigationStack(path: $navigator.carePath) {
-            List {
-                if isSearching {
-                    if searchResults.isEmpty {
-                        ContentUnavailableView.search(text: searchText)
-                    } else {
-                        ForEach(searchResults) { hit in
-                            // A result that cannot be opened is an index, not
-                            // a search. Each hit pushes the screen its record
-                            // lives on, for the person it belongs to.
-                            Button {
-                                searchDestination = SearchDestination(
-                                    personID: hit.personID, kind: hit.kind
-                                )
-                            } label: {
-                                // Search replaced the named sections with one
-                                // flat list, so a private record looked exactly
-                                // like a shared one: the same boundary the list
-                                // below is careful about, erased by typing into
-                                // a field. The badge is the section heading,
-                                // carried onto the row.
-                                SearchHitRow(
-                                    hit: hit,
-                                    isPrivate: privatePersonIDs.contains(hit.personID)
-                                )
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                } else if privatePeople.isEmpty {
-                    // The ordinary case: one world, no headings needed.
-                    ForEach(people) { person in
-                        personLink(person)
-                    }
-                    .onDelete { offsets in delete(people, at: offsets) }
-                } else {
-                    Section {
-                        ForEach(circlePeople) { person in
-                            personLink(person)
-                        }
-                        .onDelete { offsets in delete(circlePeople, at: offsets) }
-                    } header: {
-                        Text(groups.groupName.isEmpty ? "Shared with the family" : groups.groupName)
-                    }
-
-                    Section {
-                        ForEach(privatePeople) { person in
-                            personLink(person)
-                                .swipeActions(edge: .leading) {
-                                    if person.groupID == nil {
-                                        Button {
-                                            pendingAdoption = person
-                                        } label: {
-                                            Label("Share", systemImage: "person.2")
-                                        }
-                                        .tint(.accentColor)
-                                    }
-                                }
-                        }
-                        .onDelete { offsets in delete(privatePeople, at: offsets) }
-                    } header: {
-                        Text("Only on this phone")
-                    } footer: {
-                        Text("Nobody else in your care circle can see these. Swipe one to share it with the family, or leave it here.")
-                    }
-                }
+        if isPane {
+            NavigationStack {
+                paneRoot
             }
-            .navigationTitle("Care")
-            // Leads with the kinds nobody guesses are searchable. The old
-            // prompt named five of the eight `CareSearch` returns and left out
-            // people, allergies and conditions, contacts, and incidents, so a
-            // search for "allergy" or "fall" looked unsupported before it ran.
-            .searchable(text: $searchText, prompt: "Meds, allergies, people, tasks, contacts, notes")
-            .navigationDestination(for: UUID.self) { personID in
-                if let person = people.first(where: { $0.id == personID }) {
-                    PersonDetailView(person: person, route: $navigator.careHub)
-                }
+        } else {
+            NavigationStack(path: $navigator.carePath) {
+                peopleList
+                    .navigationDestination(for: UUID.self) { personID in
+                        if let person = people.first(where: { $0.id == personID }) {
+                            PersonDetailView(person: person, route: $navigator.careHub)
+                        }
+                    }
             }
             .onChange(of: navigator.carePath) { _, path in
                 // Popping to the list, or the tab bar's pop-to-root, leaves
                 // the hub's route behind for whichever person opens next.
                 if path.isEmpty { navigator.careHub = HubRoute() }
             }
-            .navigationDestination(item: $searchDestination) { destination in
-                if let person = people.first(where: { $0.id == destination.personID }) {
-                    searchScreen(for: destination.kind, person: person)
-                }
-            }
-            // Debounced (I1: local scan, not per keystroke) so a naive
-            // rescan of two years of rows never runs on every typed
-            // character (plan82 slice F).
-            .onChange(of: searchText) { _, newValue in
-                runDebouncedSearch(for: newValue)
-            }
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        if isUnlocked || billablePersonCount < freePersonLimit {
-                            isAddingPerson = true
-                        } else {
-                            showPaywall = true
+        }
+    }
+
+    /// The pane's one root screen: the list until someone is opened, then
+    /// their record.
+    @ViewBuilder
+    private var paneRoot: some View {
+        @Bindable var navigator = navigator
+        let screen = CarePaneScreen.resolve(
+            path: navigator.carePath,
+            route: navigator.careHub,
+            personIDs: Set(people.map(\.id))
+        )
+        if screen != .people, let id = navigator.carePath.last,
+           let person = people.first(where: { $0.id == id }) {
+            CareRecordPane(person: person, people: people, route: $navigator.careHub)
+        } else {
+            peopleList
+        }
+    }
+
+    private var peopleList: some View {
+        List {
+            if isSearching {
+                if searchResults.isEmpty {
+                    ContentUnavailableView.search(text: searchText)
+                } else {
+                    ForEach(searchResults) { hit in
+                        // A result that cannot be opened is an index, not
+                        // a search. Each hit pushes the screen its record
+                        // lives on, for the person it belongs to.
+                        Button {
+                            searchDestination = SearchDestination(
+                                personID: hit.personID, kind: hit.kind
+                            )
+                        } label: {
+                            // Search replaced the named sections with one
+                            // flat list, so a private record looked exactly
+                            // like a shared one: the same boundary the list
+                            // below is careful about, erased by typing into
+                            // a field. The badge is the section heading,
+                            // carried onto the row.
+                            SearchHitRow(
+                                hit: hit,
+                                isPrivate: privatePersonIDs.contains(hit.personID)
+                            )
                         }
-                    } label: {
-                        Label("Add person", systemImage: "plus")
+                        .buttonStyle(.plain)
                     }
                 }
-            }
-            .sheet(isPresented: $isAddingPerson) {
-                PersonEditorSheet(requiresAttestation: groups.activeGroupID != nil) { draft in
-                    let person = Person(
-                        name: draft.name,
-                        relationship: draft.relationship,
-                        birthDate: draft.birthDate,
-                        colorIndex: people.count,
-                        isSelf: draft.relationship.lowercased() == "me"
-                    )
-                    person.groupID = groups.activeGroupID
-                    if draft.attested { person.surrogateAttestedAt = Date() }
-                    context.insert(person)
-                    person.recordLocalChange(in: context)
+            } else if privatePeople.isEmpty {
+                // The ordinary case: one world, no headings needed.
+                ForEach(people) { person in
+                    personLink(person)
+                }
+                .onDelete { offsets in delete(people, at: offsets) }
+            } else {
+                Section {
+                    ForEach(circlePeople) { person in
+                        personLink(person)
+                    }
+                    .onDelete { offsets in delete(circlePeople, at: offsets) }
+                } header: {
+                    Text(groups.groupName.isEmpty ? "Shared with the family" : groups.groupName)
+                }
+
+                Section {
+                    ForEach(privatePeople) { person in
+                        personLink(person)
+                            .swipeActions(edge: .leading) {
+                                if person.groupID == nil {
+                                    Button {
+                                        pendingAdoption = person
+                                    } label: {
+                                        Label("Share", systemImage: "person.2")
+                                    }
+                                    .tint(.accentColor)
+                                }
+                            }
+                    }
+                    .onDelete { offsets in delete(privatePeople, at: offsets) }
+                } header: {
+                    Text("Only on this phone")
+                } footer: {
+                    Text("Nobody else in your care circle can see these. Swipe one to share it with the family, or leave it here.")
                 }
             }
-            .sheet(isPresented: $showPaywall) {
-                PaywallView()
+        }
+        .navigationTitle("Care")
+        // Leads with the kinds nobody guesses are searchable. The old
+        // prompt named five of the eight `CareSearch` returns and left out
+        // people, allergies and conditions, contacts, and incidents, so a
+        // search for "allergy" or "fall" looked unsupported before it ran.
+        .searchable(text: $searchText, prompt: "Meds, allergies, people, tasks, contacts, notes")
+        .navigationDestination(item: $searchDestination) { destination in
+            if let person = people.first(where: { $0.id == destination.personID }) {
+                searchScreen(for: destination.kind, person: person)
             }
-            .confirmationDialog(
-                pendingAdoption.map { "Share \($0.displayLabel) with the family?" } ?? "Share this record?",
-                isPresented: Binding(
-                    get: { pendingAdoption != nil },
-                    set: { if !$0 { pendingAdoption = nil } }
-                ),
-                titleVisibility: .visible
-            ) {
-                Button("Share") {
-                    if let person = pendingAdoption { adopt(person) }
-                    pendingAdoption = nil
+        }
+        // Debounced (I1: local scan, not per keystroke) so a naive
+        // rescan of two years of rows never runs on every typed
+        // character (plan82 slice F).
+        .onChange(of: searchText) { _, newValue in
+            runDebouncedSearch(for: newValue)
+        }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    if isUnlocked || billablePersonCount < freePersonLimit {
+                        isAddingPerson = true
+                    } else {
+                        showPaywall = true
+                    }
+                } label: {
+                    Label("Add person", systemImage: "plus")
                 }
-                Button("Cancel", role: .cancel) { pendingAdoption = nil }
-            } message: {
-                // Named in full, because this is the moment a private record
-                // becomes other people's to read, and it does not come back.
-                Text(pendingAdoption.map(adoptionScope) ?? "")
             }
-            .confirmationDialog(
-                pendingDeletion.map { "Remove \($0.displayLabel)?" } ?? "Remove this person?",
-                isPresented: Binding(
-                    get: { pendingDeletion != nil },
-                    set: { if !$0 { pendingDeletion = nil } }
-                ),
-                titleVisibility: .visible
-            ) {
-                Button("Remove", role: .destructive) {
-                    if let person = pendingDeletion { remove(person) }
-                    pendingDeletion = nil
-                }
-                Button("Cancel", role: .cancel) { pendingDeletion = nil }
-            } message: {
-                // The scope is the point. One swipe used to take the person and
-                // everything hanging off them, on every phone in the family,
-                // with nothing in between and no way back.
-                Text(pendingDeletion.map(deletionScope) ?? "")
+        }
+        .sheet(isPresented: $isAddingPerson) {
+            PersonEditorSheet(requiresAttestation: groups.activeGroupID != nil) { draft in
+                let person = Person(
+                    name: draft.name,
+                    relationship: draft.relationship,
+                    birthDate: draft.birthDate,
+                    colorIndex: people.count,
+                    isSelf: draft.relationship.lowercased() == "me"
+                )
+                person.groupID = groups.activeGroupID
+                if draft.attested { person.surrogateAttestedAt = Date() }
+                context.insert(person)
+                person.recordLocalChange(in: context)
             }
+        }
+        .sheet(isPresented: $showPaywall) {
+            PaywallView()
+        }
+        .confirmationDialog(
+            pendingAdoption.map { "Share \($0.displayLabel) with the family?" } ?? "Share this record?",
+            isPresented: Binding(
+                get: { pendingAdoption != nil },
+                set: { if !$0 { pendingAdoption = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Share") {
+                if let person = pendingAdoption { adopt(person) }
+                pendingAdoption = nil
+            }
+            Button("Cancel", role: .cancel) { pendingAdoption = nil }
+        } message: {
+            // Named in full, because this is the moment a private record
+            // becomes other people's to read, and it does not come back.
+            Text(pendingAdoption.map(adoptionScope) ?? "")
+        }
+        .confirmationDialog(
+            pendingDeletion.map { "Remove \($0.displayLabel)?" } ?? "Remove this person?",
+            isPresented: Binding(
+                get: { pendingDeletion != nil },
+                set: { if !$0 { pendingDeletion = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Remove", role: .destructive) {
+                if let person = pendingDeletion { remove(person) }
+                pendingDeletion = nil
+            }
+            Button("Cancel", role: .cancel) { pendingDeletion = nil }
+        } message: {
+            // The scope is the point. One swipe used to take the person and
+            // everything hanging off them, on every phone in the family,
+            // with nothing in between and no way back.
+            Text(pendingDeletion.map(deletionScope) ?? "")
         }
     }
 
@@ -334,8 +367,26 @@ struct PeopleView: View {
 
     @ViewBuilder
     private func personLink(_ person: Person) -> some View {
-        NavigationLink(value: person.id) {
-            PersonRow(person: person, setupSummary: setupSummary(for: person))
+        if isPane {
+            // The pane opens the record in place of the list, not on top.
+            Button {
+                navigator.careHub = HubRoute()
+                navigator.carePath = [person.id]
+            } label: {
+                HStack {
+                    PersonRow(person: person, setupSummary: setupSummary(for: person))
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        } else {
+            NavigationLink(value: person.id) {
+                PersonRow(person: person, setupSummary: setupSummary(for: person))
+            }
         }
     }
 

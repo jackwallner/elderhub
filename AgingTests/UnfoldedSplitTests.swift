@@ -82,6 +82,43 @@ struct UnfoldedSplitTests {
     }
 }
 
+/// Split, the Care pane shows the navigator's Care stack as one root screen,
+/// so nothing beside the fold carries a back button.
+struct CarePaneScreenTests {
+    private let mom = UUID()
+
+    @Test func emptyPathShowsThePeopleList() {
+        #expect(CarePaneScreen.resolve(path: [], route: HubRoute(), personIDs: [mom]) == .people)
+    }
+
+    @Test func openPersonShowsTheirHub() {
+        #expect(CarePaneScreen.resolve(path: [mom], route: HubRoute(), personIDs: [mom]) == .hub(mom))
+    }
+
+    @Test func pushedScreenBecomesThePaneRoot() {
+        let route = HubRoute(feature: .tasks)
+        #expect(CarePaneScreen.resolve(path: [mom], route: route, personIDs: [mom]) == .feature(mom, .tasks))
+        let card = HubRoute(showsEmergencyCard: true)
+        #expect(CarePaneScreen.resolve(path: [mom], route: card, personIDs: [mom]) == .emergencyCard(mom))
+    }
+
+    @Test func removedPersonFallsBackToTheList() {
+        #expect(CarePaneScreen.resolve(path: [mom], route: HubRoute(feature: .tasks), personIDs: []) == .people)
+    }
+
+    @Test func sheetFeaturesStayOnTheHub() {
+        // Health details is a sheet and medications are the hub's own list.
+        #expect(CarePaneScreen.resolve(path: [mom], route: HubRoute(feature: .healthDetails), personIDs: [mom]) == .hub(mom))
+        #expect(CarePaneScreen.resolve(path: [mom], route: HubRoute(feature: .medications), personIDs: [mom]) == .hub(mom))
+    }
+
+    @Test func recordMenuReachesEveryScreenTheHubOpens() {
+        let opened = Set(CareFeature.allCases).subtracting([.medications, .healthDetails])
+        #expect(Set(CarePaneScreen.menuFeatures) == opened)
+        #expect(CarePaneScreen.menuFeatures.count == opened.count)
+    }
+}
+
 #if DEBUG
 /// `-DuoScreen` captures one surface per launch, folded and unfolded.
 struct DuoScreenRouteTests {

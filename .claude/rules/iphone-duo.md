@@ -5,6 +5,7 @@ paths:
   - "Aging/Support/DuoScreenshotTour.swift"
   - "Shared/Utilities/UnfoldedSplit.swift"
   - "Aging/Views/PeopleView.swift"
+  - "Aging/Views/CareRecordPane.swift"
   - "AgingTests/UnfoldedSplitTests.swift"
 ---
 
@@ -26,6 +27,16 @@ paths:
   (`navigationDestination` follows changes only), so
   `PersonDetailView.reopenRestoredRoute` clears and rewrites it on appear.
   Search results are still local to `PeopleView`.
+- Split, the Care pane is a detail column, never a stack with a back button
+  against the fold (visual review, 2026-10-23: every pushed screen there was
+  rejected for its chevron). `PeopleView(isPane: true)` shows the same
+  `carePath`/`careHub` state as one root screen (`CarePaneScreen.resolve`):
+  the list, then `CareRecordPane`, which swaps the hub, a feature screen
+  (`CareFeatureScreen`) or the emergency card in place. Its leading item is
+  the person's initials, a menu of Overview, every screen the hub opens
+  (`CarePaneScreen.menuFeatures`), the other people and All people. The hub
+  there is built with `pushesRoute: false`. Folded, the same state pushes as
+  before, so folding or unfolding lands on the same screen.
 - Each pane gets `horizontalSizeClass = .compact` and
   `horizontalToolbarInPane(true)` (iOS 27.1 `toolbarVerticalBehavior(.disabled)`),
   so it lays out as on a phone with its back button leading.

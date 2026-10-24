@@ -43,12 +43,15 @@ struct PersonDetailView: View {
     private let restoredRoute: Binding<HubRoute>?
     @State private var ownRoute = HubRoute()
     private var route: Binding<HubRoute> { restoredRoute ?? $ownRoute }
+    /// False when the hub is the root of the Duo's Care pane, which shows the
+    /// route in its own place instead of pushing it (`CareRecordPane`).
+    private let pushesRoute: Bool
     @State private var pendingDeletion: PendingRecordDeletion?
 
     /// The tiles, in the order a caregiver reaches for them. Check-in is last of
     /// the everyday group because it is set up once and then mostly read.
-    private var everyday: [CareFeature] { [.tasks, .bills, .vitals, .incidents, .checkIn] }
-    private var records: [CareFeature] { [.visits, .providers, .healthDetails, .contacts, .notes, .timeline] }
+    nonisolated static let everyday: [CareFeature] = [.tasks, .bills, .vitals, .incidents, .checkIn]
+    nonisolated static let records: [CareFeature] = [.visits, .providers, .healthDetails, .contacts, .notes, .timeline]
 
     private var columns: [GridItem] {
         if dynamicTypeSize.isAccessibilitySize {
@@ -57,9 +60,10 @@ struct PersonDetailView: View {
         return [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
     }
 
-    init(person: Person, route: Binding<HubRoute>? = nil) {
+    init(person: Person, route: Binding<HubRoute>? = nil, pushesRoute: Bool = true) {
         self.person = person
         self.restoredRoute = route
+        self.pushesRoute = pushesRoute
     }
 
     var body: some View {
@@ -147,13 +151,13 @@ struct PersonDetailView: View {
             tileSection(
                 title: "Every day",
                 footer: "Everything here is kept on this phone first, so it opens with no signal.",
-                features: everyday
+                features: Self.everyday
             )
 
             tileSection(
                 title: "Records",
                 footer: nil,
-                features: records
+                features: Self.records
             )
 
             Section {
@@ -180,10 +184,10 @@ struct PersonDetailView: View {
         // first screen on the one screen whose job is to show what is here.
         .navigationTitle(person.displayLabel)
         .navigationBarTitleDisplayMode(.inline)
-        .navigationDestination(item: route.feature) { feature in
-            destination(for: feature)
+        .navigationDestination(item: pushesRoute ? route.feature : .constant(nil)) { feature in
+            CareFeatureScreen(feature: feature, person: person)
         }
-        .navigationDestination(isPresented: route.showsEmergencyCard) {
+        .navigationDestination(isPresented: pushesRoute ? route.showsEmergencyCard : .constant(false)) {
             EmergencyCardView(person: person)
         }
         .sheet(isPresented: $isAddingMedication) {
@@ -214,7 +218,7 @@ struct PersonDetailView: View {
     /// `navigationDestination` only follows a change. So it is cleared and
     /// written again once the hub is on screen.
     private func reopenRestoredRoute() async {
-        guard let restoredRoute, restoredRoute.wrappedValue != HubRoute() else { return }
+        guard pushesRoute, let restoredRoute, restoredRoute.wrappedValue != HubRoute() else { return }
         let saved = restoredRoute.wrappedValue
         restoredRoute.wrappedValue = HubRoute()
         try? await Task.sleep(for: .milliseconds(300))
@@ -352,35 +356,6 @@ struct PersonDetailView: View {
             : "person-detail.\(feature.rawValue)"
     }
 
-    @ViewBuilder
-    private func destination(for feature: CareFeature) -> some View {
-        switch feature {
-        case .medications, .healthDetails:
-            // Medications are the list above; health details is a sheet.
-            EmptyView()
-        case .tasks:
-            CareTasksView(person: person)
-        case .vitals:
-            VitalsView(person: person)
-        case .visits:
-            VisitsView(person: person)
-        case .providers:
-            ProvidersView(person: person)
-        case .incidents:
-            CareEventsView(person: person)
-        case .timeline:
-            TimelineView(person: person)
-        case .notes:
-            CareNotesView(person: person)
-        case .bills:
-            BillsView(person: person)
-        case .contacts:
-            EmergencyContactsView(person: person)
-        case .checkIn:
-            CheckInSettingsView(person: person)
-        }
-    }
-
     // MARK: - Tile copy
 
     /// The check-in tile is the one whose line depends on state rather than on
@@ -516,6 +491,41 @@ struct PersonDetailView: View {
         }
         context.saveOrReport()
         Task { await DoseReminderScheduler.refresh(in: context) }
+    }
+}
+
+/// The screen a hub tile opens. Pushed by the hub, or shown as the root of
+/// the Duo's Care pane.
+struct CareFeatureScreen: View {
+    let feature: CareFeature
+    let person: Person
+
+    var body: some View {
+        switch feature {
+        case .medications, .healthDetails:
+            // Medications are the hub's own list; health details is a sheet.
+            EmptyView()
+        case .tasks:
+            CareTasksView(person: person)
+        case .vitals:
+            VitalsView(person: person)
+        case .visits:
+            VisitsView(person: person)
+        case .providers:
+            ProvidersView(person: person)
+        case .incidents:
+            CareEventsView(person: person)
+        case .timeline:
+            TimelineView(person: person)
+        case .notes:
+            CareNotesView(person: person)
+        case .bills:
+            BillsView(person: person)
+        case .contacts:
+            EmergencyContactsView(person: person)
+        case .checkIn:
+            CheckInSettingsView(person: person)
+        }
     }
 }
 

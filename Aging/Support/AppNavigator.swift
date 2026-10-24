@@ -43,7 +43,35 @@ final class AppNavigator {
 
 /// What a person's hub has pushed. One value, so a whole route can be handed
 /// to the hub and restored in one write.
-struct HubRoute: Equatable {
+struct HubRoute: Hashable {
     var feature: CareFeature?
     var showsEmergencyCard = false
+}
+
+/// What the Care pane of the unfolded iPhone Duo shows as its root.
+///
+/// Folded, Care is a stack: the list, a person's hub pushed on it, a screen
+/// pushed on that. Split, the pane sits beside the fold as a detail column
+/// and shows the same `AppNavigator` state as one root screen, so it never
+/// carries a back button against the fold. Its record menu moves between
+/// them (`CareRecordPane`). Read from the same two values either way, so
+/// folding or unfolding lands on the same screen.
+enum CarePaneScreen: Equatable {
+    case people
+    case hub(UUID)
+    case feature(UUID, CareFeature)
+    case emergencyCard(UUID)
+
+    /// A person who is gone (deleted on another phone) falls back to the list.
+    static func resolve(path: [UUID], route: HubRoute, personIDs: Set<UUID>) -> CarePaneScreen {
+        guard let id = path.last, personIDs.contains(id) else { return .people }
+        if route.showsEmergencyCard { return .emergencyCard(id) }
+        if let feature = route.feature, menuFeatures.contains(feature) { return .feature(id, feature) }
+        return .hub(id)
+    }
+
+    /// Every hub tile that opens a screen, in the hub's order. Medications
+    /// are the hub's own list and health details is a sheet.
+    static let menuFeatures: [CareFeature] =
+        (PersonDetailView.everyday + PersonDetailView.records).filter { $0 != .healthDetails }
 }
