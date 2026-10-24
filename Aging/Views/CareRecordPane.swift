@@ -91,7 +91,9 @@ struct CareRecordPane: View {
 
     /// The hub is the person; every other screen goes by its tile's name.
     private var screenTitle: String {
-        if route.showsEmergencyCard { return "Emergency card" }
+        // Short, so the card's Share and Edit stay beside it rather than
+        // folding into an overflow menu; the card's header names it in full.
+        if route.showsEmergencyCard { return "ER card" }
         if let feature = route.feature, CarePaneScreen.menuFeatures.contains(feature) {
             return feature.title
         }
