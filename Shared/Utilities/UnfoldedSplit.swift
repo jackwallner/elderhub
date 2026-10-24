@@ -55,7 +55,7 @@ struct PaneTabChrome: Equatable, Sendable {
     /// How far below the top safe edge the TabView starts while split. Not
     /// touching the edge is what drops each tab's own bar row out of the
     /// status band, below the strip.
-    static let splitContentInset: CGFloat = 4
+    static let splitContentInset: CGFloat = 12
 
     var contentInset: CGFloat
     var showsSystemTabBar: Bool

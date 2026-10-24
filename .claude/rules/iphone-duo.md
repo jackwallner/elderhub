@@ -36,7 +36,7 @@ paths:
   strip across the top of the leading pane (`PaneTabStrip`, `PaneTabChrome`),
   so both lists run off the display's bottom edge. iOS 27.1 lays a pane's bar
   row into the inner display's 82 pt status band, so the strip is an overlay
-  centred on that row (48 pt), and the `TabView` gets 4 pt of top padding: a
+  centred on that row (48 pt), and the `TabView` gets 12 pt of top padding: a
   stack whose frame stops short of the top safe edge puts its bar below the
   band. `safeAreaPadding` did not (run 3: the strip hid Everyone and Rename).
   Don't stack the strip above the `TabView` in a `VStack` that ignores the top
