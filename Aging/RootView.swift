@@ -217,6 +217,7 @@ struct RootView: View {
         // Each pane is phone-width, so its screens lay out as on a phone.
         .environment(\.horizontalSizeClass, split == nil ? horizontalSizeClass : .compact)
         .horizontalToolbarInPane(split != nil)
+        .environment(\.isUnfoldedPane, split != nil)
         .onGeometryChange(for: PaneGeometry.self) { proxy in
             PaneGeometry(width: proxy.size.width, fold: proxy.verticalFold())
         } action: { paneGeometry = $0 }

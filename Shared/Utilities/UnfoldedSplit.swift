@@ -57,6 +57,12 @@ extension GeometryProxy {
     }
 }
 
+extension EnvironmentValues {
+    /// True inside a pane of the unfolded iPhone Duo, for the few screens
+    /// whose bar does not fit beside the status bar there.
+    @Entry var isUnfoldedPane = false
+}
+
 extension View {
     /// iOS 27.1 can move a stack's back button into a vertical bar on its
     /// trailing edge, which in a pane lands beside the fold with the title
@@ -78,6 +84,18 @@ extension View {
     /// background. Folded, the mask covers everything and the phone layout is
     /// untouched; the mask stays in both poses so folding never rebuilds the
     /// tab.
+    /// In a pane the trailing status bar leaves the navigation bar too little
+    /// room for a long title beside two buttons, so the screen drops the bar
+    /// title and shows it in its own content instead. Folded, unchanged.
+    @ViewBuilder
+    func barTitleInContent(_ isPane: Bool) -> some View {
+        if #available(iOS 18, *) {
+            toolbar(removing: isPane ? .title : nil)
+        } else {
+            self
+        }
+    }
+
     func endsAboveTabBar(_ isPane: Bool) -> some View {
         mask {
             VStack(spacing: 0) {

@@ -6,6 +6,7 @@ struct EmergencyCardView: View {
     let person: Person
 
     @Environment(DeviceModeService.self) private var deviceMode
+    @Environment(\.isUnfoldedPane) private var isPane
 
     @State private var isEditingDetails = false
 
@@ -72,6 +73,9 @@ struct EmergencyCardView: View {
         }
         .navigationTitle("Emergency Card")
         .navigationBarTitleDisplayMode(.inline)
+        // Truncated to "Emergency..." beside Share, Edit and the Duo's
+        // status bar, so in a pane the header carries it.
+        .barTitleInContent(isPane)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 ShareLink(item: summary) {
@@ -243,6 +247,12 @@ struct EmergencyCardView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
+            if isPane {
+                Label("Emergency Card", systemImage: "cross.case.fill")
+                    .font(.headline)
+                    .foregroundStyle(.red)
+            }
+
             Text(person.name)
                 .font(.largeTitle.bold())
                 // Read by `OfflineLaunchUITests`: proving the card rendered is
