@@ -73,6 +73,9 @@ enum DuoScreenshotTour {
             self.screen = screen
         }
 
+        /// The same route on the person's hub, without the screen it pushes.
+        var hub: Route { Route(name: name, tab: tab, person: person, screen: nil) }
+
         /// Folded there is one screen at a time, so a route about a person
         /// opens it on the Care tab, where the split shows it beside the tab.
         var folded: Route {

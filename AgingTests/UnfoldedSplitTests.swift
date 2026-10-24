@@ -80,6 +80,13 @@ struct DuoScreenRouteTests {
         #expect(route.screen == "card")
     }
 
+    @Test func hubRouteDropsOnlyTheScreen() {
+        let hub = DuoScreenshotTour.Route("sharing+mom.tasks").hub
+        #expect(hub.tab == .family)
+        #expect(hub.person == "mom")
+        #expect(hub.screen == nil)
+    }
+
     @Test func foldedRouteWithoutAPersonKeepsItsTab() {
         #expect(DuoScreenshotTour.Route("sharing").folded.tab == .family)
     }

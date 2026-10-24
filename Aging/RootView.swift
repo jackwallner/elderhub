@@ -241,10 +241,16 @@ struct RootView: View {
     private func runDuoTour(split: Bool) async {
         guard DuoScreenshotTour.isEnabled else { return }
         if let screen = DuoScreenshotTour.screen {
-            // Late enough for the seeded people and the measured fold.
+            // Late enough for the seeded people and the measured fold. The hub
+            // goes first and its screen after, as a tap would: setting both in
+            // one update pushed the screen mid-push and the pane drew it blank.
+            let route = split ? screen : screen.folded
             try? await Task.sleep(for: .seconds(1))
             guard !Task.isCancelled else { return }
-            (split ? screen : screen.folded).apply(to: navigator, people: people)
+            route.hub.apply(to: navigator, people: people)
+            try? await Task.sleep(for: .seconds(1.5))
+            guard !Task.isCancelled else { return }
+            route.apply(to: navigator, people: people)
             NSLog("DUOTOUR screen=%@ split=%@", screen.name, split ? "yes" : "no")
             return
         }
