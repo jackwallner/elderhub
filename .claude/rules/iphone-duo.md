@@ -88,7 +88,10 @@ paths:
   record is deliberately sparse, so captures use Mom. Never use `--url`
   (iOS 27.1 raises an "Open in" alert) or made-up URLs (`noop://N`).
   The capture command is in the evidence folder of fleet run
-  `shift-duo-elderhub-3-1792810068` (`duo-run.sh`, `TZV=<zone>`). The route
+  `shift-duo-elderhub-4-1792817327` (`duo-run.sh`, `TZV=<zone>`; Africa/Lagos
+  for a dispatch around 05:00-05:40 UTC). The launch shot walks the default
+  split routes, whose first is `today+mom.bills`, so it never repeats a
+  `--screen` surface (review 2026-10-23: launch duplicated screen 1). The route
   waits 3 s before pushing the hub: the inner relaunch first lays out at the
   folded size, and a folded route handed to the new Care pane lost the card. Run it in the
   foreground (a background Bash task); backgrounding it with `&` inside a
