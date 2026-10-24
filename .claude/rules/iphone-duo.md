@@ -69,4 +69,6 @@ paths:
   record is deliberately sparse, so captures use Mom. Never use `--url`
   (iOS 27.1 raises an "Open in" alert) or made-up URLs (`noop://N`).
   The capture command is in the evidence folder of fleet run
-  `shift-duo-elderhub-1-1792799687` (`duo-run.sh`).
+  `shift-duo-elderhub-2-1792805567` (`duo-run.sh`, `TZV=<zone>`). Run it in the
+  foreground (a background Bash task); backgrounding it with `&` inside a
+  shell that exits kills the gh-sim client after dispatch.
