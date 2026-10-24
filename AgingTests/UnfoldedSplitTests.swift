@@ -62,22 +62,20 @@ struct UnfoldedSplitTests {
         }
     }
 
-    @Test func edgeBlurStartsJustAboveTheTabBar() {
-        // The leading pane's bottom inset on the inner display: bar plus margin.
-        let blur = TabBarEdgeBlur(bottomInset: 79)
-        #expect(blur.height == 79 + TabBarEdgeBlur.leadIn)
-        // It starts only a few points above the bar, so the row on the bar
-        // keeps its last line, and is full a little way into the bar.
-        #expect(TabBarEdgeBlur.leadIn <= 8)
-        let fullAboveEdge = blur.height * (1 - blur.fullStrengthAt)
-        #expect(abs(fullAboveEdge - (79 - TabBarEdgeBlur.settle)) < 0.001)
-        #expect(fullAboveEdge > 0 && fullAboveEdge < 79)
+    @Test func splitMovesTheTabsToAStripAboveTheLeadingPane() throws {
+        let split = try #require(UnfoldedSplit.make(width: innerWidth, isRegularWidth: true, fold: 455.5...495.5))
+        let chrome = PaneTabChrome(split: split)
+        // Nothing sits at the bottom of either pane, so no row is ever under a bar.
+        #expect(!chrome.showsSystemTabBar)
+        #expect(chrome.stripHeight == PaneTabChrome.stripHeight)
+        // Room for a 44 pt-class tap target, and still under a tenth of the pane.
+        #expect(chrome.stripHeight >= 44 && chrome.stripHeight < 669 / 10)
     }
 
-    @Test func edgeBlurWithoutAnInsetIsOnlyTheLeadIn() {
-        let blur = TabBarEdgeBlur(bottomInset: -4)
-        #expect(blur.height == TabBarEdgeBlur.leadIn)
-        #expect(blur.fullStrengthAt == 1)
+    @Test func foldedKeepsTheSystemTabBarAndNoStrip() {
+        let chrome = PaneTabChrome(split: UnfoldedSplit.make(width: 466, isRegularWidth: false, fold: nil))
+        #expect(chrome.showsSystemTabBar)
+        #expect(chrome.stripHeight == 0)
     }
 }
 

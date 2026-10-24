@@ -31,18 +31,15 @@ paths:
   so it lays out as on a phone with its back button leading.
 - Still across the fold: onboarding (the root before any person exists) and the
   form sheets (editors, paywall), which present as centred sheets.
-- The floating tab bar sits inside the leading pane, which is only 669 pt
-  tall, so some rows are always under it. Both ways of hiding that were
-  rejected by the visual review: rows crisp through and around the glass, and
-  (2026-10-23) a list masked to end in a fade above the bar, which sliced the
-  row sitting on it. `blursUnderTabBar(_:)` lets the rows run under the bar to
-  the display edge under an ultra-thin material washed 60% toward grouped
-  background. It starts only 6 pt above the bar (`TabBarEdgeBlur.leadIn`) and
-  is full 10 pt into it (`settle`): a 28 pt lead-in still faded the last line
-  of the row on the bar. No fade toward the fold: the wash matches the band
-  there, and a fade let a blue Taken button show through beside the bar. The
-  same 6 pt bottom content margin keeps the last row clear of it. Folded it is
-  invisible and stays in the tree, so folding rebuilds nothing.
+- Split, there is no bar at the bottom of either pane. The system tab bar is
+  hidden on every tab (`systemTabBarHidden`) and the same three tabs run as a
+  strip across the top of the leading pane (`PaneTabStrip`, height from
+  `PaneTabChrome`), so both lists run off the display's bottom edge. A pane is
+  only 669 pt tall, and every way of keeping a bottom bar was rejected by the
+  visual review: rows crisp through the glass, a fade above the bar (sliced
+  the row on it), a blur under it (the row on it still half covered). Same
+  fix that passed Hockey and Baseball. Folded the strip has zero height and
+  stays in the tree, so folding rebuilds nothing.
 - iOS 27.1 draws the inner display's status bar (time, wifi, battery) in the
   trailing pane's navigation-bar row; the bar moves its trailing items clear of
   it. System behaviour, nothing is under it, but it leaves a pushed screen with

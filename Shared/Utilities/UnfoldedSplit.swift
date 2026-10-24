@@ -37,26 +37,24 @@ struct UnfoldedSplit: Equatable, Sendable {
     }
 }
 
-/// The band of blur under the tab bar in the leading pane. `bottomInset` is
-/// the tab's bottom safe-area inset, which on the Duo's inner display is the
-/// floating bar plus the margin below it, so the bar's top edge sits exactly
-/// `bottomInset` above the display's bottom.
-struct TabBarEdgeBlur: Equatable, Sendable {
-    /// How far above the bar the blur begins. Small, so the row sitting on the
-    /// bar keeps its last line crisp instead of fading out (review, 2026-10-23).
-    static let leadIn: CGFloat = 6
-    /// How far into the bar it reaches full strength, so the start is a soft
-    /// ramp rather than a line across the pane.
-    static let settle: CGFloat = 10
+/// Where the tabs go. Folded, and on every other iPhone, they are the system's
+/// floating bar at the bottom. A pane is only phone-height, so a bar at its
+/// bottom always sat over the leading list's last rows: fading the list out
+/// above it sliced the row on it, and blurring rows under it still left one
+/// half covered (visual review, 2026-10-23). Split, the same tabs run as a
+/// strip across the top of the leading pane instead, and both panes' lists
+/// run off the display's bottom edge, as any scrolling list does.
+struct PaneTabChrome: Equatable, Sendable {
+    /// The strip, from the top safe-area edge to the leading pane's first bar.
+    static let stripHeight: CGFloat = 56
 
-    var bottomInset: CGFloat
+    var stripHeight: CGFloat
+    var showsSystemTabBar: Bool
 
-    /// From the first blurred row to the display's bottom edge.
-    var height: CGFloat { max(bottomInset, 0) + Self.leadIn }
-
-    /// Where, from the band's top (0) to the display edge (1), the blur
-    /// reaches full strength.
-    var fullStrengthAt: CGFloat { min((Self.leadIn + Self.settle) / height, 1) }
+    init(split: UnfoldedSplit?) {
+        stripHeight = split == nil ? 0 : Self.stripHeight
+        showsSystemTabBar = split == nil
+    }
 }
 
 /// What the split is computed from, measured once per layout pass.
@@ -111,42 +109,15 @@ extension View {
         }
     }
 
-    /// A pane is only phone-height, so the floating tab bar always sits over
-    /// some of the leading pane's rows. Ending the list in a fade above the bar
-    /// sliced the row sitting on it; letting it run on showed rows crisp around
-    /// and below the glass. In a pane, a tab's rows still run under the bar to
-    /// the display edge (and the last one still scrolls clear, as on a phone),
-    /// but from just above the bar they are blurred and washed toward the
-    /// background, so they read as depth, not text. The wash matches the band
-    /// under the fold, so the blur never ends in an edge there. Folded it is
-    /// invisible and the phone layout is untouched; it stays in both poses so
-    /// folding never rebuilds the tab.
-    func blursUnderTabBar(_ isPane: Bool) -> some View {
-        // The lead-in lifts the last row clear of the blur too, not just of the bar.
-        contentMargins(.bottom, isPane ? TabBarEdgeBlur.leadIn : 0, for: .scrollContent)
-            .overlay {
-                GeometryReader { proxy in
-                    let blur = TabBarEdgeBlur(bottomInset: proxy.safeAreaInsets.bottom)
-                    Rectangle()
-                        .fill(.ultraThinMaterial)
-                        .overlay { Color(uiColor: .systemGroupedBackground).opacity(0.6) }
-                        .mask {
-                            LinearGradient(
-                                stops: [
-                                    .init(color: .clear, location: 0),
-                                    .init(color: .black, location: blur.fullStrengthAt),
-                                ],
-                                startPoint: .top, endPoint: .bottom
-                            )
-                        }
-                        .frame(height: blur.height)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                        .ignoresSafeArea(.container, edges: .bottom)
-                }
-                .opacity(isPane ? 1 : 0)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
-            }
+    /// Split, the strip at the top of the leading pane replaces the system
+    /// tab bar. Folded the system default stays.
+    @ViewBuilder
+    func systemTabBarHidden(_ isHidden: Bool) -> some View {
+        if #available(iOS 18, *) {
+            toolbarVisibility(isHidden ? .hidden : .automatic, for: .tabBar)
+        } else {
+            toolbar(isHidden ? .hidden : .automatic, for: .tabBar)
+        }
     }
 }
 #endif

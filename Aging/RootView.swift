@@ -171,40 +171,51 @@ struct RootView: View {
         )
     }
 
-    /// One tree in every pose. Opening or closing the Duo moves frames and
+    /// One tree in every pose. Opening or closing the Duo moves frames, swaps
+    /// the system tab bar for the strip at the top of the leading pane and
     /// drops the Care tab; Today, Sharing and Settings are never rebuilt, so
     /// they keep their scroll and pushed screens. Care is rebuilt where it
     /// moves, and reopens from `AppNavigator.carePath`.
     private var caregiverTabs: some View {
         @Bindable var navigator = navigator
         let split = split
+        let chrome = PaneTabChrome(split: split)
         return ZStack(alignment: .topLeading) {
             // Shows only in the band under the fold, between the panes.
             Color(uiColor: .systemGroupedBackground).ignoresSafeArea()
 
-            TabView(selection: $navigator.tab) {
-                TodayView()
-                    .blursUnderTabBar(split != nil)
-                    .tabItem { Label("Today", systemImage: "checklist") }
-                    .tag(Tab.today)
+            VStack(spacing: 0) {
+                PaneTabStrip(selection: $navigator.tab)
+                    .frame(height: chrome.stripHeight, alignment: .bottom)
+                    .clipped()
+                    .opacity(chrome.showsSystemTabBar ? 0 : 1)
+                    .allowsHitTesting(!chrome.showsSystemTabBar)
+                    .accessibilityHidden(chrome.showsSystemTabBar)
 
-                if split == nil {
-                    PeopleView()
-                        .tabItem { Label("Care", systemImage: "person.2") }
-                        .tag(Tab.people)
+                TabView(selection: $navigator.tab) {
+                    TodayView()
+                        .systemTabBarHidden(!chrome.showsSystemTabBar)
+                        .tabItem { Label("Today", systemImage: "checklist") }
+                        .tag(Tab.today)
+
+                    if split == nil {
+                        PeopleView()
+                            .tabItem { Label("Care", systemImage: "person.2") }
+                            .tag(Tab.people)
+                    }
+
+                    FamilyView()
+                        .systemTabBarHidden(!chrome.showsSystemTabBar)
+                        .tabItem { Label("Sharing", systemImage: "person.3") }
+                        .tag(Tab.family)
+
+                    SettingsView()
+                        .systemTabBarHidden(!chrome.showsSystemTabBar)
+                        .tabItem { Label("Settings", systemImage: "gear") }
+                        .tag(Tab.settings)
                 }
-
-                FamilyView()
-                    .blursUnderTabBar(split != nil)
-                    .tabItem { Label("Sharing", systemImage: "person.3") }
-                    .tag(Tab.family)
-
-                SettingsView()
-                    .blursUnderTabBar(split != nil)
-                    .tabItem { Label("Settings", systemImage: "gear") }
-                    .tag(Tab.settings)
             }
-            // The tab bar stays inside the leading pane, never across the fold.
+            // The tabs stay inside the leading pane, never across the fold.
             .frame(maxWidth: split?.primaryWidth ?? .infinity, maxHeight: .infinity)
 
             if let split {
@@ -245,8 +256,11 @@ struct RootView: View {
             // Late enough for the seeded people and the measured fold. The hub
             // goes first and its screen after, as a tap would: setting both in
             // one update pushed the screen mid-push and the pane drew it blank.
+            // The wait also outlasts the inner display's first folded-size
+            // layout: a folded route applied there and then handed to the new
+            // Care pane lost the emergency card (review, 2026-10-23).
             let route = split ? screen : screen.folded
-            try? await Task.sleep(for: .seconds(1))
+            try? await Task.sleep(for: .seconds(3))
             guard !Task.isCancelled else { return }
             route.hub.apply(to: navigator, people: people)
             try? await Task.sleep(for: .seconds(1.5))
@@ -268,6 +282,52 @@ struct RootView: View {
         }
     }
     #endif
+}
+
+/// The tabs while the Duo is split: a strip across the top of the leading
+/// pane, where nothing scrolls under it (`PaneTabChrome`). Same tabs, names
+/// and symbols as the system bar it replaces. Icon and title sit side by side
+/// in a fixed-size icon slot, so every title shares one baseline.
+private struct PaneTabStrip: View {
+    @Binding var selection: RootView.Tab
+
+    var body: some View {
+        HStack(spacing: 2) {
+            button(.today, title: "Today", symbol: "checklist")
+            button(.family, title: "Sharing", symbol: "person.3")
+            button(.settings, title: "Settings", symbol: "gear")
+        }
+        .padding(3)
+        .background(Color(uiColor: .secondarySystemGroupedBackground), in: Capsule())
+        .shadow(color: .black.opacity(0.06), radius: 6, y: 2)
+        .padding(.horizontal, 16)
+        .padding(.bottom, 6)
+        // Fixed height, like the system bar, so its type is capped like one.
+        .dynamicTypeSize(...DynamicTypeSize.xLarge)
+    }
+
+    private func button(_ tab: RootView.Tab, title: String, symbol: String) -> some View {
+        let isSelected = selection == tab
+        return Button {
+            selection = tab
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: symbol)
+                    .font(.body.weight(.semibold))
+                    .frame(width: 24, height: 22)
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+            }
+            .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
+            .frame(maxWidth: .infinity, minHeight: 40)
+            .background(Color.accentColor.opacity(isSelected ? 0.12 : 0), in: Capsule())
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityIdentifier("pane-tab.\(title.lowercased())")
+    }
 }
 
 #Preview {
