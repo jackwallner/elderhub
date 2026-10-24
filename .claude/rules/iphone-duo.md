@@ -32,10 +32,16 @@ paths:
 - Still across the fold: onboarding (the root before any person exists) and the
   form sheets (editors, paywall), which present as centred sheets.
 - The floating tab bar sits inside the leading pane, which is only 669 pt
-  tall, so it covered Today's last visible rows and they showed through its
-  glass. `endsAboveTabBar(_:)` masks each tab at its bottom safe-area edge (the
-  bar's top) in a pane and puts grouped background under the bar. Folded, the
-  mask covers everything; it stays in both poses so folding rebuilds nothing.
+  tall, so some rows are always under it. Both ways of hiding that were
+  rejected by the visual review: rows crisp through and around the glass, and
+  (2026-10-23) a list masked to end in a fade above the bar, which sliced the
+  last visible row. `blursUnderTabBar(_:)` lets the rows run under the bar to
+  the display edge and lays a thin material over them that starts 28 pt above
+  the bar (`TabBarEdgeBlur.leadIn`), is full by the bar's top and fades out
+  over the pane's last 12% before the fold; the same 28 pt bottom content
+  margin keeps the last row clear of it. Folded it is invisible and stays in
+  the tree, so folding rebuilds nothing. Same approach the review accepted for
+  Shop.
 - iOS 27.1 draws the inner display's status bar (time, wifi, battery) in the
   trailing pane's navigation-bar row; the bar moves its trailing items clear of
   it. System behaviour, nothing is under it, but it leaves a pushed screen with

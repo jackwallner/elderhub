@@ -61,6 +61,25 @@ struct UnfoldedSplitTests {
             #expect(split.secondaryX + split.secondaryWidth == width)
         }
     }
+
+    @Test func edgeBlurIsFullByTheTabBarTop() {
+        // The leading pane's bottom inset on the inner display: bar plus margin.
+        let blur = TabBarEdgeBlur(bottomInset: 82)
+        #expect(blur.height == 82 + TabBarEdgeBlur.leadIn)
+        // Full strength exactly `bottomInset` above the display edge, so no row
+        // shows crisp around or below the bar.
+        #expect(abs(blur.height * (1 - blur.fullStrengthAt) - 82) < 0.001)
+    }
+
+    @Test func edgeBlurWithoutAnInsetIsOnlyTheLeadIn() {
+        let blur = TabBarEdgeBlur(bottomInset: -4)
+        #expect(blur.height == TabBarEdgeBlur.leadIn)
+        #expect(blur.fullStrengthAt == 1)
+    }
+
+    @Test func edgeBlurFadesOutBeforeTheFold() {
+        #expect(TabBarEdgeBlur.foldFade > 0 && TabBarEdgeBlur.foldFade < 0.5)
+    }
 }
 
 #if DEBUG

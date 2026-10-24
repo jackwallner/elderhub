@@ -37,6 +37,27 @@ struct UnfoldedSplit: Equatable, Sendable {
     }
 }
 
+/// The band of blur under the tab bar in the leading pane. `bottomInset` is
+/// the tab's bottom safe-area inset, which on the Duo's inner display is the
+/// floating bar plus the margin below it, so the bar's top edge sits exactly
+/// `bottomInset` above the display's bottom.
+struct TabBarEdgeBlur: Equatable, Sendable {
+    /// How far above the bar the blur begins to build.
+    static let leadIn: CGFloat = 28
+    /// The share of the pane's width over which the blur fades out toward
+    /// the fold, so it never ends in an edge against the band between panes.
+    static let foldFade: CGFloat = 0.12
+
+    var bottomInset: CGFloat
+
+    /// From the first blurred row to the display's bottom edge.
+    var height: CGFloat { max(bottomInset, 0) + Self.leadIn }
+
+    /// Where, from the band's top (0) to the display edge (1), the blur
+    /// reaches full strength: the bar's top edge.
+    var fullStrengthAt: CGFloat { Self.leadIn / height }
+}
+
 /// What the split is computed from, measured once per layout pass.
 struct PaneGeometry: Equatable, Sendable {
     var width: CGFloat
@@ -77,13 +98,6 @@ extension View {
         }
     }
 
-    /// A pane is only phone-height, so the floating tab bar sat over the
-    /// leading pane's last visible rows and they showed through its glass.
-    /// In a pane, a tab's content fades out just above its bottom safe-area
-    /// edge (the top of the tab bar) and the bar floats over plain
-    /// background. Folded, the mask covers everything and the phone layout is
-    /// untouched; the mask stays in both poses so folding never rebuilds the
-    /// tab.
     /// In a pane the trailing status bar leaves the navigation bar too little
     /// room for a long title beside two buttons, so the screen drops the bar
     /// title and shows it in its own content instead. Folded, unchanged.
@@ -96,16 +110,50 @@ extension View {
         }
     }
 
-    func endsAboveTabBar(_ isPane: Bool) -> some View {
-        mask {
-            VStack(spacing: 0) {
-                Rectangle()
-                LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom)
-                    .frame(height: isPane ? 16 : 0)
+    /// A pane is only phone-height, so the floating tab bar always sits over
+    /// some of the leading pane's rows. Ending the list above the bar sliced a
+    /// row at a fade; letting it run on showed the rows crisp around and below
+    /// the glass. In a pane, a tab's rows still run under the bar to the
+    /// display edge (and the last one still scrolls clear, as on a phone), but
+    /// a thin material starts `TabBarEdgeBlur.leadIn` above the bar, is at
+    /// full strength by its top edge and fades out before the fold. Folded it
+    /// is invisible and the phone layout is untouched; it stays in both poses
+    /// so folding never rebuilds the tab.
+    func blursUnderTabBar(_ isPane: Bool) -> some View {
+        // The lead-in lifts the last row clear of the blur too, not just of the bar.
+        contentMargins(.bottom, isPane ? TabBarEdgeBlur.leadIn : 0, for: .scrollContent)
+            .overlay {
+                GeometryReader { proxy in
+                    let blur = TabBarEdgeBlur(bottomInset: proxy.safeAreaInsets.bottom)
+                    Rectangle()
+                        .fill(.thinMaterial)
+                        .mask {
+                            LinearGradient(
+                                stops: [
+                                    .init(color: .clear, location: 0),
+                                    .init(color: .black, location: blur.fullStrengthAt),
+                                ],
+                                startPoint: .top, endPoint: .bottom
+                            )
+                        }
+                        .mask {
+                            LinearGradient(
+                                stops: [
+                                    .init(color: .black, location: 0),
+                                    .init(color: .black, location: 1 - TabBarEdgeBlur.foldFade),
+                                    .init(color: .clear, location: 1),
+                                ],
+                                startPoint: .leading, endPoint: .trailing
+                            )
+                        }
+                        .frame(height: blur.height)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                        .ignoresSafeArea(.container, edges: .bottom)
+                }
+                .opacity(isPane ? 1 : 0)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
             }
-            .ignoresSafeArea(.all, edges: isPane ? [.top, .horizontal] : .all)
-        }
-        .background(Color(uiColor: .systemGroupedBackground).ignoresSafeArea())
     }
 }
 #endif

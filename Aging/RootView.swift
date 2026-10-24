@@ -184,7 +184,7 @@ struct RootView: View {
 
             TabView(selection: $navigator.tab) {
                 TodayView()
-                    .endsAboveTabBar(split != nil)
+                    .blursUnderTabBar(split != nil)
                     .tabItem { Label("Today", systemImage: "checklist") }
                     .tag(Tab.today)
 
@@ -195,12 +195,12 @@ struct RootView: View {
                 }
 
                 FamilyView()
-                    .endsAboveTabBar(split != nil)
+                    .blursUnderTabBar(split != nil)
                     .tabItem { Label("Sharing", systemImage: "person.3") }
                     .tag(Tab.family)
 
                 SettingsView()
-                    .endsAboveTabBar(split != nil)
+                    .blursUnderTabBar(split != nil)
                     .tabItem { Label("Settings", systemImage: "gear") }
                     .tag(Tab.settings)
             }
