@@ -38,11 +38,20 @@ paths:
   mask covers everything; it stays in both poses so folding rebuilds nothing.
 - iOS 27.1 draws the inner display's status bar (time, wifi, battery) in the
   trailing pane's navigation-bar row; the bar moves its trailing items clear of
-  it. System behaviour, nothing is under it.
+  it. System behaviour, nothing is under it, but it leaves a pushed screen with
+  two trailing buttons about 100 pt for its title. `EmergencyCardView`
+  truncated to "Emergency..." there, so in a pane (`\.isUnfoldedPane`) it
+  drops the bar title (`barTitleInContent`) and its header carries it. Check
+  any new screen with a long title and two trailing items the same way.
 - Unattended captures: `-uitest-family YES -seedDemo YES -DuoTour`, plus one
   gh-sim `--screen "-DuoScreen <route>"` per surface (`DuoScreenshotTour`):
   gh-sim relaunches the app per `--screen` and shoots it folded and unfolded.
-  Folded, a route naming a person opens it on the Care tab. Without
+  Folded, a route naming a person opens it on the Care tab. The hub is pushed
+  first and its screen 1.5 s later: both in one update pushed the screen
+  mid-push and the pane drew it blank. `medications` and `healthDetails` are
+  not pushed screens (the hub lists meds; details is a sheet), so never use
+  them as a route. Give gh-sim `--wait 15`: a cold relaunch on the runner
+  took longer than 6 s and left outer shots blank. Without
   `-DuoScreen`, `-DuoTour` walks `-DuoRoutes`/`-DuoRoutesRegular` on a timer
   (`-DuoTourFirst`, `-DuoTourStep`); pass a long step so the launch shot holds
   still. `DUOTOUR` and `DUOGEOM` lines in app.log map shots to routes and
