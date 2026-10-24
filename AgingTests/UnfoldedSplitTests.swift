@@ -67,18 +67,18 @@ struct UnfoldedSplitTests {
         let chrome = PaneTabChrome(split: split)
         // Nothing sits at the bottom of either pane, so no row is ever under a bar.
         #expect(!chrome.showsSystemTabBar)
-        #expect(chrome.stripHeight == PaneTabChrome.stripHeight)
-        // The 46 pt capsule, centred on the trailing pane's bar row, fits
-        // inside the strip with room below it, in under an eighth of the pane.
-        #expect(PaneTabChrome.navigationRowCenter - 23 >= 0)
-        #expect(PaneTabChrome.navigationRowCenter + 23 < chrome.stripHeight)
-        #expect(chrome.stripHeight < 669 / 8)
+        #expect(chrome.contentInset > 0)
+        // The capsule is centred on the trailing pane's bar row and stays
+        // inside the inner display's 82 pt status band.
+        #expect(PaneTabChrome.stripTop >= 0)
+        #expect(PaneTabChrome.stripTop + PaneTabChrome.capsuleHeight / 2 == PaneTabChrome.navigationRowCenter)
+        #expect(PaneTabChrome.stripTop + PaneTabChrome.capsuleHeight <= 82)
     }
 
     @Test func foldedKeepsTheSystemTabBarAndNoStrip() {
         let chrome = PaneTabChrome(split: UnfoldedSplit.make(width: 466, isRegularWidth: false, fold: nil))
         #expect(chrome.showsSystemTabBar)
-        #expect(chrome.stripHeight == 0)
+        #expect(chrome.contentInset == 0)
     }
 }
 

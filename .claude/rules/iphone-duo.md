@@ -33,8 +33,14 @@ paths:
   form sheets (editors, paywall), which present as centred sheets.
 - Split, there is no bar at the bottom of either pane. The system tab bar is
   hidden on every tab (`systemTabBarHidden`) and the same three tabs run as a
-  strip across the top of the leading pane (`PaneTabStrip`, height from
-  `PaneTabChrome`), so both lists run off the display's bottom edge. A pane is
+  strip across the top of the leading pane (`PaneTabStrip`, `PaneTabChrome`),
+  so both lists run off the display's bottom edge. iOS 27.1 lays a pane's bar
+  row into the inner display's 82 pt status band, so the strip is an overlay
+  centred on that row (48 pt) and each tab gets a 4 pt top
+  `safeAreaPadding`: any top inset drops the tab's own bar below the band.
+  Don't stack the strip above the `TabView` in a `VStack` that ignores the top
+  safe area: the `TabView` expands back to the top and draws over it (run
+  shift-duo-elderhub-3, capture 2 had no tabs at all). A pane is
   only 669 pt tall, and every way of keeping a bottom bar was rejected by the
   visual review: rows crisp through the glass, a fade above the bar (sliced
   the row on it), a blur under it (the row on it still half covered). Same

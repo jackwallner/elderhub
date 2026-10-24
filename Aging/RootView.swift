@@ -184,41 +184,41 @@ struct RootView: View {
             // Shows only in the band under the fold, between the panes.
             Color(uiColor: .systemGroupedBackground).ignoresSafeArea()
 
-            VStack(spacing: 0) {
+            TabView(selection: $navigator.tab) {
+                TodayView()
+                    .systemTabBarHidden(!chrome.showsSystemTabBar)
+                    .tabItem { Label("Today", systemImage: "checklist") }
+                    .tag(Tab.today)
+
+                if split == nil {
+                    PeopleView()
+                        .tabItem { Label("Care", systemImage: "person.2") }
+                        .tag(Tab.people)
+                }
+
+                FamilyView()
+                    .systemTabBarHidden(!chrome.showsSystemTabBar)
+                    .tabItem { Label("Sharing", systemImage: "person.3") }
+                    .tag(Tab.family)
+
+                SettingsView()
+                    .systemTabBarHidden(!chrome.showsSystemTabBar)
+                    .tabItem { Label("Settings", systemImage: "gear") }
+                    .tag(Tab.settings)
+            }
+            // iOS 27.1 lays a pane's bar row into the inner display's tall
+            // status band. The strip takes that row in the leading pane, and
+            // any top inset moves each tab's own bar down below the band.
+            // Folded the inset is zero and the phone is unchanged.
+            .safeAreaPadding(.top, chrome.contentInset)
+            .overlay(alignment: .top) {
                 PaneTabStrip(selection: $navigator.tab)
-                    .frame(height: chrome.stripHeight, alignment: .bottom)
-                    .clipped()
+                    .padding(.top, PaneTabChrome.stripTop)
+                    .ignoresSafeArea(.container, edges: .top)
                     .opacity(chrome.showsSystemTabBar ? 0 : 1)
                     .allowsHitTesting(!chrome.showsSystemTabBar)
                     .accessibilityHidden(chrome.showsSystemTabBar)
-
-                TabView(selection: $navigator.tab) {
-                    TodayView()
-                        .systemTabBarHidden(!chrome.showsSystemTabBar)
-                        .tabItem { Label("Today", systemImage: "checklist") }
-                        .tag(Tab.today)
-
-                    if split == nil {
-                        PeopleView()
-                            .tabItem { Label("Care", systemImage: "person.2") }
-                            .tag(Tab.people)
-                    }
-
-                    FamilyView()
-                        .systemTabBarHidden(!chrome.showsSystemTabBar)
-                        .tabItem { Label("Sharing", systemImage: "person.3") }
-                        .tag(Tab.family)
-
-                    SettingsView()
-                        .systemTabBarHidden(!chrome.showsSystemTabBar)
-                        .tabItem { Label("Settings", systemImage: "gear") }
-                        .tag(Tab.settings)
-                }
             }
-            // iOS 27.1 lays a pane's navigation bar into the inner display's
-            // tall status row, so the strip goes up there with it rather than
-            // under it. Folded nothing is ignored and the phone is unchanged.
-            .ignoresSafeArea(.container, edges: chrome.showsSystemTabBar ? [] : .top)
             // The tabs stay inside the leading pane, never across the fold.
             .frame(maxWidth: split?.primaryWidth ?? .infinity, maxHeight: .infinity)
 
@@ -304,8 +304,8 @@ private struct PaneTabStrip: View {
         .padding(3)
         .background(Color(uiColor: .secondarySystemGroupedBackground), in: Capsule())
         .shadow(color: .black.opacity(0.06), radius: 6, y: 2)
+        .frame(height: PaneTabChrome.capsuleHeight)
         .padding(.horizontal, 16)
-        .padding(.bottom, PaneTabChrome.stripHeight - PaneTabChrome.navigationRowCenter - 23)
         // Fixed height, like the system bar, so its type is capped like one.
         .dynamicTypeSize(...DynamicTypeSize.xLarge)
     }
@@ -326,7 +326,7 @@ private struct PaneTabStrip: View {
                     .lineLimit(1)
             }
             .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
-            .frame(maxWidth: .infinity, minHeight: 40)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.accentColor.opacity(isSelected ? 0.12 : 0), in: Capsule())
             .contentShape(Capsule())
         }
