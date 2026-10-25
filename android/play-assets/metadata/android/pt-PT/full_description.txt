@@ -8,7 +8,7 @@ HOJE, DE UMA OLHADA
 Todas as doses programadas para hoje, as consultas da próxima semana e os medicamentos acabando. Marque uma dose como tomada ou pulada com um toque, e o registo guarda quem fez isso.
 
 A LISTA QUE O MÉDICO REALMENTE QUER
-Nome, dosagem, forma, para que serve, quem prescreveu, qual farmácia fornece e as instruções importantes. Horários e dias da semana, inclusive comprimidos semanais. Se você suspender um medicamento, o histórico dele é mantido.
+Nome, dosagem, forma, para que serve, quem prescreveu, qual farmácia fornece e as instruções importantes. Horários e dias da semana, incluindo comprimidos semanais. Se suspender um medicamento, o histórico dele é mantido.
 
 UM CARTÃO DE EMERGÊNCIA QUE FUNCIONA SEM SINAL
 Alergias, condições, todos os medicamentos em uso, para quem ligar primeiro e os telefones dos médicos em uma página, em letras grandes. Partilhe como texto simples numa mensagem ou email, ou leia direto na tela numa sala de espera.
@@ -17,16 +17,16 @@ O QUE O MÉDICO DISSE
 Registe uma consulta enquanto está fresca na memória: o profissional, o motivo, as anotações e o retorno. Adicione a próxima consulta e ela aparece em Hoje uma semana antes.
 
 REPOSIÇÃO
-Acompanhe o que sobrou na cartela ou no frasco. A contagem diminui conforme você marca as doses como tomadas, e o Hoje avisa quando é hora de repor.
+Acompanhe o que sobrou na cartela ou no frasco. A contagem diminui à medida que marca as doses como tomadas, e o Hoje avisa quando é hora de repor.
 
 COMPARTILHE COM A FAMÍLIA
 Inicie sessão com o Google e convide um irmão, uma irmã ou o cônjuge por link ou código. Todos do círculo de cuidado veem a mesma lista e as mesmas doses, qualquer que seja o telemóvel, e um pai ou mãe convidado para o próprio registo vê só esse. Quem ajuda nunca paga.
 
 PRIVADO POR PROJETO
-O registo funciona neste telemóvel sem conta e sem sinal, e só é partilhado com as pessoas que você convida. Sem anúncios, sem rastreamento e nunca com localização.
+O registo funciona neste telemóvel sem conta e sem sinal, e só é partilhado com as pessoas que convida. Sem anúncios, sem rastreamento e nunca com localização.
 
 UMA PESSOA, TODOS OS RECURSOS, GRÁTIS
-A versão gratuita inclui todos os funcionalidades para uma pessoa. O Elderhub Plus acrescenta mais pessoas: um segundo pai ou mãe, o cônjuge ou qualquer outra pessoa de quem você cuida.
+A versão gratuita inclui todos os funcionalidades para uma pessoa. O Elderhub Plus acrescenta mais pessoas: um segundo pai ou mãe, o cônjuge ou qualquer outra pessoa de quem o utilizador cuida.
 
 O Elderhub Plus está disponível por mês ou por ano, ambos com teste gratuito de 7 dias para novos subscritores elegíveis, ou como compra única vitalícia. Os preços aparecem na aplicação antes da compra e variam conforme a região. As subscrições são renovadas automaticamente, a menos que sejam canceladas antes do fim do período atual. Gira ou cancele no Google Play, em Pagamentos e subscrições.
 
