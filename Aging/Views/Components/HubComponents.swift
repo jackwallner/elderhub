@@ -417,7 +417,7 @@ struct PersonHeaderCard: View {
 
             HStack(spacing: 10) {
                 StatTile(
-                    value: dosesTotal == 0 ? "—" : "\(dosesTaken)/\(dosesTotal)",
+                    value: dosesTotal == 0 ? "-" : "\(dosesTaken)/\(dosesTotal)",
                     label: "Doses today",
                     symbol: "pills.fill",
                     tint: .accentColor
