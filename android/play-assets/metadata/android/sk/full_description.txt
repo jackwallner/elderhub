@@ -1,0 +1,35 @@
+Väčšina aplikácií o liekoch predpokladá, že sledujete svoje vlastné tabletky. Elderhub predpokladá, že nie.
+
+Ak pomáhate starať sa o rodiča, partnera alebo o oboch, skutočný zoznam žije na troch miestach naraz: vo vašej hlave, na útržku papiera v kuchynskej zásuvke a v tom, čo lekáreň vytlačila minulú jar. Potom sa sestra spýta, čo berie, a vy hádate.
+
+Elderhub vedie pre každého jeden aktuálny záznam starostlivosti, takže máte vždy odpoveď.
+
+DNES NA PRVÝ POHĽAD
+Všetky dnešné plánované dávky, stretnutia v nasledujúcom týždni a lieky, ktorých ubúda. Jedným ťuknutím označíte dávku ako užitú alebo vynechanú a záznam uchová, kto to urobil.
+
+ZOZNAM, KTORÝ LEKÁR SKUTOČNE CHCE
+Názov, sila, forma, na čo slúži, kto ho predpísal, ktorá lekáreň ho vydáva a dôležité pokyny. Časy a dni v týždni vrátane tabliet užívaných raz týždenne. Vysadený liek si ponechá svoju históriu.
+
+NÚDZOVÁ KARTA, KTORÁ FUNGUJE BEZ SIGNÁLU
+Alergie, diagnózy, všetky užívané lieky, komu zavolať ako prvému a čísla lekárov na jednej strane veľkým písmom. Zdieľajte ju ako obyčajný text v správe alebo e-maile, alebo ju prečítajte priamo z displeja v čakárni.
+
+ČO POVEDAL LEKÁR
+Zapíšte si návštevu, kým je čerstvá: lekára, dôvod, poznámky a ďalší postup. Pridajte ďalšie stretnutie a týždeň vopred sa zobrazí v Dnes.
+
+DOPĹŇANIE ZÁSOB
+Sledujte, koľko zostáva v balení. Počet klesá, keď označujete dávky ako užité, a Dnes vám povie, kedy je čas doplniť zásobu.
+
+ZDIEĽAJTE S RODINOU
+Prihláste sa cez Google a pozvite súrodenca alebo partnera odkazom či kódom. Všetci v okruhu starostlivosti vidia rovnaký zoznam a rovnaké dávky, nech majú akýkoľvek telefón, a rodič pozvaný do vlastného záznamu vidí len ten. Pomocníci neplatia nikdy.
+
+SÚKROMIE OD ZÁKLADU
+Záznam funguje v tomto telefóne bez účtu a bez signálu a zdieľa sa len s ľuďmi, ktorých pozvete. Žiadne reklamy, žiadne sledovanie a nikdy poloha.
+
+JEDEN ČLOVEK, VŠETKY FUNKCIE, ZADARMO
+Bezplatná verzia obsahuje všetky funkcie pre jedného človeka. Elderhub Plus pridáva ďalších ľudí: druhého rodiča, partnera alebo kohokoľvek iného, o koho sa staráte.
+
+Elderhub Plus je k dispozícii mesačne alebo ročne, oboje so 7-dňovou skúšobnou dobou zadarmo pre oprávnených nových predplatiteľov, alebo ako jednorazový doživotný nákup. Ceny sa zobrazujú v aplikácii pred nákupom a líšia sa podľa regiónu. Predplatné sa automaticky obnovuje, ak ho nezrušíte pred koncom aktuálneho obdobia. Spravujte alebo zrušte v Google Play v časti Platby a predplatné.
+
+Zásady ochrany osobných údajov: https://jackwallner.github.io/elderhub/privacy-policy.html
+
+Elderhub je organizačný nástroj. Nediagnostikuje, nelieči ani nevylieči žiadny stav, nepozná, či je niekto chorý, a nevolá pomoc. Vždy sa riaďte pokynmi kvalifikovaného zdravotníka.

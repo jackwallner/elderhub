@@ -1,0 +1,35 @@
+La maggior parte delle app per i farmaci presume che tu gestisca le tue pillole. Elderhub parte dal presupposto opposto.
+
+Se ti prendi cura di un genitore, del coniuge o di entrambi, l'elenco vero vive in tre posti insieme: nella tua testa, su un foglietto in un cassetto della cucina e su ciò che la farmacia ha stampato la primavera scorsa. Poi un'infermiera chiede cosa prende, e tu vai a intuito.
+
+Elderhub tiene una cartella di cura aggiornata per ogni persona, così hai sempre la risposta.
+
+OGGI, A COLPO D'OCCHIO
+Tutte le dosi previste per oggi, gli appuntamenti della settimana e i farmaci in esaurimento. Segna una dose come assunta o saltata con un tocco, e il registro annota chi l'ha fatto.
+
+L'ELENCO CHE UN MEDICO VUOLE DAVVERO
+Nome, dosaggio, forma, a cosa serve, chi l'ha prescritto, quale farmacia lo fornisce e le istruzioni che contano. Orari e giorni della settimana, comprese le compresse settimanali. Se interrompi un farmaco, ne conserva lo storico.
+
+UNA SCHEDA DI EMERGENZA CHE FUNZIONA SENZA SEGNALE
+Allergie, patologie, tutti i farmaci in corso, chi chiamare per primo e i numeri dei medici in un'unica pagina a caratteri grandi. Condividila come testo semplice in un messaggio o in una mail, oppure leggila direttamente dallo schermo in sala d'attesa.
+
+COSA HA DETTO IL MEDICO
+Registra una visita finché è fresca: il medico, il motivo, le note e il controllo successivo. Aggiungi il prossimo appuntamento e comparirà in Oggi una settimana prima.
+
+RICAMBI
+Tieni traccia di quanto resta nella confezione. Il conteggio scende man mano che segni le dosi come assunte, e Oggi ti avvisa quando è ora di rifornirsi.
+
+CONDIVIDI CON LA FAMIGLIA
+Accedi con Google e invita un fratello, una sorella o il partner con un link o un codice. Tutti nel cerchio di cura vedono lo stesso elenco e le stesse dosi, qualunque telefono abbiano, e un genitore invitato alla propria cartella vede solo quella. Chi aiuta non paga mai.
+
+PRIVATA PER SCELTA
+La cartella funziona su questo telefono senza account e senza segnale, e viene condivisa solo con le persone che inviti. Niente pubblicità, niente tracciamento e mai la posizione.
+
+UNA PERSONA, TUTTE LE FUNZIONI, GRATIS
+La versione gratuita include tutte le funzioni per una persona. Elderhub Plus aggiunge altre persone: un secondo genitore, il partner o chiunque altro assisti.
+
+Elderhub Plus è disponibile con abbonamento mensile o annuale, entrambi con una prova gratuita di 7 giorni per i nuovi abbonati idonei, oppure come acquisto singolo a vita. I prezzi sono mostrati nell'app prima dell'acquisto e variano in base all'area geografica. Gli abbonamenti si rinnovano automaticamente se non vengono annullati prima della fine del periodo in corso. Gestisci o annulla in Google Play, in Pagamenti e abbonamenti.
+
+Informativa sulla privacy: https://jackwallner.github.io/elderhub/privacy-policy.html
+
+Elderhub è uno strumento di organizzazione. Non diagnostica, non tratta e non cura alcuna condizione, non può sapere se qualcuno sta male e non chiama i soccorsi. Segui sempre le indicazioni di un medico o di un professionista sanitario abilitato.

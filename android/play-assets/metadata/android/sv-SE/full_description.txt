@@ -1,0 +1,35 @@
+De flesta medicinappar utgår från att du håller koll på dina egna piller. Elderhub utgår från att du inte gör det.
+
+Om du hjälper till att ta hand om en förälder, en make eller maka, eller båda, finns den verkliga listan på tre ställen samtidigt: i ditt huvud, på en lapp i en kökslåda och på det apoteket skrev ut i våras. Sen frågar en sjuksköterska vad hon tar, och du gissar.
+
+Elderhub för en aktuell omsorgsjournal per person, så att du alltid har svaret.
+
+IDAG, PÅ EN BLICK
+Alla schemalagda doser för idag, bokningar den kommande veckan och mediciner som håller på att ta slut. Markera en dos som tagen eller överhoppad med ett tryck, så loggar appen vem som gjorde det.
+
+LISTAN SOM EN LÄKARE VERKLIGEN VILL HA
+Namn, styrka, form, vad den är till för, vem som skrev ut den, vilket apotek som lämnar ut den och de anvisningar som spelar roll. Tider och veckodagar, även tabletter som tas en gång i veckan. Avslutar du en medicin behåller den sin historik.
+
+ETT NÖDKORT SOM FUNGERAR UTAN TÄCKNING
+Allergier, sjukdomar, alla aktuella mediciner, vem du ska ringa först och läkarnas nummer på en sida med stor text. Dela det som vanlig text i ett meddelande eller mejl, eller läs det direkt från skärmen i ett väntrum.
+
+VAD LÄKAREN SA
+Logga ett besök medan det är färskt: vårdgivaren, orsaken, anteckningarna och uppföljningen. Lägg till nästa bokning så visas den under Idag en vecka innan.
+
+FÖRNYELSER
+Håll koll på vad som finns kvar i burken. Saldot minskar när du markerar doser som tagna, och Idag säger till när det är dags att hämta ut mer.
+
+DELA MED FAMILJEN
+Logga in med Google och bjud in en bror, en syster eller en partner med en länk eller en kod. Alla i omsorgskretsen ser samma lista och samma doser, oavsett vilken telefon de har, och en förälder som bjudits in till sin egen journal ser bara den. Hjälpare betalar aldrig.
+
+PRIVAT FRÅN GRUNDEN
+Journalen fungerar på den här telefonen utan konto och utan täckning, och delas bara med dem du bjuder in. Inga annonser, ingen spårning och aldrig plats.
+
+EN PERSON, ALLA FUNKTIONER, GRATIS
+Den kostnadsfria versionen har alla funktioner för en person. Elderhub Plus lägger till fler personer: en andra förälder, en partner eller andra du hjälper.
+
+Elderhub Plus finns månadsvis eller årsvis, båda med 7 dagars kostnadsfri provperiod för berättigade nya prenumeranter, eller som ett engångsköp för livet. Priser visas i appen innan du köper och varierar mellan regioner. Prenumerationer förnyas automatiskt om de inte avslutas före slutet av den pågående perioden. Hantera eller avsluta i Google Play under Betalningar och prenumerationer.
+
+Integritetspolicy: https://jackwallner.github.io/elderhub/privacy-policy.html
+
+Elderhub är ett organisationsverktyg. Det ställer inga diagnoser, behandlar eller botar inget tillstånd, kan inte avgöra om någon är sjuk och larmar inte om hjälp. Följ alltid råd från legitimerad vårdpersonal.

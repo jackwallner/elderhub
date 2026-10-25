@@ -1,0 +1,35 @@
+A legtöbb gyógyszeres app azt feltételezi, hogy a saját tablettáidat követed. Az Elderhub azt feltételezi, hogy nem.
+
+Ha egy szülő, a házastársad vagy mindkettő gondozásában segítesz, az igazi lista egyszerre három helyen él: a fejedben, egy cetlin a konyhai fiókban, és azon, amit a patika tavaly tavasszal kinyomtatott. Aztán egy ápoló megkérdezi, mit szed, te pedig találgatsz.
+
+Az Elderhub személyenként egy naprakész gondozási lapot vezet, hogy mindig meglegyen a válasz.
+
+MA, EGY PILLANTÁSRA
+A mai összes ütemezett adag, a következő hét időpontjai és a fogyóban lévő gyógyszerek. Egyetlen érintéssel megjelölhetsz egy adagot bevettként vagy kihagyottként, a napló pedig rögzíti, ki tette.
+
+A LISTA, AMIT AZ ORVOS TÉNYLEG KÉR
+Név, hatáserősség, forma, mire való, ki írta fel, melyik patika adja ki, és a fontos utasítások. Időpontok és a hét napjai, a hetente egyszer szedett tablettákat is beleértve. A leállított gyógyszer megőrzi az előzményeit.
+
+VÉSZKÁRTYA, AMELY JEL NÉLKÜL IS MŰKÖDIK
+Allergiák, betegségek, minden aktív gyógyszer, kit hívj először, és az orvosok számai egyetlen oldalon, nagy betűkkel. Oszd meg sima szövegként üzenetben vagy e-mailben, vagy olvasd le közvetlenül a képernyőről a váróban.
+
+MIT MONDOTT AZ ORVOS
+Rögzíts egy vizitet, amíg friss: a szakembert, az okot, a jegyzeteket és a kontrollt. Add hozzá a következő időpontot, és egy héttel előtte megjelenik a Ma nézetben.
+
+KIVÁLTÁSOK
+Kövesd, mennyi maradt a dobozban. A mennyiség csökken, ahogy az adagokat bevettnek jelölöd, a Ma pedig jelzi, mikor kell újat venni.
+
+OSZD MEG A CSALÁDDAL
+Jelentkezz be Google-fiókkal, és hívj meg egy testvért vagy a párodat linkkel vagy kóddal. A gondozási körben mindenki ugyanazt a listát és ugyanazokat az adagokat látja, bármilyen telefonja is van, a saját lapjára meghívott szülő pedig csak azt látja. A segítők soha nem fizetnek.
+
+TERVEZÉSBŐL ADÓDÓAN MAGÁNY
+A lap ezen a telefonon fiók és jel nélkül is működik, és csak azokkal oszlik meg, akiket meghívsz. Nincs hirdetés, nincs követés, és soha nincs helyadat.
+
+EGY SZEMÉLY, MINDEN FUNKCIÓ, INGYEN
+Az ingyenes verzió minden funkciót tartalmaz egy személyhez. Az Elderhub Plus további embereket ad hozzá: egy második szülőt, a párodat vagy bárki mást, akiről gondoskodsz.
+
+Az Elderhub Plus havi vagy éves előfizetéssel érhető el, mindkettőhöz 7 napos ingyenes próba jár a jogosult új előfizetőknek, vagy egyszeri, élethosszig tartó vásárlással. Az árak vásárlás előtt megjelennek az appban, és régiónként eltérnek. Az előfizetések automatikusan megújulnak, hacsak nem mondod le őket az aktuális időszak vége előtt. Kezeld vagy mondd le a Google Playben a Fizetések és előfizetések alatt.
+
+Adatvédelmi irányelvek: https://jackwallner.github.io/elderhub/privacy-policy.html
+
+Az Elderhub szervezést segítő eszköz. Nem diagnosztizál, nem kezel és nem gyógyít semmilyen állapotot, nem tudja megállapítani, hogy valaki beteg-e, és nem hív segítséget. Mindig kövesd egy szakképzett egészségügyi szakember útmutatását.

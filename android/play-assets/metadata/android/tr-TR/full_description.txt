@@ -1,0 +1,35 @@
+Çoğu ilaç uygulaması kendi haplarınızı takip ettiğinizi varsayar. Elderhub takip etmediğinizi varsayar.
+
+Bir ebeveyne, eşinize ya da her ikisine bakmaya yardım ediyorsanız, gerçek liste aynı anda üç yerde yaşar: kafanızda, mutfak çekmecesindeki bir kağıt parçasında ve eczanenin geçen bahar yazdırdığı kağıtta. Sonra bir hemşire ne kullandığını sorar ve siz tahmin yürütürsünüz.
+
+Elderhub her kişi için güncel bir bakım kaydı tutar, böylece cevap her zaman elinizin altında olur.
+
+BUGÜN, TEK BAKIŞTA
+Bugünün tüm planlı dozları, önümüzdeki haftanın randevuları ve azalan ilaçlar. Bir dozu tek dokunuşla alındı ya da atlandı olarak işaretleyin, kayıt bunu kimin yaptığını tutar.
+
+BİR DOKTORUN GERÇEKTEN İSTEDİĞİ LİSTE
+Ad, doz gücü, form, ne için kullanıldığı, kimin yazdığı, hangi eczanenin verdiği ve önemli talimatlar. Saatler ve haftanın günleri, haftada bir alınan hapları da kapsar. Bıraktığınız bir ilaç geçmişini korur.
+
+SİNYAL OLMADAN ÇALIŞAN ACİL DURUM KARTI
+Alerjiler, rahatsızlıklar, kullanılan tüm ilaçlar, önce kimin aranacağı ve doktorların numaraları tek sayfada büyük yazıyla. Düz metin olarak bir mesajda ya da e-postada paylaşın, ya da bekleme odasında doğrudan ekrandan okuyun.
+
+DOKTOR NE DEDİ
+Bir muayeneyi hâlâ taze iken kaydedin: hekim, sebep, notlar ve takip. Sonraki randevuyu ekleyin, bir hafta önceden Bugün ekranında görünsün.
+
+İLAÇ YENİLEME
+Kutuda ne kaldığını takip edin. Dozları alındı olarak işaretledikçe sayı azalır ve Bugün ekranı yenileme zamanının geldiğini söyler.
+
+AİLENİZLE PAYLAŞIN
+Google ile giriş yapın ve bir kardeşi ya da eşinizi bağlantı veya kodla davet edin. Bakım çevresindeki herkes, hangi telefonu olursa olsun aynı listeyi ve aynı dozları görür; kendi kaydına davet edilen ebeveyn ise yalnızca onu görür. Yardımcılar asla ödeme yapmaz.
+
+TASARIMI GEREĞİ ÖZEL
+Kayıt bu telefonda hesapsız ve sinyalsiz çalışır, yalnızca davet ettiğiniz kişilerle paylaşılır. Reklam yok, izleme yok ve asla konum yok.
+
+BİR KİŞİ, TÜM ÖZELLİKLER, ÜCRETSİZ
+Ücretsiz sürüm, bir kişi için tüm özellikleri içerir. Elderhub Plus daha fazla kişi ekler: ikinci bir ebeveyn, eşiniz ya da baktığınız herhangi biri.
+
+Elderhub Plus aylık veya yıllık olarak sunulur; her ikisinde de uygun yeni aboneler için 7 günlük ücretsiz deneme vardır. Ayrıca tek seferlik ömür boyu satın alma olarak da edinilebilir. Fiyatlar satın almadan önce uygulamada gösterilir ve bölgeye göre değişir. Abonelikler, mevcut dönemin bitiminden önce iptal edilmezse otomatik olarak yenilenir. Google Play'de Ödemeler ve abonelikler bölümünden yönetin veya iptal edin.
+
+Gizlilik Politikası: https://jackwallner.github.io/elderhub/privacy-policy.html
+
+Elderhub bir düzenleme aracıdır. Hiçbir durumu teşhis etmez, tedavi etmez veya iyileştirmez, birinin hasta olup olmadığını anlayamaz ve yardım çağırmaz. Her zaman yetkili bir sağlık uzmanının yönlendirmesini izleyin.

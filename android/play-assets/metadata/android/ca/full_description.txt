@@ -1,0 +1,35 @@
+La majoria d'apps de medicaments suposen que controles les teves pròpies pastilles. Elderhub parteix de la idea contrària.
+
+Si ajudes a cuidar un pare, una mare, la parella o tots, la llista real viu a tres llocs alhora: al teu cap, en un paper oblidat en un calaix de la cuina i en el que la farmàcia va imprimir la primavera passada. I quan una infermera pregunta què pren, ho estàs endevinant.
+
+Elderhub manté un registre de cures actualitzat per persona, perquè sempre tinguis la resposta.
+
+AVUI, D'UN COP D'ULL
+Totes les dosis previstes per avui, les cites de la setmana vinent i els medicaments que s'acaben. Marca una dosi com a presa o omesa amb un toc, i el registre anota qui ho ha fet.
+
+LA LLISTA QUE UN METGE VOL DE DEBÒ
+Nom, concentració, forma, per a què serveix, qui l'ha receptat, quina farmàcia el dispensa i les instruccions que importen. Hores i dies de la setmana, també les pastilles setmanals. Si deixes un medicament, en conserva l'historial.
+
+UNA TARGETA D'EMERGÈNCIA QUE FUNCIONA SENSE COBERTURA
+Al·lèrgies, afeccions, tots els medicaments actius, a qui trucar primer i els telèfons dels metges en una sola pàgina amb lletra gran. Comparteix-la com a text pla en un missatge o un correu, o llegeix-la directament de la pantalla en una sala d'espera.
+
+EL QUE VA DIR EL METGE
+Registra una visita mentre és fresca: el professional, el motiu, les notes i el seguiment. Afegeix la propera cita i apareixerà a Avui una setmana abans.
+
+REPOSICIONS
+Controla què queda al pot. El compte baixa a mesura que marques les dosis com a preses, i Avui t'avisa quan toca reposar.
+
+COMPARTEIX-HO AMB LA FAMÍLIA
+Inicia la sessió amb Google i convida un germà, una germana o la parella amb un enllaç o un codi. Tothom al cercle de cures veu la mateixa llista i les mateixes dosis, tingui el telèfon que tingui, i un pare convidat al seu propi registre només veu aquell. Qui ajuda mai paga.
+
+PRIVAT DE DISSENY
+El registre funciona en aquest telèfon sense compte i sense cobertura, i només es comparteix amb les persones que convides. Sense anuncis, sense seguiment i mai amb ubicació.
+
+UNA PERSONA, TOTES LES FUNCIONS, GRATIS
+La versió gratuïta inclou totes les funcions per a una persona. Elderhub Plus n'afegeix més: un segon progenitor, la parella o qualsevol altra persona de qui tinguis cura.
+
+Elderhub Plus està disponible amb subscripció mensual o anual, totes dues amb una prova gratuïta de 7 dies per als nous subscriptors que hi tinguin dret, o com a compra única de per vida. Els preus es mostren a l'app abans de comprar i varien segons la regió. Les subscripcions es renoven automàticament tret que es cancel·lin abans que acabi el període actual. Gestiona o cancel·la a Google Play, a Pagaments i subscripcions.
+
+Política de privadesa: https://jackwallner.github.io/elderhub/privacy-policy.html
+
+Elderhub és una eina d'organització. No diagnostica, tracta ni cura cap afecció, no pot saber si algú està malalt i no truca per demanar ajuda. Segueix sempre les indicacions d'un professional sanitari titulat.

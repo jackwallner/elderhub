@@ -1,0 +1,35 @@
+La plupart des applications de médicaments supposent que vous suivez vos propres pilules. Elderhub part du principe contraire.
+
+Si vous aidez un parent, un conjoint, ou les deux, la vraie liste se trouve à trois endroits à la fois : dans votre tête, sur un bout de papier au fond d'un tiroir de cuisine, et sur ce que la pharmacie a imprimé le printemps dernier. Puis une infirmière demande ce qu'elle prend, et vous devinez.
+
+Elderhub tient un dossier de soins à jour pour chaque personne, pour que vous ayez toujours la réponse.
+
+AUJOURD'HUI, D'UN COUP D'ŒIL
+Toutes les prises prévues aujourd'hui, les rendez-vous de la semaine à venir et les médicaments bientôt épuisés. Marquez une prise comme prise ou ignorée d'une seule touche, et le journal note qui l'a fait.
+
+LA LISTE QUE VEUT VRAIMENT UN MÉDECIN
+Nom, dosage, forme, indication, prescripteur, pharmacie qui le délivre et consignes importantes. Heures et jours de la semaine, y compris les comprimés hebdomadaires. Un médicament arrêté conserve son historique.
+
+UNE FICHE D'URGENCE QUI FONCTIONNE SANS RÉSEAU
+Allergies, pathologies, tous les médicaments en cours, la personne à appeler en premier et les numéros des médecins sur une seule page en gros caractères. Partagez-la en texte brut dans un message ou un courriel, ou lisez-la directement sur l'écran dans une salle d'attente.
+
+CE QU'A DIT LE MÉDECIN
+Notez une consultation tant qu'elle est fraîche : le professionnel, le motif, les remarques et le suivi. Ajoutez le prochain rendez-vous et il apparaît dans Aujourd'hui une semaine avant.
+
+RENOUVELLEMENTS
+Suivez ce qu'il reste dans le flacon. Le compte diminue à mesure que vous marquez les prises, et Aujourd'hui vous indique quand renouveler.
+
+PARTAGEZ AVEC LA FAMILLE
+Connectez-vous avec Google et invitez un frère, une sœur ou un conjoint par lien ou par code. Chaque membre du cercle de soins voit la même liste et les mêmes prises, quel que soit son téléphone, et un parent invité sur son propre dossier ne voit que celui-ci. Les aidants ne paient jamais.
+
+CONFIDENTIEL PAR CONCEPTION
+Le dossier fonctionne sur ce téléphone sans compte et sans réseau, et il n'est partagé qu'avec les personnes que vous invitez. Pas de publicité, pas de suivi, et jamais de localisation.
+
+UNE PERSONNE, TOUTES LES FONCTIONS, GRATUIT
+La version gratuite inclut toutes les fonctions pour une personne. Elderhub Plus permet d'ajouter d'autres personnes : un deuxième parent, un conjoint ou toute autre personne dont vous vous occupez.
+
+Elderhub Plus est proposé au mois ou à l'année, avec un essai gratuit de 7 jours pour les nouveaux abonnés éligibles, ou en achat unique à vie. Les prix sont affichés dans l'application avant l'achat et varient selon la région. Les abonnements se renouvellent automatiquement, sauf annulation avant la fin de la période en cours. Gérez ou annulez dans Google Play, sous Paiements et abonnements.
+
+Politique de confidentialité: https://jackwallner.github.io/elderhub/privacy-policy.html
+
+Elderhub est un outil d'organisation. Il ne diagnostique, ne traite et ne guérit aucune affection, il ne peut pas savoir si quelqu'un est malade et il n'appelle pas les secours. Suivez toujours les conseils d'un professionnel de santé agréé.

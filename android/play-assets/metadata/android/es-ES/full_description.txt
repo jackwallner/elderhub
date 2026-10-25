@@ -1,0 +1,35 @@
+La mayoría de las apps de medicamentos suponen que controlas tus propias pastillas. Elderhub parte de que no es así.
+
+Si cuidas a tu madre, a tu padre, a tu pareja o a varios a la vez, la lista real vive en tres sitios a la vez: en tu cabeza, en un papel olvidado en un cajón de la cocina y en lo que imprimió la farmacia la primavera pasada. Y cuando una enfermera pregunta qué toma, estás adivinando.
+
+Elderhub mantiene un registro de cuidado actualizado por persona, para que siempre tengas la respuesta.
+
+HOY, DE UN VISTAZO
+Todas las dosis programadas para hoy, las citas de la próxima semana y los medicamentos que se están acabando. Marca una dosis como tomada u omitida con un toque, y el registro guarda quién lo hizo.
+
+LA LISTA QUE UN MÉDICO QUIERE VER
+Nombre, concentración, forma, para qué sirve, quién lo recetó, qué farmacia lo despacha y las indicaciones importantes. Horarios y días de la semana, incluidas las pastillas semanales. Si suspendes un medicamento, conserva su historial.
+
+UNA TARJETA DE EMERGENCIA QUE FUNCIONA SIN SEÑAL
+Alergias, afecciones, todos los medicamentos activos, a quién llamar primero y los móvils de los médicos en una sola página con letra grande. Compártela como texto en un mensaje o un correo, o léela directamente en la pantalla en una sala de espera.
+
+LO QUE DIJO EL MÉDICO
+Registra una consulta mientras está fresca: el profesional, el motivo, las notas y el seguimiento. Añade la próxima cita y aparecerá en Hoy una semana antes.
+
+RECARGAS
+Controla lo que queda en el frasco. La cuenta baja a medida que marcas las dosis como tomadas, y Hoy te avisa cuándo toca reponer.
+
+COMPÁRTELO CON LA FAMILIA
+Inicia sesión con Google e invita a un hermano, una hermana o tu pareja con un enlace o un código. Todos en el círculo de cuidado ven la misma lista y las mismas dosis, sin importar qué móvil tenga cada uno, y un padre invitado a su propio registro solo ve ese. Quienes ayudan nunca pagan.
+
+PRIVADO POR DISEÑO
+El registro funciona en este móvil sin cuenta y sin señal, y solo se comparte con las personas que invites. Sin anuncios, sin rastreo y sin ubicación, nunca.
+
+UNA PERSONA, TODAS LAS FUNCIONES, GRATIS
+La versión gratuita incluye todas las funciones para una persona. Elderhub Plus permite agregar más personas: un segundo padre o madre, tu pareja o cualquier otra persona a quien cuides.
+
+Elderhub Plus está disponible por mes o por año, cada uno con una prueba gratuita de 7 días para nuevos suscriptores elegibles, o como compra única de por vida. Los precios se muestran en la app antes de comprar y varían según la región. Las suscripciones se renuevan automáticamente a menos que se cancelen antes de que termine el período actual. Gestiona o cancela en Google Play, en Pagos y suscripciones.
+
+Política de privacidad: https://jackwallner.github.io/elderhub/privacy-policy.html
+
+Elderhub es una herramienta de organización. No diagnostica, trata ni cura ninguna afección, no puede saber si alguien está enfermo y no llama para pedir ayuda. Sigue siempre las indicaciones de un profesional de la salud autorizado.

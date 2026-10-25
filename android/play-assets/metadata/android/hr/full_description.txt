@@ -1,0 +1,35 @@
+Većina aplikacija za lijekove pretpostavlja da pratite vlastite tablete. Elderhub pretpostavlja da ne pratite.
+
+Ako pomažete u skrbi za roditelja, partnera ili oboje, stvarni popis živi na tri mjesta odjednom: u vašoj glavi, na komadiću papira u kuhinjskoj ladici i na onome što je ljekarna otisnula prošlog proljeća. Onda medicinska sestra pita što uzima, a vi pogađate.
+
+Elderhub vodi jedan aktualan zapis o njezi za svaku osobu, pa uvijek imate odgovor.
+
+DANAS, NA PRVI POGLED
+Sve današnje zakazane doze, termini u idućem tjednu i lijekovi kojih ponestaje. Jednim dodirom označite dozu kao uzetu ili preskočenu, a dnevnik bilježi tko je to učinio.
+
+POPIS KOJI LIJEČNIK ZAISTA ŽELI
+Naziv, jačina, oblik, za što služi, tko ga je propisao, koja ga ljekarna izdaje i važne upute. Vremena i dani u tjednu, uključujući tablete koje se uzimaju jednom tjedno. Ukinuti lijek zadržava svoju povijest.
+
+HITNA KARTICA KOJA RADI BEZ SIGNALA
+Alergije, stanja, svi aktivni lijekovi, koga prvo nazvati i brojevi liječnika na jednoj stranici krupnim slovima. Podijelite je kao običan tekst u poruci ili e-pošti ili je pročitajte izravno sa zaslona u čekaonici.
+
+ŠTO JE REKAO LIJEČNIK
+Zabilježite posjet dok je svjež: pružatelja usluge, razlog, bilješke i daljnje korake. Dodajte idući termin i tjedan ranije pojavit će se u Danas.
+
+OBNOVA ZALIHA
+Pratite što je ostalo u pakiranju. Broj se smanjuje kako označavate doze kao uzete, a Danas vam javlja kada je vrijeme za obnovu.
+
+PODIJELITE S OBITELJI
+Prijavite se putem Googlea i pozovite brata, sestru ili partnera poveznicom ili kodom. Svi u krugu njege vide isti popis i iste doze, bez obzira na telefon, a roditelj pozvan u vlastiti zapis vidi samo njega. Pomagači nikada ne plaćaju.
+
+PRIVATNOST OD TEMELJA
+Zapis radi na ovom telefonu bez računa i bez signala te se dijeli samo s ljudima koje pozovete. Bez oglasa, bez praćenja i nikada lokacija.
+
+JEDNA OSOBA, SVE FUNKCIJE, BESPLATNO
+Besplatna verzija uključuje sve funkcije za jednu osobu. Elderhub Plus dodaje više osoba: drugog roditelja, partnera ili bilo koga drugog o kome brinete.
+
+Elderhub Plus dostupan je mjesečno ili godišnje, oboje sa 7-dnevnim besplatnim probnim razdobljem za prihvatljive nove pretplatnike, ili kao jednokratna kupnja za cijeli život. Cijene se prikazuju u aplikaciji prije kupnje i razlikuju se po regijama. Pretplate se automatski obnavljaju osim ako se otkažu prije završetka tekućeg razdoblja. Upravljajte ili otkažite u Google Playu pod Plaćanja i pretplate.
+
+Pravila privatnosti: https://jackwallner.github.io/elderhub/privacy-policy.html
+
+Elderhub je organizacijski alat. Ne postavlja dijagnoze, ne liječi niti izlječuje nikakvo stanje, ne može utvrditi je li netko bolestan i ne poziva pomoć. Uvijek slijedite savjete ovlaštenog zdravstvenog stručnjaka.

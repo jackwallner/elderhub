@@ -1,0 +1,35 @@
+Die meisten Medikamenten-Apps gehen davon aus, dass Sie Ihre eigenen Tabletten verwalten. Elderhub geht vom Gegenteil aus.
+
+Wenn Sie sich um einen Elternteil, Ihren Partner oder beide kümmern, steckt die echte Liste an drei Orten gleichzeitig: in Ihrem Kopf, auf einem Zettel in der Küchenschublade und auf dem, was die Apotheke letztes Frühjahr ausgedruckt hat. Dann fragt eine Pflegekraft, was sie nimmt, und Sie raten.
+
+Elderhub führt pro Person eine aktuelle Pflegeakte, damit Sie immer die Antwort haben.
+
+HEUTE AUF EINEN BLICK
+Alle geplanten Einnahmen für heute, Termine der kommenden Woche und Medikamente, die zur Neige gehen. Markieren Sie eine Einnahme mit einem Tipp als genommen oder übersprungen, und das Protokoll hält fest, wer es war.
+
+DIE LISTE, DIE EIN ARZT WIRKLICH WILL
+Name, Stärke, Darreichungsform, Anwendungsgebiet, verordnende Person, ausgebende Apotheke und die wichtigen Hinweise. Uhrzeiten und Wochentage, auch für Tabletten, die nur einmal pro Woche genommen werden. Ein abgesetztes Medikament behält seinen Verlauf.
+
+EINE NOTFALLKARTE, DIE OHNE EMPFANG FUNKTIONIERT
+Allergien, Erkrankungen, alle aktuellen Medikamente, wen Sie zuerst anrufen und die Nummern der Ärzte auf einer Seite in großer Schrift. Teilen Sie sie als reinen Text in einer Nachricht oder E-Mail oder lesen Sie sie im Wartezimmer direkt vom Bildschirm ab.
+
+WAS DER ARZT GESAGT HAT
+Halten Sie einen Besuch fest, solange er frisch ist: Behandler, Anlass, Notizen und Nachsorge. Tragen Sie den nächsten Termin ein, und er erscheint eine Woche vorher unter Heute.
+
+NACHSCHUB
+Behalten Sie im Blick, was noch in der Packung ist. Der Bestand sinkt, wenn Sie Einnahmen abhaken, und Heute sagt Ihnen, wann es Zeit zum Nachbestellen ist.
+
+MIT DER FAMILIE TEILEN
+Melden Sie sich mit Google an und laden Sie Bruder, Schwester oder Partner per Link oder Code ein. Alle im Pflegekreis sehen dieselbe Liste und dieselben Einnahmen, egal welches Handy sie haben, und ein Elternteil, das zur eigenen Akte eingeladen wird, sieht nur diese. Helfer zahlen nie.
+
+PRIVATSPHÄRE VON GRUND AUF
+Die Akte funktioniert auf diesem Handy ohne Konto und ohne Empfang und wird nur mit den Personen geteilt, die Sie einladen. Keine Werbung, kein Tracking und niemals Standortdaten.
+
+EINE PERSON, ALLE FUNKTIONEN, KOSTENLOS
+Die kostenlose Version enthält alle Funktionen für eine Person. Elderhub Plus ergänzt weitere Personen: einen zweiten Elternteil, den Partner oder jeden anderen, um den Sie sich kümmern.
+
+Elderhub Plus gibt es monatlich oder jährlich, jeweils mit einer 7-tägigen kostenlosen Testphase für berechtigte neue Abonnenten, oder als einmaligen Kauf auf Lebenszeit. Die Preise werden vor dem Kauf in der App angezeigt und unterscheiden sich je nach Region. Abos verlängern sich automatisch, sofern sie nicht vor Ende des aktuellen Zeitraums gekündigt werden. Verwalten oder kündigen Sie in Google Play unter Zahlungen und Abos.
+
+Datenschutzerklärung: https://jackwallner.github.io/elderhub/privacy-policy.html
+
+Elderhub ist ein Organisationswerkzeug. Es stellt keine Diagnosen, behandelt oder heilt keine Erkrankung, kann nicht erkennen, ob jemand krank ist, und ruft keine Hilfe. Befolgen Sie stets die Anweisungen einer approbierten medizinischen Fachkraft.

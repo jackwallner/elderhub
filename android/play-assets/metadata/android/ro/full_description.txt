@@ -1,0 +1,35 @@
+Majoritatea aplicațiilor pentru medicamente presupun că îți urmărești propriile pastile. Elderhub pornește de la ideea că nu este așa.
+
+Dacă ai grijă de un părinte, de un soț sau de o soție, sau de amândoi, lista adevărată trăiește în trei locuri deodată: în capul tău, pe un bilet dintr-un sertar de bucătărie și pe ce a tipărit farmacia primăvara trecută. Apoi o asistentă întreabă ce ia, iar tu ghicești.
+
+Elderhub păstrează o fișă de îngrijire actualizată pentru fiecare persoană, ca să ai mereu răspunsul.
+
+AZI, DINTR-O PRIVIRE
+Toate dozele programate pentru azi, programările din săptămâna următoare și medicamentele care se termină. Marchează o doză ca luată sau sărită dintr-o atingere, iar jurnalul notează cine a făcut-o.
+
+LISTA PE CARE O VREA CU ADEVĂRAT UN MEDIC
+Denumire, concentrație, formă, pentru ce se folosește, cine l-a prescris, ce farmacie îl eliberează și indicațiile importante. Ore și zile ale săptămânii, inclusiv pastilele luate o dată pe săptămână. Dacă oprești un medicament, își păstrează istoricul.
+
+O FIȘĂ DE URGENȚĂ CARE FUNCȚIONEAZĂ FĂRĂ SEMNAL
+Alergii, afecțiuni, toate medicamentele active, pe cine suni primul și numerele medicilor pe o singură pagină, cu litere mari. Trimite-o ca text simplu într-un mesaj sau într-un e-mail ori citește-o direct de pe ecran într-o sală de așteptare.
+
+CE A SPUS MEDICUL
+Notează o vizită cât este proaspătă: medicul, motivul, observațiile și controlul următor. Adaugă următoarea programare și apare în Azi cu o săptămână înainte.
+
+REÎNNOIRI
+Urmărește ce a mai rămas în flacon. Numărul scade pe măsură ce marchezi dozele ca luate, iar Azi îți spune când e timpul să reînnoiești.
+
+ÎMPARTE CU FAMILIA
+Autentifică-te cu Google și invită un frate, o soră sau partenerul printr-un link sau un cod. Toți cei din cercul de îngrijire văd aceeași listă și aceleași doze, indiferent de telefon, iar un părinte invitat la propria fișă o vede doar pe aceasta. Ajutoarele nu plătesc niciodată.
+
+PRIVAT DIN PROIECTARE
+Fișa funcționează pe acest telefon fără cont și fără semnal și este partajată doar cu persoanele pe care le inviți. Fără reclame, fără urmărire și niciodată locația.
+
+O PERSOANĂ, TOATE FUNCȚIILE, GRATUIT
+Versiunea gratuită include toate funcțiile pentru o persoană. Elderhub Plus adaugă mai multe persoane: un al doilea părinte, un partener sau oricine altcineva de care ai grijă.
+
+Elderhub Plus este disponibil lunar sau anual, ambele cu o probă gratuită de 7 zile pentru abonații noi eligibili, sau ca achiziție unică pe viață. Prețurile sunt afișate în aplicație înainte de cumpărare și variază în funcție de regiune. Abonamentele se reînnoiesc automat, dacă nu sunt anulate înainte de sfârșitul perioadei curente. Gestionează sau anulează în Google Play, la Plăți și abonamente.
+
+Politica de confidențialitate: https://jackwallner.github.io/elderhub/privacy-policy.html
+
+Elderhub este un instrument de organizare. Nu diagnostichează, nu tratează și nu vindecă nicio afecțiune, nu poate spune dacă cineva este bolnav și nu cheamă ajutor. Urmează întotdeauna indicațiile unui specialist medical autorizat.

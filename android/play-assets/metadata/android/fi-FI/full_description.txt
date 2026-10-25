@@ -1,0 +1,35 @@
+Useimmat lääkesovellukset olettavat, että seuraat omia pillereitäsi. Elderhub olettaa, ettet seuraa.
+
+Jos autat huolehtimaan vanhemmasta, puolisosta tai molemmista, todellinen lista elää kolmessa paikassa yhtä aikaa: päässäsi, keittiön laatikon paperilapulla ja siinä, minkä apteekki tulosti viime keväänä. Sitten hoitaja kysyy, mitä lääkkeitä hän käyttää, ja sinä arvaat.
+
+Elderhub pitää yhden ajantasaisen hoitotiedon jokaisesta ihmisestä, jotta sinulla on aina vastaus.
+
+TÄNÄÄN YHDELLÄ SILMÄYKSELLÄ
+Kaikki tämän päivän annokset, tulevan viikon ajanvaraukset ja lääkkeet, jotka ovat loppumassa. Merkitse annos otetuksi tai väliin jätetyksi yhdellä napautuksella, ja loki kirjaa, kuka sen teki.
+
+LISTA, JONKA LÄÄKÄRI OIKEASTI HALUAA
+Nimi, vahvuus, muoto, käyttötarkoitus, määrääjä, apteekki ja tärkeät ohjeet. Kellonajat ja viikonpäivät, myös kerran viikossa otettavat tabletit. Lopetetun lääkkeen historia säilyy.
+
+HÄTÄKORTTI, JOKA TOIMII ILMAN YHTEYTTÄ
+Allergiat, sairaudet, kaikki käytössä olevat lääkkeet, kenelle soitetaan ensin ja lääkäreiden numerot yhdellä sivulla isolla tekstillä. Jaa se pelkkänä tekstinä viestissä tai sähköpostissa tai lue se suoraan näytöltä odotushuoneessa.
+
+MITÄ LÄÄKÄRI SANOI
+Kirjaa käynti, kun se on tuoreessa muistissa: vastaanottaja, syy, muistiinpanot ja jatkotoimet. Lisää seuraava ajanvaraus, niin se näkyy Tänään-näkymässä viikkoa aiemmin.
+
+UUSINNAT
+Seuraa, paljonko purkissa on jäljellä. Määrä vähenee, kun merkitset annoksia otetuiksi, ja Tänään kertoo, milloin on aika hakea lisää.
+
+JAA SE PERHEEN KANSSA
+Kirjaudu Googlella ja kutsu veli, sisko tai puoliso linkillä tai koodilla. Kaikki hoitopiirissä näkevät saman listan ja samat annokset puhelimesta riippumatta, ja oman tietonsa kutsuttuna vanhempi näkee vain sen. Auttajat eivät koskaan maksa.
+
+YKSITYINEN ALUSTA ALKAEN
+Tiedot toimivat tässä puhelimessa ilman tiliä ja ilman yhteyttä, ja ne jaetaan vain kutsumillesi ihmisille. Ei mainoksia, ei seurantaa eikä koskaan sijaintia.
+
+YKSI HENKILÖ, KAIKKI OMINAISUUDET, ILMAISEKSI
+Ilmainen versio sisältää kaikki ominaisuudet yhdelle henkilölle. Elderhub Plus lisää henkilöitä: toisen vanhemman, puolison tai kenet tahansa muun, josta huolehdit.
+
+Elderhub Plus on saatavilla kuukausi- tai vuositilauksena, molemmissa 7 päivän ilmainen kokeilu oikeutetuille uusille tilaajille, tai kertaostona elinikäiseksi. Hinnat näytetään sovelluksessa ennen ostoa, ja ne vaihtelevat alueittain. Tilaukset uusiutuvat automaattisesti, ellei niitä peruuteta ennen nykyisen jakson päättymistä. Hallinnoi tai peruuta Google Playssa kohdassa Maksut ja tilaukset.
+
+Tietosuojakäytäntö: https://jackwallner.github.io/elderhub/privacy-policy.html
+
+Elderhub on järjestelyväline. Se ei diagnosoi, hoida eikä paranna mitään tilaa, se ei voi tietää, onko joku sairas, eikä se kutsu apua. Noudata aina laillistetun ammattilaisen ohjeita.

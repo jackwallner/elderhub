@@ -1,0 +1,35 @@
+Większość aplikacji o lekach zakłada, że śledzisz własne tabletki. Elderhub zakłada, że nie.
+
+Jeśli opiekujesz się rodzicem, współmałżonkiem lub obojgiem, prawdziwa lista żyje w trzech miejscach naraz: w twojej głowie, na kartce w kuchennej szufladzie i w tym, co apteka wydrukowała wiosną zeszłego roku. Potem pielęgniarka pyta, co przyjmuje, a ty zgadujesz.
+
+Elderhub prowadzi jedną aktualną kartę opieki dla każdej osoby, więc zawsze masz odpowiedź.
+
+DZIŚ, W JEDNYM RZUCIE OKA
+Wszystkie zaplanowane na dziś dawki, wizyty w nadchodzącym tygodniu i leki, których zaczyna brakować. Oznacz dawkę jako przyjętą lub pominiętą jednym dotknięciem, a dziennik zapisze, kto to zrobił.
+
+LISTA, KTÓREJ LEKARZ NAPRAWDĘ POTRZEBUJE
+Nazwa, moc, postać, na co jest, kto przepisał, w której aptece jest realizowany i ważne zalecenia. Godziny i dni tygodnia, także tabletki przyjmowane raz w tygodniu. Odstawiony lek zachowuje swoją historię.
+
+KARTA AWARYJNA DZIAŁAJĄCA BEZ ZASIĘGU
+Alergie, choroby, wszystkie przyjmowane leki, do kogo zadzwonić najpierw i numery lekarzy na jednej stronie dużą czcionką. Udostępnij ją jako zwykły tekst w wiadomości lub e-mailu albo odczytaj prosto z ekranu w poczekalni.
+
+CO POWIEDZIAŁ LEKARZ
+Zapisz wizytę, póki jest świeża w pamięci: specjalistę, powód, notatki i dalsze kroki. Dodaj kolejną wizytę, a pojawi się w widoku Dziś tydzień wcześniej.
+
+REALIZACJA RECEPT
+Śledź, ile zostało w opakowaniu. Zapas maleje, gdy oznaczasz dawki jako przyjęte, a Dziś podpowiada, kiedy czas uzupełnić zapas.
+
+UDOSTĘPNIJ RODZINIE
+Zaloguj się przez Google i zaproś brata, siostrę lub partnera linkiem albo kodem. Wszyscy w kręgu opieki widzą tę samą listę i te same dawki, niezależnie od telefonu, a rodzic zaproszony do własnej karty widzi tylko ją. Pomocnicy nigdy nie płacą.
+
+PRYWATNOŚĆ OD PODSTAW
+Karta działa na tym telefonie bez konta i bez zasięgu i jest udostępniana tylko osobom, które zaprosisz. Bez reklam, bez śledzenia i bez lokalizacji, nigdy.
+
+JEDNA OSOBA, WSZYSTKIE FUNKCJE, ZA DARMO
+Wersja bezpłatna zawiera wszystkie funkcje dla jednej osoby. Elderhub Plus dodaje kolejne osoby: drugiego rodzica, partnera lub kogokolwiek innego, kim się opiekujesz.
+
+Elderhub Plus jest dostępny w abonamencie miesięcznym lub rocznym, z 7-dniowym bezpłatnym okresem próbnym dla kwalifikujących się nowych subskrybentów, albo jako jednorazowy zakup na całe życie. Ceny są widoczne w aplikacji przed zakupem i różnią się w zależności od regionu. Subskrypcje odnawiają się automatycznie, chyba że zostaną anulowane przed końcem bieżącego okresu. Zarządzaj lub anuluj w Google Play w sekcji Płatności i subskrypcje.
+
+Polityka prywatności: https://jackwallner.github.io/elderhub/privacy-policy.html
+
+Elderhub jest narzędziem organizacyjnym. Nie stawia diagnoz, nie leczy żadnego schorzenia, nie potrafi stwierdzić, czy ktoś jest chory, i nie wzywa pomocy. Zawsze postępuj zgodnie z zaleceniami uprawnionego specjalisty.

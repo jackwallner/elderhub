@@ -1,0 +1,35 @@
+Hầu hết ứng dụng về thuốc cho rằng bạn theo dõi thuốc của chính mình. Elderhub cho rằng không phải vậy.
+
+Nếu bạn giúp chăm sóc cha mẹ, vợ chồng hoặc cả hai, danh sách thật sự nằm ở ba nơi cùng lúc: trong đầu bạn, trên mảnh giấy trong ngăn kéo bếp và trên tờ giấy hiệu thuốc in hồi mùa xuân năm ngoái. Rồi y tá hỏi họ đang uống thuốc gì, và bạn chỉ đoán.
+
+Elderhub giữ một hồ sơ chăm sóc luôn cập nhật cho từng người, để bạn luôn có câu trả lời.
+
+HÔM NAY, NHÌN LÀ THẤY
+Mọi liều dùng đã lên lịch cho hôm nay, các cuộc hẹn trong tuần tới và thuốc sắp hết. Đánh dấu một liều đã uống hoặc bỏ qua chỉ với một chạm, và nhật ký ghi lại ai đã làm.
+
+DANH SÁCH MÀ BÁC SĨ THỰC SỰ CẦN
+Tên thuốc, hàm lượng, dạng thuốc, dùng để làm gì, ai kê đơn, hiệu thuốc nào cấp và những chỉ dẫn quan trọng. Giờ giấc và ngày trong tuần, kể cả thuốc uống mỗi tuần một lần. Thuốc đã ngừng vẫn giữ lại lịch sử.
+
+THẺ KHẨN CẤP DÙNG ĐƯỢC KHI KHÔNG CÓ SÓNG
+Dị ứng, bệnh lý, mọi loại thuốc đang dùng, gọi ai trước và số điện thoại bác sĩ trên một trang chữ lớn. Chia sẻ dưới dạng văn bản thuần trong tin nhắn hoặc email, hoặc đọc thẳng từ màn hình trong phòng chờ.
+
+BÁC SĨ ĐÃ NÓI GÌ
+Ghi lại lần khám khi còn nhớ rõ: người khám, lý do, ghi chú và hẹn tái khám. Thêm cuộc hẹn kế tiếp và nó sẽ hiện ở Hôm nay trước một tuần.
+
+LẤY THUỐC TIẾP
+Theo dõi số thuốc còn trong lọ. Số lượng giảm dần khi bạn đánh dấu các liều đã uống, và Hôm nay cho bạn biết khi nào cần lấy thêm.
+
+CHIA SẺ VỚI GIA ĐÌNH
+Đăng nhập bằng Google và mời anh, chị, em hoặc người bạn đời bằng liên kết hoặc mã. Mọi người trong nhóm chăm sóc thấy cùng một danh sách và cùng các liều dùng, dù dùng điện thoại nào, còn cha mẹ được mời vào hồ sơ của chính mình chỉ thấy hồ sơ đó. Người giúp đỡ không bao giờ phải trả tiền.
+
+RIÊNG TƯ TỪ THIẾT KẾ
+Hồ sơ hoạt động trên điện thoại này mà không cần tài khoản hay sóng, và chỉ được chia sẻ với những người bạn mời. Không quảng cáo, không theo dõi và không bao giờ dùng vị trí.
+
+MỘT NGƯỜI, MỌI TÍNH NĂNG, MIỄN PHÍ
+Bản miễn phí có mọi tính năng cho một người. Elderhub Plus thêm nhiều người hơn: cha hoặc mẹ còn lại, người bạn đời hoặc bất kỳ ai khác bạn chăm sóc.
+
+Elderhub Plus có gói theo tháng hoặc theo năm, mỗi gói đều dùng thử miễn phí 7 ngày cho người đăng ký mới đủ điều kiện, hoặc mua một lần dùng trọn đời. Giá hiển thị trong ứng dụng trước khi mua và khác nhau theo khu vực. Gói đăng ký tự động gia hạn trừ khi bị hủy trước khi kết thúc chu kỳ hiện tại. Quản lý hoặc hủy trong Google Play, mục Thanh toán và gói đăng ký.
+
+Chính sách quyền riêng tư: https://jackwallner.github.io/elderhub/privacy-policy.html
+
+Elderhub là công cụ sắp xếp. Ứng dụng không chẩn đoán, điều trị hay chữa bất kỳ tình trạng nào, không thể biết ai đó có ốm hay không và không gọi trợ giúp. Hãy luôn làm theo hướng dẫn của chuyên gia y tế có chuyên môn.
