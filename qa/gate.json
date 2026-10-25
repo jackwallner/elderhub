@@ -1,0 +1,17 @@
+{
+  "project": "Aging.xcodeproj",
+  "scheme": "AgingUITests",
+  "uitests_dir": "AgingUITests",
+  "journeys": [
+    "AgingUITests/ReleaseJourneysUITests"
+  ],
+  "personas": [
+    "newcomer",
+    "accessibility",
+    "reduce-motion",
+    "german"
+  ],
+  "persona_overrides": {},
+  "slot": null,
+  "bundle_id": "com.jackwallner.aging"
+}
