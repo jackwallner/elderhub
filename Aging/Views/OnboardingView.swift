@@ -40,92 +40,93 @@ struct OnboardingView: View {
     var body: some View {
         // Scrolls at large text sizes, and the footer rides above the keyboard,
         // so Continue stays reachable once the name is typed.
-        GeometryReader { viewport in
-            ScrollView {
-                VStack(spacing: 28) {
-                    Spacer(minLength: 0)
+        VStack(spacing: 0) {
+            GeometryReader { viewport in
+                ScrollView {
+                    VStack(spacing: 28) {
+                        Spacer(minLength: 0)
 
-                    VStack(spacing: 12) {
-                        Image(systemName: "list.clipboard")
-                            .font(.system(size: 52))
-                            .foregroundStyle(.tint)
+                        VStack(spacing: 12) {
+                            Image(systemName: "list.clipboard")
+                                .font(.system(size: 52))
+                                .foregroundStyle(.tint)
 
-                        Text(isSolo ? "What should we call you?" : "Who are you keeping track of?")
-                            .font(.title2.bold())
-                            .multilineTextAlignment(.center)
-                            .fixedSize(horizontal: false, vertical: true)
+                            Text(isSolo ? "What should we call you?" : "Who are you keeping track of?")
+                                .font(.title2.bold())
+                                .multilineTextAlignment(.center)
+                                .fixedSize(horizontal: false, vertical: true)
 
-                        Text(isSolo
-                             ? "Your own list. You can add someone else later."
-                             : "The person you look after, not your own account. You can add more later.")
-                            .font(.body)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
+                            Text(isSolo
+                                 ? "Your own list. You can add someone else later."
+                                 : "The person you look after, not your own account. You can add more later.")
+                                .font(.body)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
 
-                    VStack(spacing: 16) {
-                        TextField(isSolo ? "Your name" : "Their name", text: $name)
-                            .textFieldStyle(.roundedBorder)
-                            .font(.title3)
-                            .textContentType(.name)
+                        VStack(spacing: 16) {
+                            TextField(isSolo ? "Your name" : "Their name", text: $name)
+                                .textFieldStyle(.roundedBorder)
+                                .font(.title3)
+                                .textContentType(.name)
 
-                        TextField("Relationship (optional)", text: $relationship)
-                            .textFieldStyle(.roundedBorder)
-                            .font(.body)
-                            .textInputAutocapitalization(.words)
-                            .autocorrectionDisabled()
-                            .accessibilityIdentifier("onboarding.relationship")
+                            TextField("Relationship (optional)", text: $relationship)
+                                .textFieldStyle(.roundedBorder)
+                                .font(.body)
+                                .textInputAutocapitalization(.words)
+                                .autocorrectionDisabled()
+                                .accessibilityIdentifier("onboarding.relationship")
 
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 10) {
-                                ForEach(suggestions, id: \.self) { option in
-                                    Button {
-                                        // Tapping the lit chip clears it, so "none of
-                                        // these" is reachable without deleting text.
-                                        relationship = isChosen(option) ? "" : option
-                                    } label: {
-                                        Text(option)
-                                            .font(.callout.weight(.medium))
-                                            .padding(.horizontal, 16)
-                                            .padding(.vertical, 9)
-                                            .background(
-                                                Capsule().fill(
-                                                    isChosen(option)
-                                                        ? Color.accentColor.opacity(0.18)
-                                                        : Color.secondary.opacity(0.12)
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 10) {
+                                    ForEach(suggestions, id: \.self) { option in
+                                        Button {
+                                            // Tapping the lit chip clears it, so "none of
+                                            // these" is reachable without deleting text.
+                                            relationship = isChosen(option) ? "" : option
+                                        } label: {
+                                            Text(option)
+                                                .font(.callout.weight(.medium))
+                                                .padding(.horizontal, 16)
+                                                .padding(.vertical, 9)
+                                                .background(
+                                                    Capsule().fill(
+                                                        isChosen(option)
+                                                            ? Color.accentColor.opacity(0.18)
+                                                            : Color.secondary.opacity(0.12)
+                                                    )
                                                 )
-                                            )
+                                        }
+                                        .buttonStyle(.plain)
+                                        .accessibilityAddTraits(isChosen(option) ? [.isSelected] : [])
                                     }
-                                    .buttonStyle(.plain)
-                                    .accessibilityAddTraits(isChosen(option) ? [.isSelected] : [])
                                 }
+                                .padding(.horizontal, 2)
                             }
-                            .padding(.horizontal, 2)
-                        }
 
-                        if requiresAttestation {
-                            Toggle(isOn: $hasPermission) {
-                                Text("I have permission to keep and share this person’s care information.")
-                                    .font(.subheadline)
-                                    .fixedSize(horizontal: false, vertical: true)
+                            if requiresAttestation {
+                                Toggle(isOn: $hasPermission) {
+                                    Text("I have permission to keep and share this person’s care information.")
+                                        .font(.subheadline)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                                .toggleStyle(.switch)
+                                .padding(.top, 4)
+                                .accessibilityIdentifier("onboarding.attestation")
                             }
-                            .toggleStyle(.switch)
-                            .padding(.top, 4)
-                            .accessibilityIdentifier("onboarding.attestation")
                         }
+                        .padding(.horizontal, 28)
+
+                        Spacer(minLength: 0)
                     }
-                    .padding(.horizontal, 28)
-
-                    Spacer(minLength: 0)
+                    .padding(.vertical, 16)
+                    .frame(minHeight: viewport.size.height)
                 }
-                .padding(.vertical, 16)
-                .frame(minHeight: viewport.size.height)
+                .scrollBounceBehavior(.basedOnSize)
+                .scrollDismissesKeyboard(.interactively)
             }
-            .scrollBounceBehavior(.basedOnSize)
-            .scrollDismissesKeyboard(.interactively)
-        }
-        .safeAreaInset(edge: .bottom) {
+
             VStack(spacing: 10) {
                 Button {
                     onComplete(
@@ -155,7 +156,6 @@ struct OnboardingView: View {
             .padding(.horizontal, 28)
             .padding(.top, 12)
             .padding(.bottom, 24)
-            .background(.background)
         }
         .onAppear {
             if isSolo { relationship = "Me" }
