@@ -41,10 +41,14 @@ enum ReviewPrompt {
 
     /// UI tests and the Duo screenshot tour never count launches or ask.
     static var skipsAutomation: Bool {
-        ProcessInfo.processInfo.arguments.contains {
+        #if DEBUG
+        return ProcessInfo.processInfo.arguments.contains {
             $0 == "-uitest-reset" || $0 == "-uitest-wipe-store" || $0 == "-rcfunnelprobe" || $0 == "-FASTLANE_SNAPSHOT"
                 || $0 == "-DuoTour"
         }
+        #else
+        return false
+        #endif
     }
 
     // MARK: - State
