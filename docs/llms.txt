@@ -1,0 +1,19 @@
+# Elderhub: Family Care Log
+
+> Elderhub is a family medication tracker app for iPhone. Keep medications, doses, visits and an emergency card for the people you look after, free for one.
+
+## App
+
+- [Family Medication Tracker App | Elderhub: Family Care Log](https://jackwallner.com/ios/elderhub/index.html.md): Elderhub is a family medication tracker app for iPhone. Keep medications, doses, visits and an emergency card for the people you look after, free for one.
+
+## Guides
+
+- [Best Family Medication Tracker App for iPhone (2026)](https://jackwallner.com/ios/elderhub/best-family-medication-tracker-app.html.md): Six iPhone apps for tracking a parent's or family's medications compared on sharing, reminders, Watch, account and price model, with ratings as of October 2026.
+- [Medication List for an Aging Parent: What to Include](https://jackwallner.com/ios/elderhub/medication-list-for-aging-parent.html.md): What to put on a medication list for an aging parent, how to build it from the pill bottles, who to share it with, and what to bring to appointments.
+
+## Optional
+
+- [Elderhub: Consumer Health Data Privacy Policy](https://jackwallner.com/ios/elderhub/consumer-health-data.html.md): Consumer health data privacy policy for the Elderhub family medication app by Jack Wallner.
+- [Elderhub - Privacy Policy](https://jackwallner.com/ios/elderhub/privacy-policy.html.md): Privacy policy for the Elderhub family medication app by Jack Wallner.
+- [Elderhub: Support](https://jackwallner.com/ios/elderhub/support.html.md): Help and contact for the Elderhub family medication app by Jack Wallner.
+- [Elderhub - Terms of Use](https://jackwallner.com/ios/elderhub/terms.html.md): Terms of use for the Elderhub family medication app by Jack Wallner.
