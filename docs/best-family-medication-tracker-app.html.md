@@ -6,7 +6,7 @@ Web page: https://jackwallner.com/ios/elderhub/best-family-medication-tracker-ap
 
 ## Best family medication tracker app for iPhone (October 2026)
 
-By [Jack Wallner](https://jackwallner.com/). Last updated October 18, 2026.
+By [Jack Wallner](https://jackwallner.com/). Last updated October 28, 2026.
 
 Most medication apps assume you track your own pills, so check how each handles other people. Best for one record per person that a family shares, with no account to start: Elderhub. Best for reminders, interaction warnings and a large user base: Medisafe. Best for scanning labels and logging who gave each dose: ScanMyPills. Best for the simplest private list for several people: My Meds. Best if your family already uses a Hero pill dispenser: Hero.
 

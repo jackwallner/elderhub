@@ -6,7 +6,7 @@ Web page: https://jackwallner.com/ios/elderhub/medication-list-for-aging-parent.
 
 ## How to keep a medication list for an aging parent
 
-By [Jack Wallner](https://jackwallner.com/) · Last updated October 18, 2026
+By [Jack Wallner](https://jackwallner.com/) · Last updated October 28, 2026
 
 Write one list that covers every prescription, over-the-counter medicine, vitamin and supplement your parent takes, with the name, strength, what it is for and when and how much they take. Add allergies, medical conditions and emergency contacts. The FDA says to update it whenever something changes, keep a copy with your parent, and share it with a trusted relative or caregiver. Bring it, and ideally the containers, to every appointment.
 

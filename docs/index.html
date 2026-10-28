@@ -36,7 +36,7 @@
   "@graph": [
     {
       "@type": "MobileApplication",
-      "dateModified": "2026-10-27",
+      "dateModified": "2026-10-28",
       "@id": "https://jackwallner.com/ios/elderhub/#app",
       "name": "Elderhub: Family Care Log",
       "alternateName": "Elderhub",
@@ -547,7 +547,7 @@
         color: #6e6e73;
       }
 
-      footer a {
+      footer a { display: inline-block; padding: 6px 0;
         color: #6e6e73;
         text-decoration: none;
         margin: 0 10px;
@@ -618,8 +618,8 @@
   <body>
     <nav>
       <div class="container">
-        <a class="nav-brand" href="./">
-          <img src="icon_256.webp" alt="Elderhub" loading="lazy" decoding="async">
+        <a class="nav-brand" href="./" aria-label="Elderhub">
+          <img src="icon_64.webp" alt="" width="32" height="32">
           <span>Elderhub</span>
         </a>
         <a
@@ -954,7 +954,7 @@
     <!-- The My Health My Data Act asks for the consumer-health-data link on the
          homepage specifically, not only inside the general privacy policy. -->
     <footer>
-      <div class="divider">&copy; 2026 Jack Wallner · Last updated <time datetime="2026-10-27" data-updated>October 27, 2026</time></div>
+      <div class="divider">&copy; 2026 Jack Wallner · Last updated <time datetime="2026-10-28" data-updated>October 28, 2026</time></div>
       <div>
         <!-- Load-bearing, not decoration: the portfolio mirror that serves this
              page at jackwallner.com copies index.html plus the closure of what
