@@ -30,6 +30,6 @@ Den gratis versjonen har alle funksjoner for én person. Elderhub Plus legger ti
 
 Elderhub Plus er tilgjengelig månedlig eller årlig, begge med 7 dagers gratis prøveperiode for kvalifiserte nye abonnenter, eller som et engangskjøp for livet. Priser vises i appen før du kjøper, og varierer etter region. Abonnementer fornyes automatisk med mindre de sies opp før utløpet av gjeldende periode. Administrer eller si opp i Google Play under Betalinger og abonnementer.
 
-Personvernerklæring: https://jackwallner.github.io/elderhub/privacy-policy.html
+Personvernerklæring: https://jackwallner.com/ios/elderhub/privacy-policy.html
 
 Elderhub er et organiseringsverktøy. Det stiller ingen diagnoser, behandler eller kurerer ingen tilstand, kan ikke se om noen er syk og tilkaller ikke hjelp. Følg alltid rådene fra autorisert helsepersonell.

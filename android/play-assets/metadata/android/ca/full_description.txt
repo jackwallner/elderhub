@@ -30,6 +30,6 @@ La versió gratuïta inclou totes les funcions per a una persona. Elderhub Plus 
 
 Elderhub Plus està disponible amb subscripció mensual o anual, totes dues amb una prova gratuïta de 7 dies per als nous subscriptors que hi tinguin dret, o com a compra única de per vida. Els preus es mostren a l'app abans de comprar i varien segons la regió. Les subscripcions es renoven automàticament tret que es cancel·lin abans que acabi el període actual. Gestiona o cancel·la a Google Play, a Pagaments i subscripcions.
 
-Política de privadesa: https://jackwallner.github.io/elderhub/privacy-policy.html
+Política de privadesa: https://jackwallner.com/ios/elderhub/privacy-policy.html
 
 Elderhub és una eina d'organització. No diagnostica, tracta ni cura cap afecció, no pot saber si algú està malalt i no truca per demanar ajuda. Segueix sempre les indicacions d'un professional sanitari titulat.

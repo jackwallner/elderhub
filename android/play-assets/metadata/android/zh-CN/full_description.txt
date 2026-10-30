@@ -30,6 +30,6 @@ Elderhub 为每个人保存一份最新的护理记录，让你随时都有答�
 
 Elderhub Plus 提供按月或按年订阅，符合条件的新订阅用户均可享受 7 天免费试用，也可一次性购买终身版。价格会在购买前于应用内显示，并因地区而异。除非在当前订阅周期结束前取消，订阅将自动续订。可在 Google Play 的“付款和订阅”中管理或取消。
 
-隐私政策: https://jackwallner.github.io/elderhub/privacy-policy.html
+隐私政策: https://jackwallner.com/ios/elderhub/privacy-policy.html
 
 Elderhub 是一个整理工具。它不会诊断、治疗或治愈任何疾病，无法判断谁身体不适，也不会呼叫救援。请始终遵循持证医疗专业人员的指导。

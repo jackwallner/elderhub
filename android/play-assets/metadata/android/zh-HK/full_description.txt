@@ -30,6 +30,6 @@ Elderhub 為每個人保存一份最新的照護紀錄，讓你隨時都有答�
 
 Elderhub Plus 提供按月或按年訂閱，符合資格的新訂閱者均可享有 7 天免費試用，也可一次性購買終身版。價格會在購買前於App內顯示，並依地區而異。除非在目前訂閱週期結束前取消，訂閱將自動續訂。可在 Google Play 的「付款和訂閱」中管理或取消。
 
-隱私權政策: https://jackwallner.github.io/elderhub/privacy-policy.html
+隱私權政策: https://jackwallner.com/ios/elderhub/privacy-policy.html
 
 Elderhub 是一個整理工具。它不會診斷、治療或治癒任何疾病，無法判斷誰身體不適，也不會呼叫救援。請務必遵循合格醫療專業人員的指導。

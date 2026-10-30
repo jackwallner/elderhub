@@ -30,6 +30,6 @@ Ilmainen versio sisältää kaikki ominaisuudet yhdelle henkilölle. Elderhub Pl
 
 Elderhub Plus on saatavilla kuukausi- tai vuositilauksena, molemmissa 7 päivän ilmainen kokeilu oikeutetuille uusille tilaajille, tai kertaostona elinikäiseksi. Hinnat näytetään sovelluksessa ennen ostoa, ja ne vaihtelevat alueittain. Tilaukset uusiutuvat automaattisesti, ellei niitä peruuteta ennen nykyisen jakson päättymistä. Hallinnoi tai peruuta Google Playssa kohdassa Maksut ja tilaukset.
 
-Tietosuojakäytäntö: https://jackwallner.github.io/elderhub/privacy-policy.html
+Tietosuojakäytäntö: https://jackwallner.com/ios/elderhub/privacy-policy.html
 
 Elderhub on järjestelyväline. Se ei diagnosoi, hoida eikä paranna mitään tilaa, se ei voi tietää, onko joku sairas, eikä se kutsu apua. Noudata aina laillistetun ammattilaisen ohjeita.

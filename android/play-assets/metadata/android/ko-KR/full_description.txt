@@ -30,6 +30,6 @@ Google로 로그인한 뒤 형제자매나 배우자를 링크 또는 코드로 
 
 Elderhub Plus는 월간 또는 연간 구독으로 제공되며, 자격이 되는 신규 구독자에게는 7일 무료 체험이 포함됩니다. 평생 이용권을 한 번에 구매할 수도 있습니다. 가격은 구매 전에 앱에서 표시되며 지역에 따라 다릅니다. 구독은 현재 기간이 끝나기 전에 취소하지 않으면 자동으로 갱신됩니다. Google Play의 결제 및 정기 결제에서 관리하거나 취소할 수 있습니다.
 
-개인정보처리방침: https://jackwallner.github.io/elderhub/privacy-policy.html
+개인정보처리방침: https://jackwallner.com/ios/elderhub/privacy-policy.html
 
 Elderhub는 정리를 돕는 도구입니다. 어떤 질환도 진단, 치료, 완치하지 않으며, 누군가 아픈지 알 수 없고, 도움을 요청하지도 않습니다. 항상 면허가 있는 의료 전문가의 안내를 따르세요.

@@ -30,6 +30,6 @@ Bản miễn phí có mọi tính năng cho một người. Elderhub Plus thêm 
 
 Elderhub Plus có gói theo tháng hoặc theo năm, mỗi gói đều dùng thử miễn phí 7 ngày cho người đăng ký mới đủ điều kiện, hoặc mua một lần dùng trọn đời. Giá hiển thị trong ứng dụng trước khi mua và khác nhau theo khu vực. Gói đăng ký tự động gia hạn trừ khi bị hủy trước khi kết thúc chu kỳ hiện tại. Quản lý hoặc hủy trong Google Play, mục Thanh toán và gói đăng ký.
 
-Chính sách quyền riêng tư: https://jackwallner.github.io/elderhub/privacy-policy.html
+Chính sách quyền riêng tư: https://jackwallner.com/ios/elderhub/privacy-policy.html
 
 Elderhub là công cụ sắp xếp. Ứng dụng không chẩn đoán, điều trị hay chữa bất kỳ tình trạng nào, không thể biết ai đó có ốm hay không và không gọi trợ giúp. Hãy luôn làm theo hướng dẫn của chuyên gia y tế có chuyên môn.

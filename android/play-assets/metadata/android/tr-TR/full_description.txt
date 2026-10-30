@@ -30,6 +30,6 @@ BİR KİŞİ, TÜM ÖZELLİKLER, ÜCRETSİZ
 
 Elderhub Plus aylık veya yıllık olarak sunulur; her ikisinde de uygun yeni aboneler için 7 günlük ücretsiz deneme vardır. Ayrıca tek seferlik ömür boyu satın alma olarak da edinilebilir. Fiyatlar satın almadan önce uygulamada gösterilir ve bölgeye göre değişir. Abonelikler, mevcut dönemin bitiminden önce iptal edilmezse otomatik olarak yenilenir. Google Play'de Ödemeler ve abonelikler bölümünden yönetin veya iptal edin.
 
-Gizlilik Politikası: https://jackwallner.github.io/elderhub/privacy-policy.html
+Gizlilik Politikası: https://jackwallner.com/ios/elderhub/privacy-policy.html
 
 Elderhub bir düzenleme aracıdır. Hiçbir durumu teşhis etmez, tedavi etmez veya iyileştirmez, birinin hasta olup olmadığını anlayamaz ve yardım çağırmaz. Her zaman yetkili bir sağlık uzmanının yönlendirmesini izleyin.

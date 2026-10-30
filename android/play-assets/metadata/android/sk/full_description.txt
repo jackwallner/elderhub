@@ -30,6 +30,6 @@ Bezplatná verzia obsahuje všetky funkcie pre jedného človeka. Elderhub Plus 
 
 Elderhub Plus je k dispozícii mesačne alebo ročne, oboje so 7-dňovou skúšobnou dobou zadarmo pre oprávnených nových predplatiteľov, alebo ako jednorazový doživotný nákup. Ceny sa zobrazujú v aplikácii pred nákupom a líšia sa podľa regiónu. Predplatné sa automaticky obnovuje, ak ho nezrušíte pred koncom aktuálneho obdobia. Spravujte alebo zrušte v Google Play v časti Platby a predplatné.
 
-Zásady ochrany osobných údajov: https://jackwallner.github.io/elderhub/privacy-policy.html
+Zásady ochrany osobných údajov: https://jackwallner.com/ios/elderhub/privacy-policy.html
 
 Elderhub je organizačný nástroj. Nediagnostikuje, nelieči ani nevylieči žiadny stav, nepozná, či je niekto chorý, a nevolá pomoc. Vždy sa riaďte pokynmi kvalifikovaného zdravotníka.

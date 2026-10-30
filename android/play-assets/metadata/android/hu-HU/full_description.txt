@@ -30,6 +30,6 @@ Az ingyenes verzió minden funkciót tartalmaz egy személyhez. Az Elderhub Plus
 
 Az Elderhub Plus havi vagy éves előfizetéssel érhető el, mindkettőhöz 7 napos ingyenes próba jár a jogosult új előfizetőknek, vagy egyszeri, élethosszig tartó vásárlással. Az árak vásárlás előtt megjelennek az appban, és régiónként eltérnek. Az előfizetések automatikusan megújulnak, hacsak nem mondod le őket az aktuális időszak vége előtt. Kezeld vagy mondd le a Google Playben a Fizetések és előfizetések alatt.
 
-Adatvédelmi irányelvek: https://jackwallner.github.io/elderhub/privacy-policy.html
+Adatvédelmi irányelvek: https://jackwallner.com/ios/elderhub/privacy-policy.html
 
 Az Elderhub szervezést segítő eszköz. Nem diagnosztizál, nem kezel és nem gyógyít semmilyen állapotot, nem tudja megállapítani, hogy valaki beteg-e, és nem hív segítséget. Mindig kövesd egy szakképzett egészségügyi szakember útmutatását.

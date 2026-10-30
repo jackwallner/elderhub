@@ -30,6 +30,6 @@ La version gratuite inclut toutes les fonctions pour une personne. Elderhub Plus
 
 Elderhub Plus est proposé au mois ou à l'année, avec un essai gratuit de 7 jours pour les nouveaux abonnés éligibles, ou en achat unique à vie. Les prix sont affichés dans l'application avant l'achat et varient selon la région. Les abonnements se renouvellent automatiquement, sauf annulation avant la fin de la période en cours. Gérez ou annulez dans Google Play, sous Paiements et abonnements.
 
-Politique de confidentialité: https://jackwallner.github.io/elderhub/privacy-policy.html
+Politique de confidentialité: https://jackwallner.com/ios/elderhub/privacy-policy.html
 
 Elderhub est un outil d'organisation. Il ne diagnostique, ne traite et ne guérit aucune affection, il ne peut pas savoir si quelqu'un est malade et il n'appelle pas les secours. Suivez toujours les conseils d'un professionnel de santé agréé.

@@ -30,6 +30,6 @@ Versi gratis mencakup semua fitur untuk satu orang. Elderhub Plus menambah lebih
 
 Elderhub Plus tersedia bulanan atau tahunan, masing-masing dengan uji coba gratis 7 hari untuk pelanggan baru yang memenuhi syarat, atau sebagai pembelian sekali bayar seumur hidup. Harga ditampilkan di aplikasi sebelum Anda membeli dan berbeda menurut wilayah. Langganan diperpanjang otomatis kecuali dibatalkan sebelum periode berjalan berakhir. Kelola atau batalkan di Google Play pada Pembayaran dan langganan.
 
-Kebijakan Privasi: https://jackwallner.github.io/elderhub/privacy-policy.html
+Kebijakan Privasi: https://jackwallner.com/ios/elderhub/privacy-policy.html
 
 Elderhub adalah alat pengorganisasian. Aplikasi ini tidak mendiagnosis, mengobati, atau menyembuhkan kondisi apa pun, tidak dapat mengetahui apakah seseorang sakit, dan tidak memanggil bantuan. Selalu ikuti arahan tenaga kesehatan berlisensi.

@@ -30,6 +30,6 @@ The free version includes every feature for one person. Elderhub Plus adds more 
 
 Elderhub Plus is available monthly or yearly, each with a 7-day free trial for eligible new subscribers, or as a one-time lifetime purchase. Prices are shown in the app before you buy and vary by region. Subscriptions renew automatically unless cancelled before the end of the current period. Manage or cancel in Google Play under Payments & subscriptions.
 
-Privacy Policy: https://jackwallner.github.io/elderhub/privacy-policy.html
+Privacy Policy: https://jackwallner.com/ios/elderhub/privacy-policy.html
 
 Elderhub is an organizational tool. It does not diagnose, treat, or cure any condition, it cannot tell whether anyone is unwell, and it does not call for help. Always follow the guidance of a licensed clinician.

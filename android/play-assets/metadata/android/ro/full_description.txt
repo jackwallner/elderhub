@@ -30,6 +30,6 @@ Versiunea gratuită include toate funcțiile pentru o persoană. Elderhub Plus a
 
 Elderhub Plus este disponibil lunar sau anual, ambele cu o probă gratuită de 7 zile pentru abonații noi eligibili, sau ca achiziție unică pe viață. Prețurile sunt afișate în aplicație înainte de cumpărare și variază în funcție de regiune. Abonamentele se reînnoiesc automat, dacă nu sunt anulate înainte de sfârșitul perioadei curente. Gestionează sau anulează în Google Play, la Plăți și abonamente.
 
-Politica de confidențialitate: https://jackwallner.github.io/elderhub/privacy-policy.html
+Politica de confidențialitate: https://jackwallner.com/ios/elderhub/privacy-policy.html
 
 Elderhub este un instrument de organizare. Nu diagnostichează, nu tratează și nu vindecă nicio afecțiune, nu poate spune dacă cineva este bolnav și nu cheamă ajutor. Urmează întotdeauna indicațiile unui specialist medical autorizat.
