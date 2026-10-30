@@ -1,6 +1,6 @@
 # Best Family Medication Tracker App for iPhone (2026)
 
-> Six iPhone apps for tracking a parent's or family's medications compared on sharing, reminders, Watch, account and price model, with ratings as of October 2026.
+> Six iPhone apps for tracking a parent's or family's medications, compared on sharing, reminders, Watch, account and price, with ratings as of Oct 2026.
 
 Web page: https://jackwallner.com/ios/elderhub/best-family-medication-tracker-app.html
 
