@@ -1,4 +1,4 @@
-Most medication apps assume you are tracking your own pills. Elderhub assumes you are not.
+Elderhub is a free caregiver app for tracking a parent's or spouse's medications, doses, doctor visits and vitals, with an emergency card you can show a nurse in one tap. It works on your phone with no account, every feature is free for one person, and invited family members are always free.
 
 If you help look after a parent, a spouse, or both, you already know the problem: the real list lives in three places at once. Some of it is in your head, some of it is on a scrap of paper in a kitchen drawer, and some of it is whatever the pharmacy printed out last spring. Then a nurse asks what she takes, and you are guessing.
 
@@ -33,7 +33,7 @@ The free version includes medications, doses, reminders, visits, readings, tasks
 
 Elderhub Plus is available monthly or yearly, each with a 1-week free trial for eligible new subscribers, or as a one-time lifetime purchase. Prices are shown in the app before you buy and vary by region. After a trial, payment is charged through your Apple ID and the selected subscription renews automatically each month or year unless cancelled at least 24 hours before the end of the current period. Renewal is charged within 24 hours before the current period ends. Manage or cancel subscriptions in your Apple ID settings. See our Privacy Policy and Apple's Standard EULA.
 
-Privacy Policy: https://jackwallner.github.io/elderhub/privacy-policy.html
+Privacy Policy: https://jackwallner.com/ios/elderhub/privacy-policy.html
 Apple Standard EULA: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 Elderhub is an organizational tool. It does not diagnose, treat, or cure any condition, and it does not provide medical advice. Always follow the guidance of a licensed clinician.
