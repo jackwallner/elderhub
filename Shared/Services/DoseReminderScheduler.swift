@@ -550,6 +550,11 @@ enum RefillReminderPlanner {
     /// A sane daytime hour for a reminder that is not tied to a dose time.
     static let notificationHour = 9
 
+    /// How far ahead a refill is worth a reminder. A supply that outlasts ten
+    /// years is a mistyped quantity, not a prescription, and the number of days
+    /// it works out to can be anything a text field accepts.
+    static let maxDaysAhead = 3650
+
     /// Every refill reminder that should exist for `people`, one per
     /// medication that is tracked, scheduled, and due to cross its
     /// threshold. Medications with no `daysRemaining` (untracked or
@@ -566,6 +571,10 @@ enum RefillReminderPlanner {
             for medication in person.liveMedications where isEligible(medication) {
                 guard let daysRemaining = medication.daysRemaining else { continue }
                 let daysUntilThreshold = daysRemaining - Double(medication.refillThresholdDays)
+                // `Int(_:)` traps on a value it cannot hold, and 20 digits in
+                // On hand is a valid Double. This runs on launch and on every
+                // foreground, so a trap here is an app that cannot start.
+                guard daysUntilThreshold.isFinite, daysUntilThreshold <= Double(maxDaysAhead) else { continue }
                 let dayOffset = max(0, Int(daysUntilThreshold.rounded(.down)))
 
                 guard

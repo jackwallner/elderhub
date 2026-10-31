@@ -130,6 +130,47 @@ struct OneShotReminderDiffTests {
         #expect(OneShotReminderDiff.toSchedule(specs, held: specs.map { held($0) }).isEmpty)
     }
 
+    // MARK: Refills with a supply nobody could mean
+
+    // The On hand and Units per dose fields take any number. Counting the days
+    // to the refill forward from today turned that number into an Int, which
+    // traps when it does not fit, and the planner runs on launch and on every
+    // foreground: one mistyped quantity made an app that could not start.
+
+    @Test func aSupplyTooLargeToCountDaysOfDoesNotCrashTheRefillPlanner() {
+        let context = makeContext()
+        let (person, _) = trackedMedication(in: context, quantity: 1e20)
+
+        let specs = RefillReminderPlanner.requests(for: [person], on: at(2026, 9, 10), calendar: calendar)
+
+        #expect(specs.isEmpty)
+    }
+
+    @Test func aDoseSizeSoSmallThatTheSupplyNeverEndsDoesNotCrashTheRefillPlanner() {
+        let context = makeContext()
+        let (person, med) = trackedMedication(in: context, quantity: 30)
+        med.unitsPerDose = 1e-19
+
+        let specs = RefillReminderPlanner.requests(for: [person], on: at(2026, 9, 10), calendar: calendar)
+
+        #expect(specs.isEmpty)
+    }
+
+    @Test func aSupplyThatLastsMoreThanAYearStillGetsItsReminderOnTheRightDay() {
+        let context = makeContext()
+        // 400 days on hand, warned 7 days before the end: 393 days from the
+        // 10th of September 2026 is the 8th of October 2027.
+        let (person, _) = trackedMedication(in: context, quantity: 400)
+
+        let specs = RefillReminderPlanner.requests(for: [person], on: at(2026, 9, 10), calendar: calendar)
+
+        #expect(specs.count == 1)
+        #expect(specs.first?.dateComponents.year == 2027)
+        #expect(specs.first?.dateComponents.month == 10)
+        #expect(specs.first?.dateComponents.day == 8)
+        #expect(specs.first?.dateComponents.hour == RefillReminderPlanner.notificationHour)
+    }
+
     // MARK: Either kind
 
     @Test func aReminderNobodyHoldsYetIsScheduled() {
