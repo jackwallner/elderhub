@@ -172,8 +172,8 @@ struct VitalEditorSheet: View {
     }
 
     private var isValid: Bool {
-        guard Double(primary) != nil else { return false }
-        if kind.isPaired { return Double(secondary) != nil }
+        guard VitalReading.value(from: primary) != nil else { return false }
+        if kind.isPaired { return VitalReading.value(from: secondary) != nil }
         return true
     }
 
@@ -197,7 +197,7 @@ struct VitalEditorSheet: View {
     }
 
     private func save() {
-        guard let primaryValue = Double(primary) else { return }
+        guard let primaryValue = VitalReading.value(from: primary) else { return }
         let target = reading ?? {
             let new = VitalReading(kind: kind, primaryValue: primaryValue, person: person)
             context.insert(new)
@@ -206,7 +206,7 @@ struct VitalEditorSheet: View {
 
         target.kind = kind
         target.primaryValue = primaryValue
-        target.secondaryValue = kind.isPaired ? Double(secondary) : nil
+        target.secondaryValue = kind.isPaired ? VitalReading.value(from: secondary) : nil
         target.recordedAt = recordedAt
         target.note = note.trimmingCharacters(in: .whitespaces)
         target.recordLocalChange(in: context)

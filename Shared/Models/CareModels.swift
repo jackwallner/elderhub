@@ -770,6 +770,29 @@ final class VitalReading {
         }
         return String(format: "%.1f", primaryValue)
     }
+
+    /// The number a typed reading means.
+    ///
+    /// The decimal pad types the region's own decimal separator and
+    /// `Double(String)` only understands a dot, so where the separator is a
+    /// comma "98,6" was not a number: Save stayed greyed out with no reason on
+    /// screen, and a weight or a temperature with a fraction could not be
+    /// recorded at all. A dot is accepted in every region, because that is how
+    /// an existing reading is loaded back into the field. A separator that
+    /// means something else where the phone is (the comma that groups
+    /// thousands in en_US) is refused rather than guessed at.
+    static func value(from text: String, locale: Locale = .current) -> Double? {
+        let trimmed = text.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return nil }
+
+        if let value = Double(trimmed) { return value.isFinite ? value : nil }
+
+        guard let separator = locale.decimalSeparator, separator != ".",
+              trimmed.components(separatedBy: separator).count == 2,
+              let value = Double(trimmed.replacingOccurrences(of: separator, with: "."))
+        else { return nil }
+        return value.isFinite ? value : nil
+    }
 }
 
 // MARK: - Emergency contact
