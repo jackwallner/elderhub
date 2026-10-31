@@ -43,3 +43,24 @@ struct VitalInputTests {
         #expect(VitalReading.value(from: "98,6", locale: english) == nil)
     }
 }
+
+/// Kept apart from the parsing tests: before the fix this one does not fail, it
+/// takes the whole test process down with it.
+struct VitalDisplayTests {
+    @Test func aReadingTooLargeToCountDoesNotCrashTheScreensThatListIt() {
+        // 20 digits is a valid Double and not a valid Int. Converting it to
+        // print it trapped, on every screen that lists vitals, for as long as
+        // the row existed.
+        let reading = VitalReading(kind: .heartRate, primaryValue: 1e20)
+        #expect(!reading.displayValue.isEmpty)
+
+        let pressure = VitalReading(kind: .bloodPressure, primaryValue: 1e20, secondaryValue: 1e20)
+        #expect(!pressure.displayValue.isEmpty)
+    }
+
+    @Test func ordinaryReadingsPrintAsTheyAlwaysDid() {
+        #expect(VitalReading(kind: .heartRate, primaryValue: 72).displayValue == "72")
+        #expect(VitalReading(kind: .temperature, primaryValue: 98.6).displayValue == "98.6")
+        #expect(VitalReading(kind: .bloodPressure, primaryValue: 120, secondaryValue: 80).displayValue == "120/80")
+    }
+}

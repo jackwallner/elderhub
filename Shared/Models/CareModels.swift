@@ -763,12 +763,23 @@ final class VitalReading {
 
     var displayValue: String {
         if kind.isPaired, let secondaryValue {
-            return "\(Int(primaryValue))/\(Int(secondaryValue))"
+            return "\(Self.wholeNumber(primaryValue))/\(Self.wholeNumber(secondaryValue))"
         }
         if primaryValue == primaryValue.rounded() {
-            return String(Int(primaryValue))
+            return Self.wholeNumber(primaryValue)
         }
         return String(format: "%.1f", primaryValue)
+    }
+
+    /// A reading without its fraction. `Int(_:)` traps on a value that does not
+    /// fit an `Int`, and a 20-digit entry is a perfectly good `Double`: this is
+    /// read by every screen that lists vitals, so one such row took each of
+    /// them down for as long as it existed, on every phone it synced to.
+    private static func wholeNumber(_ value: Double) -> String {
+        guard let whole = Int(exactly: value.rounded(.towardZero)) else {
+            return String(format: "%.0f", value)
+        }
+        return String(whole)
     }
 
     /// The number a typed reading means.

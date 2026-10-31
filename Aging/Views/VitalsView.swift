@@ -193,7 +193,8 @@ struct VitalEditorSheet: View {
     /// Whole numbers without a trailing ".0", so editing 140/90 does not show
     /// "140.0" back to someone who typed "140".
     private static func text(_ value: Double) -> String {
-        value == value.rounded() ? String(Int(value)) : String(value)
+        if let whole = Int(exactly: value) { return String(whole) }
+        return String(value)
     }
 
     private func save() {
