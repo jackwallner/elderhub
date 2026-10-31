@@ -97,7 +97,62 @@ final class CheckInService {
         endMinute: Int,
         graceMinutes: Int
     ) {
-        let settings = self.settings(for: person) ?? {
+        guard Self.writeSettings(
+            in: context,
+            for: person,
+            enabled: enabled,
+            startMinute: startMinute,
+            endMinute: endMinute,
+            graceMinutes: graceMinutes
+        ) else { return }
+
+        SyncCoordinator.shared.enqueue(.checkInSettings, id: person.id)
+        Task {
+            await SyncCoordinator.shared.syncNow()
+            await scheduleReminder(for: person)
+        }
+    }
+
+    /// Puts the agreed window on the person's settings row, and says whether
+    /// anything was written.
+    ///
+    /// The settings screen saves when it is left, so this runs for every
+    /// caregiver who merely looked. Writing then was not harmless: the row is
+    /// shared, last writer wins, and each write stamped the viewer's own time
+    /// zone on it. The server judges the window in that zone, so a sibling in
+    /// another city who only opened Mom's check-in moved the moment the family
+    /// is told she has not checked in by the difference between the two
+    /// cities, and a phone that had not synced yet put an old window back over
+    /// a newer one. A row that already says this, and an unconfigured person
+    /// being looked at, are left alone.
+    @discardableResult
+    static func writeSettings(
+        in context: ModelContext,
+        for person: Person,
+        enabled: Bool,
+        startMinute: Int,
+        endMinute: Int,
+        graceMinutes: Int,
+        timeZone: TimeZone = .current,
+        now: Date = Date()
+    ) -> Bool {
+        let id = person.id
+        var descriptor = FetchDescriptor<CheckInSettings>(predicate: #Predicate { $0.personID == id })
+        descriptor.fetchLimit = 1
+        let existing = (try? context.fetch(descriptor))?.first
+
+        if let existing {
+            let unchanged = existing.enabled == enabled
+                && existing.windowStartMinute == startMinute
+                && existing.windowEndMinute == endMinute
+                && existing.graceMinutes == graceMinutes
+                && existing.groupID == person.groupID
+            if unchanged { return false }
+        } else if !enabled {
+            return false
+        }
+
+        let settings = existing ?? {
             let new = CheckInSettings(personID: person.id, groupID: person.groupID)
             context.insert(new)
             return new
@@ -108,16 +163,11 @@ final class CheckInService {
         settings.windowStartMinute = startMinute
         settings.windowEndMinute = endMinute
         settings.graceMinutes = graceMinutes
-        settings.timeZoneIdentifier = TimeZone.current.identifier
-        settings.updatedAt = Date()
+        settings.timeZoneIdentifier = timeZone.identifier
+        settings.updatedAt = now
         settings.isDirty = true
         context.saveOrReport()
-
-        SyncCoordinator.shared.enqueue(.checkInSettings, id: person.id)
-        Task {
-            await SyncCoordinator.shared.syncNow()
-            await scheduleReminder(for: person)
-        }
+        return true
     }
 
     // MARK: The local reminder (D26)
