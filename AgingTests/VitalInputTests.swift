@@ -9,6 +9,7 @@ import Testing
 /// decimal pad types a comma, so "98,6" was not a number: Save stayed greyed
 /// out with no word on screen about why, and a weight or a temperature with a
 /// fraction could not be recorded at all.
+@MainActor
 struct VitalInputTests {
     private let german = Locale(identifier: "de_DE")
     private let french = Locale(identifier: "fr_FR")
@@ -46,6 +47,7 @@ struct VitalInputTests {
 
 /// Kept apart from the parsing tests: before the fix this one does not fail, it
 /// takes the whole test process down with it.
+@MainActor
 struct VitalDisplayTests {
     @Test func aReadingTooLargeToCountDoesNotCrashTheScreensThatListIt() {
         // 20 digits is a valid Double and not a valid Int. Converting it to
