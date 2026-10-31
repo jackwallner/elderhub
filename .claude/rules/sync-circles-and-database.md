@@ -103,6 +103,40 @@ Moved verbatim from AGENTS.md. Loads when a matching file is read; update it her
   design D26 puts on the person's own phone is only ever scheduled on the phone
   that edits the settings (open items in `qa/ledger.jsonl`).
 
+### Pull, push and the conflict rule
+
+- **Every apply function keeps an unsent edit that is newer than the copy
+  arriving (`shouldKeepLocal`), whatever it does about a copy that is newer.**
+  A cycle pulls before it pushes, and the pull cursor is written to the
+  millisecond while Postgres keeps microseconds, so the newest row of every
+  table comes back on every cycle with a timestamp older than anything typed
+  since. `applyPerson`, `applyMedication` and `applyCheckInSettings` asked only
+  whether the server copy was newer, and overwrote the edit when it was not:
+  a new allergy, a taken dose's refill count and a changed check-in window
+  were lost, and the push sent the old values back up. A row the pull itself
+  creates is not judged against the server's stamp (it is dirty and dated
+  "now" by construction).
+
+- **A field a person can empty is `@Clearable` on its DTO and goes up as an
+  explicit `null`.** supabase-swift puts exactly the keys in the body into the
+  `columns` parameter, PostgREST's `merge-duplicates` writes only those, and
+  `Codable` omits a nil optional, so an emptied field was never emptied on the
+  server and the old value came back on the next pull. Reopening a task,
+  marking a bill unpaid, restarting a stopped medication (its end date kept it
+  off Today and out of the reminders) and putting a dose back after a synced
+  undo all reverted. Server-owned columns (`updated_at`, the by-name stamps,
+  `linked_user_id`, `surrogate_attested_at`, `last_check_in_at`) stay plain
+  optionals: sending them empty would blank what the server or another phone
+  set. A new column a person can empty needs the wrapper; `FakeRemote` can
+  merge columns the way PostgREST does (`setMergesColumns`) to test it.
+
+- **A record with a conflict waiting has exactly one queue entry, and nothing
+  else for it is pushed.** `flagConflict` keeps the entry already waiting (or
+  the oldest) and drops the rest, which are the same copy, and `pushOutbox`
+  skips any record that has an entry in `needsReview`, so a save made after the
+  flag waits for the choice. Looked up by entity type as well as id: the
+  check-in window is queued under the person's own id.
+
 ### Database and sync rules
 
 - **No `date` column, ever. Every day-valued column is `timestamptz`
