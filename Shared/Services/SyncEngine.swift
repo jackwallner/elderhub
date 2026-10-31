@@ -470,6 +470,11 @@ actor SyncEngine {
                 )
                 return
             }
+            // The other half of the rule: an unsent edit that is newer than
+            // this copy stands. See `shouldKeepLocal`.
+            if shouldKeepLocal(localDirty: existing.isDirty,
+                               localUpdated: existing.updatedAt,
+                               serverUpdated: dto.updated_at) { return }
             if dto.deleted_at != nil {
                 modelContext.delete(existing)
                 return
@@ -516,6 +521,12 @@ actor SyncEngine {
                 )
                 return
             }
+            // An unsent edit that is newer than this copy stands. Without
+            // this a taken dose's refill count, a changed dosage or a new
+            // allergy was replaced by the older row the server sends back.
+            if shouldKeepLocal(localDirty: existing.isDirty,
+                               localUpdated: existing.updatedAt,
+                               serverUpdated: dto.updated_at) { return }
             if dto.deleted_at != nil {
                 modelContext.delete(existing)
                 return
@@ -942,17 +953,25 @@ actor SyncEngine {
         let id = dto.care_recipient_id
         let existing = fetchOne(CheckInSettings.self, #Predicate { $0.personID == id })
 
+        // Both halves of last-writer-wins, and only against a row this phone
+        // already holds. A newly made row is dirty and stamped "now", so
+        // asking the same question of it either skipped the write (a device
+        // clock behind the server's) or kept an empty default over the very
+        // window the family agreed.
+        if let existing {
+            if isRealConflict(localDirty: existing.isDirty,
+                              localUpdated: existing.updatedAt,
+                              serverUpdated: dto.updated_at) { return }
+            if shouldKeepLocal(localDirty: existing.isDirty,
+                               localUpdated: existing.updatedAt,
+                               serverUpdated: dto.updated_at) { return }
+        }
+
         let settings = existing ?? {
             let new = CheckInSettings(personID: dto.care_recipient_id, groupID: dto.group_id)
             modelContext.insert(new)
             return new
         }()
-
-        if isRealConflict(localDirty: settings.isDirty,
-                          localUpdated: settings.updatedAt,
-                          serverUpdated: dto.updated_at) {
-            return
-        }
 
         settings.groupID = dto.group_id
         settings.enabled = dto.enabled
