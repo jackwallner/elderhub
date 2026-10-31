@@ -1003,6 +1003,17 @@ actor SyncEngine {
             sortBy: [SortDescriptor(\.createdAt)]
         ))) ?? []
 
+        // A record whose conflict is waiting on a person to choose. Only one of
+        // its queued writes is flagged, and every other write to the same
+        // record, made before the conflict was found or after it, would send
+        // this phone's copy over the family's in the meantime: the one outcome
+        // the flag exists to prevent. They stay queued, untouched, until the
+        // choice is made.
+        let flagged = (try? modelContext.fetch(FetchDescriptor<OutboxEntry>(
+            predicate: #Predicate { $0.statusRaw == "needsReview" }
+        ))) ?? []
+        let held = Set(flagged.map { "\($0.entityTypeRaw):\($0.entityID)" })
+
         // Coalesce. Several queued edits to the same medication collapse into
         // one upsert because only the final state reaches the server anyway.
         // Dose logs and check-ins never collapse: each is a separate thing that
@@ -1011,6 +1022,7 @@ actor SyncEngine {
         var work: [OutboxEntry] = []
         for entry in entries {
             let key = "\(entry.entityTypeRaw):\(entry.entityID)"
+            if held.contains(key) { continue }
             if entry.entityType.isCoalescable {
                 if seen.contains(key) {
                     modelContext.delete(entry)
@@ -1536,14 +1548,25 @@ actor SyncEngine {
         local: String = "",
         remote: String = ""
     ) {
+        let raw = entity.rawValue
         let existing = (try? modelContext.fetch(FetchDescriptor<OutboxEntry>(
-            predicate: #Predicate { $0.entityID == id }
+            predicate: #Predicate { $0.entityID == id && $0.entityTypeRaw == raw },
+            sortBy: [SortDescriptor(\.createdAt)]
         ))) ?? []
-        let entry = existing.first ?? {
+        // The entry already waiting, if there is one, so pulling the same row
+        // again does not flag a second entry for the same record.
+        let waiting = existing.first(where: { $0.status == .needsReview })
+        let entry = waiting ?? existing.first ?? {
             let new = OutboxEntry(entityType: entity, entityID: id, groupID: nil)
             modelContext.insert(new)
             return new
         }()
+        // Every other write queued for this record is the same copy, pushed as
+        // the row stands. Left alone they went up on their own and replaced
+        // the family's version without anybody being asked.
+        for other in existing where other !== entry {
+            modelContext.delete(other)
+        }
         entry.status = .needsReview
         entry.lastError = "Someone else changed this while you were offline."
         // Never overwritten with nothing: a second pull of the same row must
