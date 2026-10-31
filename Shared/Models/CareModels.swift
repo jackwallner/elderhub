@@ -359,11 +359,12 @@ final class Medication {
     /// Concrete dose times for a given day, in order.
     func doseTimes(on date: Date, calendar: Calendar = .current) -> [Date] {
         guard isScheduled(on: date, calendar: calendar) else { return [] }
-        // Wall-clock hour and minute, not elapsed minutes since midnight: on a
-        // daylight-saving change day the latter lands an hour off.
-        return scheduleMinutes.sorted().compactMap {
-            calendar.date(bySettingHour: $0 / 60, minute: $0 % 60, second: 0, of: date)
-        }
+        var seen = Set<Date>()
+        return scheduleMinutes.sorted()
+            .compactMap { ScheduleEngine.date(forMinutes: $0, onDayOf: date, calendar: calendar) }
+            // Two schedule times can only land on one instant on the day the
+            // clocks skip an hour. One slot, not two with the same id.
+            .filter { seen.insert($0).inserted }
     }
 
     /// Average scheduled doses per day. Accounts for `weekdays`: a

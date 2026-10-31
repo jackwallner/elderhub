@@ -79,15 +79,59 @@ enum ScheduleEngine {
         return Double(taken) / Double(scheduled)
     }
 
+    /// Where `minutes` after midnight falls on `day`, as the clock reads it.
+    ///
+    /// A schedule is a time on the clock, so it is placed by setting the
+    /// clock's hour and minute rather than by adding that many elapsed minutes
+    /// to midnight. The two days a year the clocks change are 23 and 25 hours
+    /// long: midnight plus 480 minutes is 9:00 AM when the clocks went forward
+    /// and 7:00 AM when they went back, so the 8:00 AM tablet was listed an
+    /// hour away from the 8:00 AM reminder, which iOS fires on the clock.
+    ///
+    /// The one time of day that has no clock reading is the hour the clocks
+    /// skip. There the elapsed minutes are the only answer left, which keeps a
+    /// 2:00 and a 2:30 dose two slots instead of folding them into one.
+    static func date(forMinutes minutes: Int, onDayOf day: Date, calendar: Calendar = .current) -> Date? {
+        let startOfDay = calendar.startOfDay(for: day)
+        let elapsed = calendar.date(byAdding: .minute, value: minutes, to: startOfDay)
+        guard (0..<24 * 60).contains(minutes) else { return elapsed }
+
+        guard let onTheClock = calendar.date(
+            bySettingHour: minutes / 60,
+            minute: minutes % 60,
+            second: 0,
+            of: startOfDay,
+            matchingPolicy: .nextTime,
+            repeatedTimePolicy: .first,
+            direction: .forward
+        ) else { return elapsed }
+
+        let reading = calendar.dateComponents([.hour, .minute], from: onTheClock)
+        guard reading.hour == minutes / 60, reading.minute == minutes % 60 else { return elapsed }
+        return onTheClock
+    }
+
     /// Formats minutes-from-midnight for display and for the schedule editor.
-    static func timeLabel(forMinutes minutes: Int, calendar: Calendar = .current) -> String {
-        // Wall-clock hour and minute, not elapsed minutes since midnight: on a
-        // daylight-saving change day the latter reads an hour off.
-        guard let date = calendar.date(bySettingHour: minutes / 60, minute: minutes % 60,
-                                       second: 0, of: Date()) else {
+    ///
+    /// `day` is the day the label is for, which only matters on the two days a
+    /// year the clocks change.
+    static func timeLabel(
+        forMinutes minutes: Int,
+        on day: Date = Date(),
+        calendar: Calendar = .current
+    ) -> String {
+        guard let moment = Self.date(forMinutes: minutes, onDayOf: day, calendar: calendar) else {
             return ""
         }
-        return date.formatted(date: .omitted, time: .shortened)
+        return moment.formatted(
+            Date.FormatStyle(
+                date: .omitted,
+                time: .shortened,
+                locale: calendar.locale ?? .autoupdatingCurrent,
+                calendar: calendar,
+                timeZone: calendar.timeZone
+            )
+        )
     }
 
     /// How a `Medication.weekdays` list reads on a printed list: "" for every

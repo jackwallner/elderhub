@@ -143,21 +143,88 @@ struct ScheduleEngineTests {
         #expect(ScheduleEngine.minutes(from: noon, calendar: calendar) == 12 * 60 + 30)
     }
 
-    @Test func doseTimesKeepTheirWallClockOnDaylightSavingChangeDays() {
-        let context = makeContext()
+    // MARK: Daylight saving
+    //
+    // A schedule is a time on the clock, stored as minutes from midnight so it
+    // survives travel and DST. The two days a year the clocks change are 23 and
+    // 25 hours long, so "midnight plus 480 minutes" is 9:00 AM when the clocks
+    // went forward and 7:00 AM when they went back: the 8:00 AM tablet was
+    // listed an hour away from the 8:00 AM reminder iOS fires for it.
+
+    private func medicationTaken(at minutes: [Int], from start: Date, in context: ModelContext) -> (Person, Medication) {
         let person = Person(name: "Eleanor")
         context.insert(person)
         let med = Medication(name: "Metformin", person: person)
-        med.scheduleMinutes = [8 * 60]
-        med.startDate = day(2026, 1, 1)
+        med.scheduleMinutes = minutes
+        med.startDate = start
         context.insert(med)
+        return (person, med)
+    }
 
-        // 2026-11-01 is 25 hours long in New York, 2026-03-08 is 23.
-        for (month, dayOfMonth) in [(11, 1), (3, 8)] {
-            let times = med.doseTimes(on: day(2026, month, dayOfMonth), calendar: calendar)
-            #expect(times.count == 1)
-            let hour = times.first.map { calendar.dateComponents([.hour], from: $0).hour }
-            #expect(hour == 8)
+    private func clock(_ dates: [Date]) -> [String] {
+        dates.map { date in
+            let parts = calendar.dateComponents([.hour, .minute], from: date)
+            return String(format: "%02ld:%02ld", parts.hour ?? -1, parts.minute ?? -1)
+        }
+    }
+
+    @Test func aDoseKeepsItsClockTimeOnTheDayTheClocksGoBack() {
+        let context = makeContext()
+        let (_, med) = medicationTaken(at: [8 * 60, 20 * 60], from: day(2026, 10, 1), in: context)
+
+        // US clocks went back at 2:00 AM on Sunday 2026-11-01.
+        let times = med.doseTimes(on: day(2026, 11, 1), calendar: calendar)
+
+        #expect(clock(times) == ["08:00", "20:00"])
+    }
+
+    @Test func aDoseKeepsItsClockTimeOnTheDayTheClocksGoForward() {
+        let context = makeContext()
+        let (_, med) = medicationTaken(at: [8 * 60, 20 * 60], from: day(2026, 3, 1), in: context)
+
+        // US clocks went forward at 2:00 AM on Sunday 2026-03-08.
+        let times = med.doseTimes(on: day(2026, 3, 8), calendar: calendar)
+
+        #expect(clock(times) == ["08:00", "20:00"])
+    }
+
+    @Test func todaysListShowsTheSameClockTimesOnTheDayTheClocksChange() {
+        let context = makeContext()
+        let (person, _) = medicationTaken(at: [8 * 60], from: day(2026, 10, 1), in: context)
+
+        let slots = ScheduleEngine.slots(for: person, on: day(2026, 11, 1), calendar: calendar)
+
+        #expect(clock(slots.map(\.scheduledAt)) == ["08:00"])
+    }
+
+    @Test func aDoseLoggedOnTheChangeDayStillMatchesItsSlot() {
+        let context = makeContext()
+        let (person, med) = medicationTaken(at: [8 * 60], from: day(2026, 10, 1), in: context)
+        let target = day(2026, 11, 1)
+
+        let slot = ScheduleEngine.slots(for: person, on: target, calendar: calendar)[0]
+        context.insert(DoseLog(scheduledAt: slot.scheduledAt, status: .taken, medication: med))
+
+        #expect(ScheduleEngine.slots(for: person, on: target, calendar: calendar)[0].status == .taken)
+    }
+
+    @Test func twoDosesInTheHourTheClocksSkipStayTwoSlots() {
+        // 2:00 and 2:30 AM do not exist on 2026-03-08. Each still gets a slot of
+        // its own, so recording one never records the other.
+        let context = makeContext()
+        let (_, med) = medicationTaken(at: [2 * 60, 2 * 60 + 30], from: day(2026, 3, 1), in: context)
+
+        let times = med.doseTimes(on: day(2026, 3, 8), calendar: calendar)
+
+        #expect(times.count == 2)
+        #expect(Set(times).count == 2)
+        #expect(times[0] < times[1])
+    }
+
+    @Test func aScheduleLabelReadsTheSameOnTheDaysTheClocksChange() {
+        for changeDay in [day(2026, 11, 1), day(2026, 3, 8), day(2026, 7, 15)] {
+            let label = ScheduleEngine.timeLabel(forMinutes: 8 * 60, on: changeDay, calendar: calendar)
+            #expect(label.contains("8:00"), "got \(label) on \(changeDay)")
         }
     }
 }
