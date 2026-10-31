@@ -413,9 +413,10 @@ actor DoseReminderScheduler {
     /// prefix so the two never collide.
     func applyRefills(_ specs: [RefillReminderSpec]) async {
         let center = UNUserNotificationCenter.current()
-        let pending = await center.pendingNotificationRequests()
-            .map(\.identifier)
-            .filter { $0.hasPrefix(RefillReminderSpec.identifierPrefix) }
+        let held = await center.pendingNotificationRequests()
+            .filter { $0.identifier.hasPrefix(RefillReminderSpec.identifierPrefix) }
+            .map { HeldReminder($0) }
+        let pending = held.map(\.identifier)
 
         guard await NotificationService.shared.isAuthorized() else {
             if !pending.isEmpty {
@@ -433,7 +434,10 @@ actor DoseReminderScheduler {
         }
 
         var added = 0
-        for (identifier, spec) in desired where !existing.contains(identifier) {
+        // Adding under an existing identifier replaces the request, so one
+        // whose date or wording has moved needs no removal first.
+        for spec in OneShotReminderDiff.toSchedule(Array(desired.values), held: held) {
+            let identifier = spec.identifier
             let content = UNMutableNotificationContent()
             content.title = "Refill soon"
             content.body = spec.body
@@ -462,9 +466,10 @@ actor DoseReminderScheduler {
     /// prefix.
     func applyAppointments(_ specs: [AppointmentReminderSpec]) async {
         let center = UNUserNotificationCenter.current()
-        let pending = await center.pendingNotificationRequests()
-            .map(\.identifier)
-            .filter { $0.hasPrefix(AppointmentReminderSpec.identifierPrefix) }
+        let held = await center.pendingNotificationRequests()
+            .filter { $0.identifier.hasPrefix(AppointmentReminderSpec.identifierPrefix) }
+            .map { HeldReminder($0) }
+        let pending = held.map(\.identifier)
 
         guard await NotificationService.shared.isAuthorized() else {
             if !pending.isEmpty {
@@ -482,7 +487,10 @@ actor DoseReminderScheduler {
         }
 
         var added = 0
-        for (identifier, spec) in desired where !existing.contains(identifier) {
+        // Same as the refill reminders: an appointment that moved keeps its
+        // identifier, so the request is rewritten rather than left pending.
+        for spec in OneShotReminderDiff.toSchedule(Array(desired.values), held: held) {
+            let identifier = spec.identifier
             let content = UNMutableNotificationContent()
             content.title = "Appointment tomorrow"
             content.body = spec.body
@@ -685,5 +693,70 @@ enum AppointmentReminderPlanner {
         let candidates = [visit.resolvedProviderName, visit.specialty, visit.reason]
             .map { $0.trimmingCharacters(in: .whitespaces) }
         return candidates.first { !$0.isEmpty } ?? "an appointment"
+    }
+}
+
+// MARK: - Diffing one-shot reminders
+
+/// What a refill or an appointment reminder says: the parts of a spec that
+/// decide whether the request iOS is already holding is still the right one.
+protocol OneShotReminderSpec {
+    var identifier: String { get }
+    var body: String { get }
+    var dateComponents: DateComponents { get }
+}
+
+extension RefillReminderSpec: OneShotReminderSpec {}
+extension AppointmentReminderSpec: OneShotReminderSpec {}
+
+/// A request iOS is already holding, reduced to the parts the diff compares.
+struct HeldReminder: Equatable, Sendable {
+    let identifier: String
+    let body: String
+    let dateComponents: DateComponents?
+}
+
+extension HeldReminder {
+    init(_ request: UNNotificationRequest) {
+        self.init(
+            identifier: request.identifier,
+            body: request.content.body,
+            dateComponents: (request.trigger as? UNCalendarNotificationTrigger)?.dateComponents
+        )
+    }
+}
+
+/// Decides which refill and appointment reminders have to be (re)written.
+///
+/// The identifier is the medication's or the visit's id, so it does not change
+/// when the thing it is about does. Diffing on the identifier alone, as this
+/// was, meant moving an appointment from the 24th to the 1st left iOS holding
+/// the request for the evening of the 23rd, wording and all, and never
+/// scheduled the one for the evening of the 30th. The same went for a refill
+/// reminder after a new bottle was entered. A request is left alone only when
+/// it says what the spec says and fires when the spec fires.
+enum OneShotReminderDiff {
+    /// The specs that still need a call to `center.add`.
+    static func toSchedule<Spec: OneShotReminderSpec>(
+        _ specs: [Spec], held: [HeldReminder]
+    ) -> [Spec] {
+        let heldByIdentifier = Dictionary(
+            held.map { ($0.identifier, $0) }, uniquingKeysWith: { first, _ in first }
+        )
+        return specs.filter { spec in
+            guard let current = heldByIdentifier[spec.identifier] else { return true }
+            return current.body != spec.body
+                || !sameMoment(current.dateComponents, spec.dateComponents)
+        }
+    }
+
+    /// Year to minute, and nothing else. The system hands a trigger's
+    /// components back with fields of its own (calendar, time zone), and
+    /// comparing those would make every foreground look like a change.
+    private static func sameMoment(_ held: DateComponents?, _ wanted: DateComponents) -> Bool {
+        guard let held else { return false }
+        return held.year == wanted.year && held.month == wanted.month
+            && held.day == wanted.day && held.hour == wanted.hour
+            && held.minute == wanted.minute
     }
 }
