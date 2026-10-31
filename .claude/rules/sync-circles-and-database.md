@@ -92,6 +92,17 @@ Moved verbatim from AGENTS.md. Loads when a matching file is read; update it her
   phone: a fall one sibling logged read "Logged by You" on the other's screen,
   on the one feature whose job is answering "what happened while I was away".
 
+- **The check-in settings row is written only when the agreed window changes
+  (`CheckInService.writeSettings`).** The settings screen saves when it is left,
+  the row is shared with last-writer-wins, and every write stamped the zone of
+  the phone that made it, which the server judges the window in
+  (`check_in_settings.timezone`). A sibling who only looked therefore moved the
+  moment the family is told by the difference between two cities, and a stale
+  phone put an old window over a newer one. Known gap, not fixed: a real edit
+  still stamps the editor's zone rather than the person's, and the reminder that
+  design D26 puts on the person's own phone is only ever scheduled on the phone
+  that edits the settings (open items in `qa/ledger.jsonl`).
+
 ### Database and sync rules
 
 - **No `date` column, ever. Every day-valued column is `timestamptz`

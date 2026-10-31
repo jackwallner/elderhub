@@ -38,3 +38,16 @@ Moved verbatim from AGENTS.md. Loads when a matching file is read; update it her
   in iOS Settings, and a caregiver concluding the app is broken.
   `Outcome.blocked` is the case that gets the alert and the Settings link. The
   preference is still put back, because the reminder genuinely will not fire.
+
+- **A refill or appointment reminder is rewritten when what it says or when it
+  fires changes, not only when its identifier is new.** The identifier is the
+  medication's or the visit's id, which does not change when the date does, so
+  `OneShotReminderDiff.toSchedule` compares the body and the fire minute against
+  what iOS is holding. Diffing on the identifier alone left the evening-before
+  reminder for a moved appointment pending and never scheduled the new one.
+
+- **`RefillReminderPlanner` gives no reminder to a supply more than
+  `maxDaysAhead` (ten years) away, or one that is not a finite number of days.**
+  On hand and Units per dose take any number, `Int(_:)` traps on a value it
+  cannot hold, and the planner runs at launch, on every foreground and on every
+  medication save, so one mistyped quantity was an app that could not start.

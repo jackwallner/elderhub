@@ -83,6 +83,13 @@ Moved verbatim from AGENTS.md. Loads when a matching file is read; update it her
   one-pager all read the one label; empty `weekdays` means every day and prints
   nothing.
 
+- **A schedule time is placed on a day with `ScheduleEngine.date(forMinutes:onDayOf:)`,
+  never as midnight plus that many minutes.** The two days a year the clocks
+  change are 23 and 25 hours long, so elapsed minutes put the 8:00 AM tablet at
+  9:00 or 7:00 while the reminder iOS fires for it stays at 8:00. `doseTimes`,
+  `timeLabel`, the logged slot and the printed list all go through the one
+  function; the hour the clocks skip still gives each time its own slot.
+
 - `Services/TodayDigest.swift`: what is outstanding for each person right now,
   as pure functions over the models. **The Today tab and the Care tab rows both
   render this one type**, so "2 due" cannot mean two things on two screens. It
