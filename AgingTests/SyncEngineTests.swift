@@ -36,11 +36,24 @@ actor FakeRemote: SyncRemote {
     private(set) var pushCount = 0
     private(set) var pullCounts: [String: Int] = [:]
 
+    /// Off by default, so every older test keeps the plain replace-the-row
+    /// fake. On, an upsert behaves the way PostgREST's `merge-duplicates`
+    /// does: the row is found by its key and only the columns present in the
+    /// body are written. A key left out of the JSON leaves the stored value
+    /// alone, which is exactly why a nil optional that `Codable` omitted never
+    /// cleared anything on the server. The trigger that stamps `updated_at`
+    /// is played by a clock that starts an hour back and moves a second per
+    /// write: always older than anything the test types on its own clock, and
+    /// still ordered in the whole seconds the fake stores.
+    private(set) var mergesColumns = false
+    private var serverClock = Date().addingTimeInterval(-3_600)
+
     init() {
         encoder.dateEncodingStrategy = .iso8601
         decoder.dateDecodingStrategy = .iso8601
     }
 
+    func setMergesColumns(_ merges: Bool) { mergesColumns = merges }
     func setNextPushError(_ error: SyncError?) { nextPushError = error }
     func setNextPullError(_ error: SyncError?) { nextPullError = error }
     func setMissingTables(_ tables: Set<String>) { missingTables = tables }
@@ -130,12 +143,43 @@ actor FakeRemote: SyncRemote {
         }
 
         pushCount += rows.count
+        if mergesColumns {
+            try mergeUpsert(rows)
+            return
+        }
         existing = try existing.filter { data in
             let row = try decoder.decode(T.self, from: data)
             return !incoming.contains(row.id)
         }
         existing.append(contentsOf: try rows.map { try encoder.encode($0) })
         storage[T.entity.rawValue] = existing
+    }
+
+    /// `INSERT ... ON CONFLICT (key) DO UPDATE SET <the columns in the body>`.
+    private func mergeUpsert<T: SyncDTO>(_ rows: [T]) throws {
+        var stored = storage[T.entity.rawValue] ?? []
+        let key = T.idColumn
+        for row in rows {
+            var body = try Self.object(from: encoder.encode(row))
+            serverClock = serverClock.addingTimeInterval(1)
+            body["updated_at"] = ISO8601DateFormatter().string(from: serverClock)
+            let identity = body[key] as? String
+            let index = try stored.firstIndex { data in
+                (try Self.object(from: data)[key] as? String) == identity
+            }
+            if let index {
+                var merged = try Self.object(from: stored[index])
+                for (column, value) in body { merged[column] = value }
+                stored[index] = try JSONSerialization.data(withJSONObject: merged)
+            } else {
+                stored.append(try JSONSerialization.data(withJSONObject: body))
+            }
+        }
+        storage[T.entity.rawValue] = stored
+    }
+
+    private static func object(from data: Data) throws -> [String: Any] {
+        (try JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
     }
 
     /// The natural key the server enforces uniqueness on, where there is one

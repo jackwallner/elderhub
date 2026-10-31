@@ -29,6 +29,52 @@ struct SyncPage: Sendable, Equatable {
     var id: UUID
 }
 
+/// A nullable column this app lets a person clear, sent as an explicit `null`
+/// when it is empty.
+///
+/// `Codable` leaves a nil optional out of the JSON, and an upsert only updates
+/// the columns present in the body (supabase-swift puts exactly those keys in
+/// the `columns` parameter, and PostgREST's `merge-duplicates` sets nothing
+/// else). So a field that was emptied here, a task reopened, a bill marked
+/// unpaid, a stopped medication restarted, a dose put back after an undo, was
+/// never emptied on the server: the old value came back on the next pull and
+/// replaced the change.
+///
+/// Only for columns a person can empty. The ones the server owns
+/// (`updated_at`, the `*_by_name` stamps, `linked_user_id`,
+/// `surrogate_attested_at`) stay plain optionals and stay out of the body when
+/// they are nil, so a push never blanks what the server or another phone set.
+@propertyWrapper
+struct Clearable<Value: Codable & Sendable>: Codable, Sendable {
+    var wrappedValue: Value?
+
+    init(wrappedValue: Value?) {
+        self.wrappedValue = wrappedValue
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        wrappedValue = container.decodeNil() ? nil : try container.decode(Value.self)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        if let wrappedValue {
+            try container.encode(wrappedValue)
+        } else {
+            try container.encodeNil()
+        }
+    }
+}
+
+extension KeyedDecodingContainer {
+    /// A row without the key at all (an older payload, a hand-written fixture)
+    /// reads as empty rather than failing the whole page.
+    func decode<Value>(_ type: Clearable<Value>.Type, forKey key: Key) throws -> Clearable<Value> {
+        try decodeIfPresent(type, forKey: key) ?? Clearable(wrappedValue: nil)
+    }
+}
+
 struct PersonDTO: SyncDTO {
     static let entity = SyncEntity.person
     var id: UUID
@@ -36,7 +82,7 @@ struct PersonDTO: SyncDTO {
     var linked_user_id: UUID?
     var name: String
     var relationship: String
-    var birth_date: Date?
+    @Clearable var birth_date: Date? = nil
     var blood_type: String
     var color_index: Int
     var allergies: [String]
@@ -66,15 +112,15 @@ struct MedicationDTO: SyncDTO {
     /// Links to a `providers` row (plan82 slice C). The free-text `prescriber`
     /// and `pharmacy` above are never cleared, so an old record keeps working
     /// with no id set.
-    var provider_id: UUID?
-    var pharmacy_id: UUID?
+    @Clearable var provider_id: UUID? = nil
+    @Clearable var pharmacy_id: UUID? = nil
     var instructions: String
     var schedule_minutes: [Int]
     var weekdays: [Int]
     var is_as_needed: Bool
     var is_active: Bool
     var start_date: Date
-    var end_date: Date?
+    @Clearable var end_date: Date? = nil
     /// Whether the supply is counted at all. Split out from
     /// `quantity_remaining` in 0016: zero used to mean both "not tracked" and
     /// "empty", which broke refill warnings at the moment a bottle ran out.
@@ -82,7 +128,7 @@ struct MedicationDTO: SyncDTO {
     var quantity_remaining: Double
     var units_per_dose: Double
     var refill_threshold_days: Int
-    var last_filled_at: Date?
+    @Clearable var last_filled_at: Date? = nil
     var updated_by_name: String?
     var updated_at: Date?
     var deleted_at: Date?
@@ -99,7 +145,7 @@ struct DoseLogDTO: SyncDTO {
     var recorded_by_name: String
     var note: String
     var updated_at: Date?
-    var deleted_at: Date?
+    @Clearable var deleted_at: Date? = nil
 }
 
 struct VisitDTO: SyncDTO {
@@ -111,7 +157,7 @@ struct VisitDTO: SyncDTO {
     var provider: String
     /// Links to a `providers` row (plan82 slice C). The free-text `provider`
     /// above is never cleared.
-    var provider_id: UUID?
+    @Clearable var provider_id: UUID? = nil
     var specialty: String
     var reason: String
     var notes: String
@@ -193,12 +239,12 @@ struct CareTaskDTO: SyncDTO {
     var care_recipient_id: UUID
     var title: String
     var notes: String
-    var due_at: Date?
+    @Clearable var due_at: Date? = nil
     var priority: String
     var recurrence: String
-    var assignee_user_id: UUID?
+    @Clearable var assignee_user_id: UUID? = nil
     var assignee_name: String
-    var completed_at: Date?
+    @Clearable var completed_at: Date? = nil
     var completed_by_name: String
     var created_by_name: String
     var updated_at: Date?
@@ -237,9 +283,9 @@ struct BillDTO: SyncDTO {
     var notes: String
     var category: String
     var recurrence: String
-    var due_at: Date?
+    @Clearable var due_at: Date? = nil
     var is_auto_pay: Bool
-    var paid_at: Date?
+    @Clearable var paid_at: Date? = nil
     var paid_by_name: String
     var created_by_name: String
     var updated_at: Date?
