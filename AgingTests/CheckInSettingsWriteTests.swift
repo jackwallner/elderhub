@@ -15,8 +15,8 @@ struct CheckInSettingsWriteTests {
         ModelContext(CareModelStore.makeInMemoryContainer())
     }
 
-    private let newYork = TimeZone(identifier: "America/New_York")!
-    private let losAngeles = TimeZone(identifier: "America/Los_Angeles")!
+    private var newYork: TimeZone { TimeZone(identifier: "America/New_York") ?? .current }
+    private var losAngeles: TimeZone { TimeZone(identifier: "America/Los_Angeles") ?? .current }
 
     private func person(in context: ModelContext, group: UUID? = nil) -> Person {
         let person = Person(name: "Eleanor", relationship: "Mom")
