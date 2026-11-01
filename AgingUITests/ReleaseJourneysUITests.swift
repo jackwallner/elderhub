@@ -148,7 +148,7 @@ final class ReleaseJourneysUITests: XCTestCase {
 
     /// The Duo's tab strip only exists when the two panes are showing.
     private func isUnfolded(_ app: XCUIApplication) -> Bool {
-        app.buttons["pane-tab.today"].waitForExistence(timeout: 3)
+        app.hasPaneTabStrip
     }
 
     private func takeButton(_ drug: String, in app: XCUIApplication) -> XCUIElement {
@@ -192,7 +192,7 @@ final class ReleaseJourneysUITests: XCTestCase {
     /// pane, always showing, so it has no tab to tap.
     private func tapTab(_ label: String, in app: XCUIApplication) {
         let strip = app.buttons["pane-tab.\(label.lowercased())"].firstMatch
-        if strip.waitForExistence(timeout: 3) {
+        if app.hasPaneTabStrip, strip.waitForExistence(timeout: 3) {
             strip.tap()
             // The strip sits in the inner display's status band, where a
             // tap on the element can miss; its centre point does not.
@@ -201,10 +201,7 @@ final class ReleaseJourneysUITests: XCTestCase {
             }
             return
         }
-        if label == "Care", app.tabBars.buttons[label].firstMatch.exists == false,
-           app.buttons["pane-tab.today"].exists {
-            return
-        }
+        if label == "Care", app.hasPaneTabStrip { return }
         let button = app.tabBars.buttons[label].firstMatch
         XCTAssertTrue(button.waitForExistence(timeout: 15))
         button.tap()

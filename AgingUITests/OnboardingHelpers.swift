@@ -7,6 +7,15 @@ import XCTest
 /// steps. Adding the skippable details flow between naming the person and the
 /// feature overview broke all six identically, which is the argument for this
 /// file existing.
+extension XCUIApplication {
+    /// True on the unfolded Duo only. Folded, the strip is still in the tree
+    /// (invisible and accessibility hidden, yet found by queries), so it counts
+    /// only when the system tab bar is not there.
+    var hasPaneTabStrip: Bool {
+        tabBars.count == 0 && buttons["pane-tab.today"].exists
+    }
+}
+
 extension XCTestCase {
 
     /// Walks the fork, the name, the sign-in skip, every detail step and the
@@ -101,7 +110,7 @@ extension XCTestCase {
     func paneSwipe(_ app: XCUIApplication, _ direction: QA.Direction, trailing: Bool = false) {
         let today = app.buttons["pane-tab.today"]
         let settings = app.buttons["pane-tab.settings"]
-        guard today.exists, settings.exists, app.frame.width > 0 else {
+        guard app.hasPaneTabStrip, today.exists, settings.exists, app.frame.width > 0 else {
             // Drag the list that is showing, not the whole app: on the Duo's
             // window the app frame is not the screen the user sees.
             let list = app.collectionViews.allElementsBoundByIndex.first { $0.isHittable }
