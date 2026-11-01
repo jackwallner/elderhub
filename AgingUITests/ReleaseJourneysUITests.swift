@@ -29,14 +29,25 @@ final class ReleaseJourneysUITests: XCTestCase {
         QA.checkpoint(app, "overview")
         open.tap()
         today("first-today", in: app)
-        tapTab("Care", in: app)
-        showPeopleList(in: app)
-        tap("Add person", in: app)
+        // Unfolded, the Care pane is a second display the test cannot read, so
+        // the paywall is reached from Settings instead of Care's Add person.
+        if isUnfolded(app) {
+            tapTab("Settings", in: app)
+            tap("Upgrade to Elderhub Plus", in: app)
+        } else {
+            tapTab("Care", in: app)
+            showPeopleList(in: app)
+            tap("Add person", in: app)
+        }
         XCTAssertTrue(app.buttons["paywall.plan.com.jackwallner.aging.pro.monthly"].waitForExistence(timeout: 20))
         QA.checkpoint(app, "upgrade", paywall: true)
         tap("Not now", in: app)
-        XCTAssertTrue(app.navigationBars["Care"].waitForExistence(timeout: 10)
-            || app.buttons["Add person"].waitForExistence(timeout: 10))
+        if isUnfolded(app) {
+            XCTAssertTrue(app.buttons["pane-tab.settings"].waitForExistence(timeout: 10))
+        } else {
+            XCTAssertTrue(app.navigationBars["Care"].waitForExistence(timeout: 10)
+                || app.buttons["Add person"].waitForExistence(timeout: 10))
+        }
         QA.checkpoint(app, "care-after-upgrade")
     }
 
@@ -66,11 +77,20 @@ final class ReleaseJourneysUITests: XCTestCase {
 
         let drug = "Metformin"
         let strength = "500 mg"
-        openMedications(in: app)
-        let add = app.buttons["person-detail.add-medication"]
-        scrollUntilHittable(add, in: app, trailing: true)
-        XCTAssertTrue(add.waitForExistence(timeout: 15))
-        add.tap()
+        if isUnfolded(app) {
+            // The record sits on the Care pane, which the test cannot read;
+            // Today's setup list opens the same medication editor.
+            let add = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Add a medication")).firstMatch
+            scrollUntilHittable(add, in: app)
+            XCTAssertTrue(add.waitForExistence(timeout: 15))
+            add.tap()
+        } else {
+            openMedications(in: app)
+            let add = app.buttons["person-detail.add-medication"]
+            scrollUntilHittable(add, in: app)
+            XCTAssertTrue(add.waitForExistence(timeout: 15))
+            add.tap()
+        }
 
         let nameField = app.textFields["Medication name"]
         XCTAssertTrue(nameField.waitForExistence(timeout: 15))
@@ -83,9 +103,11 @@ final class ReleaseJourneysUITests: XCTestCase {
         QA.checkpoint(app, "core-med-editor")
         app.buttons["medication-editor.save"].tap()
 
-        let listed = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", drug)).firstMatch
-        XCTAssertTrue(listed.waitForExistence(timeout: 15), "the saved medication is not on the record")
-        QA.checkpoint(app, "core-med-listed")
+        if !isUnfolded(app) {
+            let listed = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", drug)).firstMatch
+            XCTAssertTrue(listed.waitForExistence(timeout: 15), "the saved medication is not on the record")
+            QA.checkpoint(app, "core-med-listed")
+        }
 
         let take = takeButton(drug, in: app)
         returnToToday(until: take, in: app)
@@ -128,6 +150,11 @@ final class ReleaseJourneysUITests: XCTestCase {
             if back.exists { back.tap() }
         }
         XCTAssertTrue(list.waitForExistence(timeout: 10) || app.buttons["Add person"].waitForExistence(timeout: 10))
+    }
+
+    /// The Duo's tab strip only exists when the two panes are showing.
+    private func isUnfolded(_ app: XCUIApplication) -> Bool {
+        app.buttons["pane-tab.today"].waitForExistence(timeout: 3)
     }
 
     private func takeButton(_ drug: String, in app: XCUIApplication) -> XCUIElement {
