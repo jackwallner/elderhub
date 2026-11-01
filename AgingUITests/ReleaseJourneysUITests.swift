@@ -147,7 +147,19 @@ final class ReleaseJourneysUITests: XCTestCase {
         button.tap()
     }
 
+    /// The system tab bar folded; on the unfolded Duo the tabs are the strip
+    /// across the leading pane (`pane-tab.<name>`), and Care is the trailing
+    /// pane, always showing, so it has no tab to tap.
     private func tapTab(_ label: String, in app: XCUIApplication) {
+        let strip = app.buttons["pane-tab.\(label.lowercased())"].firstMatch
+        if strip.waitForExistence(timeout: 3) {
+            strip.tap()
+            return
+        }
+        if label == "Care", app.tabBars.buttons[label].firstMatch.exists == false,
+           app.buttons["pane-tab.today"].exists {
+            return
+        }
         let button = app.tabBars.buttons[label].firstMatch
         XCTAssertTrue(button.waitForExistence(timeout: 15))
         button.tap()
