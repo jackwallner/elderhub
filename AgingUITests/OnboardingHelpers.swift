@@ -102,7 +102,11 @@ extension XCTestCase {
         let today = app.buttons["pane-tab.today"]
         let settings = app.buttons["pane-tab.settings"]
         guard today.exists, settings.exists, app.frame.width > 0 else {
-            QA.swipe(app, direction)
+            // Drag the list that is showing, not the whole app: on the Duo's
+            // window the app frame is not the screen the user sees.
+            let list = app.collectionViews.allElementsBoundByIndex.first { $0.isHittable }
+                ?? app.tables.allElementsBoundByIndex.first { $0.isHittable }
+            QA.swipe(list ?? app, direction)
             return
         }
         let leading = (today.frame.minX + settings.frame.maxX) / 2 / app.frame.width

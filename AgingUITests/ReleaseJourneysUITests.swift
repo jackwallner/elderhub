@@ -30,9 +30,7 @@ final class ReleaseJourneysUITests: XCTestCase {
         open.tap()
         today("first-today", in: app)
         tapTab("Care", in: app)
-        // Unfolded, Care is a pane whose title is in its content, not a bar.
-        XCTAssertTrue(app.navigationBars["Care"].waitForExistence(timeout: 10)
-            || app.buttons["Add person"].waitForExistence(timeout: 10))
+        showPeopleList(in: app)
         tap("Add person", in: app)
         XCTAssertTrue(app.buttons["paywall.plan.com.jackwallner.aging.pro.monthly"].waitForExistence(timeout: 20))
         QA.checkpoint(app, "upgrade", paywall: true)
@@ -113,6 +111,23 @@ final class ReleaseJourneysUITests: XCTestCase {
         XCTAssertTrue(after.label.hasSuffix("Taken"), "dose status after relaunch was \(after.label)")
         XCTAssertFalse(takeButton(drug, in: app).exists)
         QA.checkpoint(app, "core-dose-kept")
+    }
+
+    /// Care reopens where it was left, which after onboarding is the new
+    /// person's record, so the Care list is one step back on some layouts
+    /// (the Duo) and the screen itself on others.
+    private func showPeopleList(in app: XCUIApplication) {
+        let list = app.navigationBars["Care"]
+        if list.waitForExistence(timeout: 5) { return }
+        let menu = app.buttons["care-pane.record-menu"]
+        if menu.exists {
+            menu.tap()
+            app.buttons["All people"].firstMatch.tap()
+        } else {
+            let back = app.navigationBars.buttons.element(boundBy: 0)
+            if back.exists { back.tap() }
+        }
+        XCTAssertTrue(list.waitForExistence(timeout: 10) || app.buttons["Add person"].waitForExistence(timeout: 10))
     }
 
     private func takeButton(_ drug: String, in app: XCUIApplication) -> XCUIElement {
