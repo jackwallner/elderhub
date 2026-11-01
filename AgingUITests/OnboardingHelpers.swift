@@ -87,10 +87,30 @@ extension XCTestCase {
     /// below the fold, and a `List` does not render a row it has not scrolled
     /// to, so `exists` is false rather than merely off screen.
     @MainActor
-    func scrollUntilHittable(_ element: XCUIElement, in app: XCUIApplication, attempts: Int = 8) {
+    func scrollUntilHittable(_ element: XCUIElement, in app: XCUIApplication, attempts: Int = 8, trailing: Bool = false) {
         for _ in 0..<attempts where !element.isHittable {
-            QA.swipe(app, .up)
+            paneSwipe(app, .up, trailing: trailing)
         }
+    }
+
+    /// A vertical drag inside one pane. Unfolded on the Duo, the middle of the
+    /// app is the fold between the panes, so a drag there scrolls neither:
+    /// Today and its tab strip lead, Care (`trailing`) follows. Folded it is
+    /// `QA.swipe` on the whole app.
+    @MainActor
+    func paneSwipe(_ app: XCUIApplication, _ direction: QA.Direction, trailing: Bool = false) {
+        let today = app.buttons["pane-tab.today"]
+        let settings = app.buttons["pane-tab.settings"]
+        guard today.exists, settings.exists, app.frame.width > 0 else {
+            QA.swipe(app, direction)
+            return
+        }
+        let leading = (today.frame.minX + settings.frame.maxX) / 2 / app.frame.width
+        let x = trailing ? 1 - leading : leading
+        let (fromY, toY): (CGFloat, CGFloat) = direction == .down ? (0.25, 0.8) : (0.8, 0.25)
+        app.coordinate(withNormalizedOffset: CGVector(dx: x, dy: fromY))
+            .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: x, dy: toY)),
+                   withVelocity: .fast, thenHoldForDuration: 0)
     }
 
     /// Scope the Today tab to one person.

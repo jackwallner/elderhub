@@ -30,12 +30,15 @@ final class ReleaseJourneysUITests: XCTestCase {
         open.tap()
         today("first-today", in: app)
         tapTab("Care", in: app)
-        XCTAssertTrue(app.navigationBars["Care"].waitForExistence(timeout: 10))
+        // Unfolded, Care is a pane whose title is in its content, not a bar.
+        XCTAssertTrue(app.navigationBars["Care"].waitForExistence(timeout: 10)
+            || app.buttons["Add person"].waitForExistence(timeout: 10))
         tap("Add person", in: app)
         XCTAssertTrue(app.buttons["paywall.plan.com.jackwallner.aging.pro.monthly"].waitForExistence(timeout: 20))
         QA.checkpoint(app, "upgrade", paywall: true)
         tap("Not now", in: app)
-        XCTAssertTrue(app.navigationBars["Care"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.navigationBars["Care"].waitForExistence(timeout: 10)
+            || app.buttons["Add person"].waitForExistence(timeout: 10))
         QA.checkpoint(app, "care-after-upgrade")
     }
 
@@ -67,7 +70,7 @@ final class ReleaseJourneysUITests: XCTestCase {
         let strength = "500 mg"
         openMedications(in: app)
         let add = app.buttons["person-detail.add-medication"]
-        scrollUntilHittable(add, in: app)
+        scrollUntilHittable(add, in: app, trailing: true)
         XCTAssertTrue(add.waitForExistence(timeout: 15))
         add.tap()
 
@@ -105,7 +108,7 @@ final class ReleaseJourneysUITests: XCTestCase {
         QA.relaunch(app)
         today("core-after-relaunch", in: app)
         let after = doseStatus(drug, in: app)
-        for _ in 0..<6 where !after.exists { QA.swipe(app, .up) }
+        for _ in 0..<6 where !after.exists { paneSwipe(app, .up) }
         XCTAssertTrue(after.waitForExistence(timeout: 15), "the taken dose is gone after relaunch")
         XCTAssertTrue(after.label.hasSuffix("Taken"), "dose status after relaunch was \(after.label)")
         XCTAssertFalse(takeButton(drug, in: app).exists)
@@ -138,7 +141,8 @@ final class ReleaseJourneysUITests: XCTestCase {
             back.tap()
             _ = element.waitForExistence(timeout: 3)
         }
-        for _ in 0..<6 where !element.exists { QA.swipe(app, .down) }
+        for _ in 0..<3 where !element.exists { paneSwipe(app, .down) }
+        for _ in 0..<8 where !element.exists { paneSwipe(app, .up) }
     }
 
     private func tap(_ label: String, in app: XCUIApplication) {

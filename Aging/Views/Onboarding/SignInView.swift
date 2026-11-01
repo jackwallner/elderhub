@@ -63,9 +63,15 @@ struct SignInView: View {
             }
             .padding(.horizontal, 28)
 
+            Text("No password. Your saved care record still opens with no signal.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 28)
+
             Spacer()
 
-            VStack(spacing: 14) {
+            VStack(spacing: 10) {
                 if usesEmail {
                     emailFields
                 } else {
@@ -75,7 +81,10 @@ struct SignInView: View {
                         handle(result)
                     }
                     .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
-                    .frame(height: 52)
+                    // 66 to match the bordered Continue on the steps either
+                    // side, whose label plus its padding is that tall, so the
+                    // call to action does not change size from step to step.
+                    .frame(height: 66)
                     .disabled(isWorking)
 
                     if AuthFeatures.emailSignInEnabled {
@@ -96,11 +105,6 @@ struct SignInView: View {
                 }
 
                 skipButton
-
-                Text("No password. Your saved care record still opens with no signal.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
             }
             .padding(.horizontal, 28)
             .padding(.bottom, 24)
@@ -192,9 +196,12 @@ struct SignInView: View {
     @ViewBuilder
     private var skipButton: some View {
         if let onSkip {
+            // Same slot as the footer under Continue on the steps either
+            // side, so the button above it stays where it was.
             Button("Not now") { onSkip() }
                 .font(.subheadline)
-                .padding(.top, 2)
+                .frame(maxWidth: .infinity)
+                .frame(height: 44)
         }
     }
 

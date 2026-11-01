@@ -206,6 +206,10 @@ struct RootView: View {
                     .tabItem { Label("Settings", systemImage: "gear") }
                     .tag(Tab.settings)
             }
+            // An opaque bar: on the glass one, a row resting under it drew
+            // its words through the tab icons (Today's quick actions under
+            // Sharing). The lists still scroll to clear it.
+            .toolbarBackground(.visible, for: .tabBar)
             // iOS 27.1 lays the bar row of a stack that reaches the top safe
             // edge into the inner display's tall status band. Split, the strip
             // takes that row in the leading pane, and the TabView starts a few

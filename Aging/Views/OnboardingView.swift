@@ -152,6 +152,7 @@ struct OnboardingView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
+                    .frame(height: 44, alignment: .top)
             }
             .padding(.horizontal, 28)
             .padding(.top, 12)
