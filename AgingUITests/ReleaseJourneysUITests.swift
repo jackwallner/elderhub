@@ -105,7 +105,7 @@ final class ReleaseJourneysUITests: XCTestCase {
         QA.relaunch(app)
         today("core-after-relaunch", in: app)
         let after = doseStatus(drug, in: app)
-        for _ in 0..<6 where !after.exists { app.swipeUp() }
+        for _ in 0..<6 where !after.exists { QA.swipe(app, .up) }
         XCTAssertTrue(after.waitForExistence(timeout: 15), "the taken dose is gone after relaunch")
         XCTAssertTrue(after.label.hasSuffix("Taken"), "dose status after relaunch was \(after.label)")
         XCTAssertFalse(takeButton(drug, in: app).exists)
@@ -138,7 +138,7 @@ final class ReleaseJourneysUITests: XCTestCase {
             back.tap()
             _ = element.waitForExistence(timeout: 3)
         }
-        for _ in 0..<6 where !element.exists { app.swipeDown() }
+        for _ in 0..<6 where !element.exists { QA.swipe(app, .down) }
     }
 
     private func tap(_ label: String, in app: XCUIApplication) {

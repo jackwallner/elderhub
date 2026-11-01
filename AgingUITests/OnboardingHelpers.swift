@@ -89,7 +89,7 @@ extension XCTestCase {
     @MainActor
     func scrollUntilHittable(_ element: XCUIElement, in app: XCUIApplication, attempts: Int = 8) {
         for _ in 0..<attempts where !element.isHittable {
-            app.swipeUp()
+            QA.swipe(app, .up)
         }
     }
 
