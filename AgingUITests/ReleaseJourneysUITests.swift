@@ -203,6 +203,11 @@ final class ReleaseJourneysUITests: XCTestCase {
         let strip = app.buttons["pane-tab.\(label.lowercased())"].firstMatch
         if strip.waitForExistence(timeout: 3) {
             strip.tap()
+            // The strip sits in the inner display's status band, where a
+            // tap on the element can miss; its centre point does not.
+            if !strip.isSelected {
+                strip.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+            }
             return
         }
         if label == "Care", app.tabBars.buttons[label].firstMatch.exists == false,
