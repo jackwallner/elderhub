@@ -33,7 +33,10 @@ final class ReleaseJourneysUITests: XCTestCase {
         // the paywall is reached from Settings instead of Care's Add person.
         if isUnfolded(app) {
             tapTab("Settings", in: app)
-            tap("Upgrade to Elderhub Plus", in: app)
+            // The row's label is its title and its sentence together.
+            let upgrade = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Upgrade to Elderhub Plus")).firstMatch
+            XCTAssertTrue(upgrade.waitForExistence(timeout: 15))
+            upgrade.tap()
         } else {
             tapTab("Care", in: app)
             showPeopleList(in: app)
