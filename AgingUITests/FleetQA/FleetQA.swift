@@ -65,7 +65,7 @@ enum QA {
             if app.state != .runningForeground { _ = app.wait(for: .runningForeground, timeout: 5) }
             guard app.state == .runningForeground else {
                 // Show whatever took the screen: a crash leaves the home screen, an alert stays on top.
-                _ = save(XCUIScreen.main.screenshot(), context)
+                _ = save(capture(nil), context)
                 record(context, "crash", "P0", "", app.state == .notRunning
                        ? "the app is not running at this checkpoint (crashed or was killed)"
                        : "the app is in the background at this checkpoint (state \(app.state.rawValue)); see the screenshot for what took the screen")
@@ -74,7 +74,7 @@ enum QA {
                 return
             }
             let settle = Layout.settle(app, grace: grace, ambient: Set(ambient), context: context)
-            let shot = app.screenshot()
+            let shot = capture(app)
             let shotPath = save(shot, context)
             let leaves = settle.final
             Layout.offscreen(leaves, width: settle.width, context: context)
@@ -89,7 +89,7 @@ enum QA {
                 Paywall.check(app, leaves, rendered, context: context)
             }
             // Apple's audit re-renders the app at other text sizes; its motion is not the app's.
-            system("audit", journey: context.journey) { Audit.run(app, context: context) }
+            system("audit", journey: context.journey) { Audit.run(app, shot: shot, leaves: leaves, context: context) }
             Idle.check(app, first: shot, ambient: leaves.filter { ambient.contains($0.label) || ambient.contains($0.identifier) },
                        context: context)
             // Data that lands a few seconds late still jumps under the user's eye, so
@@ -123,6 +123,24 @@ enum QA {
             _ = app.wait(for: .runningForeground, timeout: 15)
             sleep(1)  // the springboard zoom outlasts the state change
         }
+    }
+
+    enum Direction { case left, right, up, down }
+
+    /// A swipe across the element (`.up` scrolls content up, like `swipeUp()`).
+    /// XCTest's own swipes land rotated on an unfolded iPhone Duo, whose inner
+    /// display is turned against the device; a drag between element
+    /// coordinates works on every device.
+    static func swipe(_ element: XCUIElement, _ direction: Direction = .left) {
+        let (from, to): (CGVector, CGVector) = switch direction {
+        case .left: (CGVector(dx: 0.85, dy: 0.5), CGVector(dx: 0.1, dy: 0.5))
+        case .right: (CGVector(dx: 0.15, dy: 0.5), CGVector(dx: 0.9, dy: 0.5))
+        case .up: (CGVector(dx: 0.5, dy: 0.8), CGVector(dx: 0.5, dy: 0.25))
+        case .down: (CGVector(dx: 0.5, dy: 0.25), CGVector(dx: 0.5, dy: 0.8))
+        }
+        element.coordinate(withNormalizedOffset: from)
+            .press(forDuration: 0.05, thenDragTo: element.coordinate(withNormalizedOffset: to),
+                   withVelocity: .fast, thenHoldForDuration: 0)
     }
 
     /// Kills and relaunches without reinstalling: state must survive this.
@@ -171,15 +189,34 @@ enum QA {
         }
     }
 
-    static func save(_ shot: XCUIScreenshot, _ context: Context) -> String? {
-        let attachment = XCTAttachment(screenshot: shot)
+    /// What is on screen, upright. An unfolded iPhone Duo draws the app on its
+    /// inner display, which is not `XCUIScreen.main` (that shot is black), and
+    /// the inner display's capture comes rotated, so it is redrawn upright to
+    /// match the element frames the oracles compare it with.
+    static func capture(_ app: XCUIApplication?) -> UIImage {
+        let image: UIImage
+        if let inner = XCUIScreen.screens.first(where: { $0 != XCUIScreen.main }) {
+            image = inner.screenshot().image
+        } else {
+            image = app?.screenshot().image ?? XCUIScreen.main.screenshot().image
+        }
+        guard image.imageOrientation != .up else { return image }
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = image.scale
+        return UIGraphicsImageRenderer(size: image.size, format: format).image { _ in
+            image.draw(in: CGRect(origin: .zero, size: image.size))
+        }
+    }
+
+    static func save(_ shot: UIImage, _ context: Context) -> String? {
+        let attachment = XCTAttachment(image: shot)
         attachment.name = "\(context.journey)-\(context.checkpoint)"
         attachment.lifetime = .keepAlways
         XCTContext.runActivity(named: "screenshot \(context.checkpoint)") { $0.add(attachment) }
         guard let dir = outputDir?.appendingPathComponent("shots") else { return nil }
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let url = dir.appendingPathComponent(slug("\(persona)-\(context.journey)-\(context.checkpoint)") + ".png")
-        return (try? shot.pngRepresentation.write(to: url)) == nil ? nil : url.path
+        return (try? shot.pngData()?.write(to: url)) == nil ? nil : url.path
     }
 
     static func slug(_ text: String) -> String {
@@ -391,7 +428,11 @@ enum Layout {
                 // so neither label is found: that counts too, when something is drawn in
                 // the overlap that no cleanly read element accounts for.
                 let readA = Render.presence(a, rendered), readB = Render.presence(b, rendered)
-                let partly = readA >= 0.3 && readB >= 0.3 && min(readA, readB) < 0.9
+                // Partly drawn counts only the words each label does not share with the
+                // other, or a line covered by a card reads as drawn through the card's own words.
+                let ownA = Render.presence(a, rendered, excluding: b.label)
+                let ownB = Render.presence(b, rendered, excluding: a.label)
+                let partly = ownA >= 0.3 && ownB >= 0.3 && min(readA, readB) < 0.9
                 let garbled = max(readA, readB) < 0.9 && Render.unexplained(in: overlap, rendered, leaves: leaves)
                 guard partly || garbled, visible(app, a), visible(app, b) else { continue }
                 reported.insert(pair)
@@ -410,7 +451,13 @@ enum Layout {
         let query = leaf.identifier.isEmpty
             ? app.descendants(matching: leaf.type).matching(NSPredicate(format: "label == %@", leaf.label))
             : app.descendants(matching: leaf.type).matching(identifier: leaf.identifier)
-        let element = query.element(boundBy: index)
+        // The same label can sit inside a button the leaf walk stops at (a list row
+        // repeating a card's line), so the index alone can name the wrong copy.
+        let near = { (frame: CGRect) in
+            abs(frame.minX - leaf.frame.minX) < 1 && abs(frame.minY - leaf.frame.minY) < 1
+                && abs(frame.width - leaf.frame.width) < 1 && abs(frame.height - leaf.frame.height) < 1
+        }
+        let element = query.allElementsBoundByIndex.first { near($0.frame) } ?? query.element(boundBy: index)
         return element.exists && element.isHittable
     }
 
@@ -475,13 +522,19 @@ enum Audit {
         }
     }
 
-    static func run(_ app: XCUIApplication, context: QA.Context) {
+    static func run(_ app: XCUIApplication, shot: UIImage, leaves: [Leaf] = [], context: QA.Context) {
+        let pixels = Idle.pixels(shot)
         do {
             var checked = 0
             // Dynamic Type and clipped-text checks re-render the app at other text
             // sizes, which shows on video and moves the layout under the other
             // oracles. The accessibility persona measures what AX3 really draws instead.
-            try app.performAccessibilityAudit(for: XCUIAccessibilityAuditType.all.subtracting([.dynamicType, .textClipped])) { issue in
+            // On the unfolded Duo the contrast check outlives the audit's timeout on a
+            // dense split screen and keeps running in testmanagerd until the sim stalls.
+            // The phone personas check the same colors.
+            var types = XCUIAccessibilityAuditType.all.subtracting([.dynamicType, .textClipped])
+            if QA.persona == "duo" { types.remove(.contrast) }
+            try app.performAccessibilityAudit(for: types) { issue in
                 // The audit walks hidden tabs too. Skip what nobody can see,
                 // within a budget so a long screen cannot stall the gate.
                 if let target = issue.element, checked < 40 {
@@ -489,13 +542,64 @@ enum Audit {
                     if !(target.exists && target.isHittable) { return true }
                 }
                 let element = issue.element.map { $0.identifier.isEmpty ? $0.label : $0.identifier } ?? ""
+                var measured = ""
+                if issue.auditType == .contrast, let target = issue.element, let pixels {
+                    // The audit flags text that passes (white on a dark brand color, iOS's own
+                    // headers); a finding stands only when the drawn pixels fail WCAG too.
+                    // The audit scrolls and re-renders as it goes, so the live frame can sit
+                    // elsewhere than the screenshot drew the element; take the frame the
+                    // tree had when the screenshot was taken.
+                    let label = target.label, type = target.elementType
+                    let frame = leaves.first { $0.label == label && $0.type == type }?.frame ?? target.frame
+                    guard let ratio = contrast(in: frame, pixels, scale: CGFloat(pixels.width) / shot.size.width)
+                    else { return true }
+                    if ratio >= (frame.height >= 24 ? 3 : 4.5) { return true }
+                    measured = String(format: " (measured %.1f:1)", ratio)
+                }
                 QA.record(context, "a11y-" + name(issue.auditType), severity(issue.auditType), element,
-                          "\(issue.compactDescription)\(element.isEmpty ? "" : ": \"\(element)\"")")
+                          "\(issue.compactDescription)\(measured)\(element.isEmpty ? "" : ": \"\(element)\"")")
                 return true
             }
         } catch {
             QA.record(context, "a11y-audit", "P3", "", "audit could not run: \(error.localizedDescription)")
         }
+    }
+}
+
+extension Audit {
+    /// WCAG contrast of the text drawn in `frame` (points): the commonest color is the
+    /// background, and the text is what stands furthest from it among the pixels that
+    /// differ (98th percentile: thin glyphs are mostly antialiased edge). Nil when nothing
+    /// is drawn there.
+    static func contrast(in frame: CGRect, _ image: (data: [UInt8], width: Int, height: Int), scale: CGFloat) -> Double? {
+        let box = CGRect(x: frame.minX * scale, y: frame.minY * scale, width: frame.width * scale,
+                         height: frame.height * scale).integral
+            .intersection(CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        guard box.width >= 4, box.height >= 4 else { return nil }
+        var counts: [Int: Int] = [:]
+        var lums: [Double] = []
+        for y in stride(from: Int(box.minY), to: Int(box.maxY), by: 1) {
+            for x in stride(from: Int(box.minX), to: Int(box.maxX), by: 1) {
+                let i = (y * image.width + x) * 4
+                let r = image.data[i], g = image.data[i + 1], b = image.data[i + 2]
+                counts[Int(r >> 4) << 8 | Int(g >> 4) << 4 | Int(b >> 4), default: 0] += 1
+                lums.append(luminance(r, g, b))
+            }
+        }
+        guard let mode = counts.max(by: { $0.value < $1.value })?.key else { return nil }
+        let channel = { (shift: Int) in UInt8(((mode >> shift) & 0xF) * 17) }
+        let background = luminance(channel(8), channel(4), channel(0))
+        let ink = lums.map { (max($0, background) + 0.05) / (min($0, background) + 0.05) }.filter { $0 > 1.15 }.sorted()
+        guard !ink.isEmpty else { return nil }
+        return ink[min(ink.count - 1, Int(Double(ink.count) * 0.98))]
+    }
+
+    static func luminance(_ r: UInt8, _ g: UInt8, _ b: UInt8) -> Double {
+        func linear(_ value: UInt8) -> Double {
+            let c = Double(value) / 255
+            return c <= 0.03928 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4)
+        }
+        return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b)
     }
 }
 
@@ -506,12 +610,12 @@ enum Idle {
     /// Compares two screenshots a second apart. A screen that keeps changing
     /// with nothing declared ambient burns battery and makes every capture of
     /// it a coin toss.
-    static func check(_ app: XCUIApplication, first: XCUIScreenshot, ambient: [Leaf], context: QA.Context) {
+    static func check(_ app: XCUIApplication, first: UIImage, ambient: [Leaf], context: QA.Context) {
         sleep(1)
-        let second = app.screenshot()
-        guard let a = pixels(first.image), let b = pixels(second.image), a.data.count == b.data.count else { return }
+        let second = QA.capture(app)
+        guard let a = pixels(first), let b = pixels(second), a.data.count == b.data.count else { return }
         let skip = ambient.map(\.frame)
-        let scale = CGFloat(a.width) / max(first.image.size.width, 1)
+        let scale = CGFloat(a.width) / max(first.size.width, 1)
         var changed = 0, total = 0
         var box = CGRect.null
         let statusBar = Int(60 * scale)
@@ -562,9 +666,9 @@ enum Render {
     }
 
     /// Every line of text in the screenshot, with its frame in points.
-    static func read(_ shot: XCUIScreenshot) -> [Line] {
-        guard let image = shot.image.cgImage else { return [] }
-        let size = shot.image.size
+    static func read(_ shot: UIImage) -> [Line] {
+        guard let image = shot.cgImage else { return [] }
+        let size = shot.size
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
         request.usesLanguageCorrection = false
@@ -595,8 +699,9 @@ enum Render {
 
     /// Share of the element's words that are drawn inside its frame: 0 for a
     /// hidden element, 1 for text that reads cleanly.
-    static func presence(_ leaf: Leaf, _ lines: [Line]) -> Double {
-        let wanted = words(leaf.label)
+    static func presence(_ leaf: Leaf, _ lines: [Line], excluding other: String = "") -> Double {
+        let shared = Set(words(other))
+        let wanted = words(leaf.label).filter { !shared.contains($0) }
         guard !wanted.isEmpty else { return 1 }
         let drawn = lines.filter { leaf.frame.insetBy(dx: -4, dy: -4).intersects($0.frame) }.map { $0.text.lowercased() }.joined(separator: " ")
         return Double(wanted.filter { drawn.contains($0) }.count) / Double(wanted.count)
@@ -609,7 +714,13 @@ enum Render {
         return lines.contains { line in
             guard line.frame.intersects(region), !words(line.text).isEmpty else { return false }
             let middle = CGPoint(x: line.frame.midX, y: line.frame.midY)
-            return !clean.contains { $0.frame.insetBy(dx: -4, dy: -4).contains(middle) && line.text.lowercased().contains(words($0.label)[0]) }
+            // A wrapped label's later lines miss its first word, so match on the line's own words.
+            let drawn = words(line.text)
+            return !clean.contains { leaf in
+                let label = Set(words(leaf.label))
+                return leaf.frame.insetBy(dx: -4, dy: -4).contains(middle)
+                    && drawn.filter { label.contains($0) }.count * 2 >= drawn.count
+            }
         }
     }
 
@@ -773,9 +884,19 @@ enum Paywall {
         return (saysSo && (restore || priced || pitch)) || (priced && restore)
     }
 
-    /// An element anywhere in the tree, scrolled off or not, whose label contains `text`.
+    /// The words each paywall control goes by in the persona languages
+    /// (the `german` persona included), so a localized paywall passes.
+    static let words: [String: [String]] = [
+        "restore": ["restore", "wiederherstellen"],
+        "terms": ["terms", "EULA", "nutzungsbedingungen", "bedingungen"],
+        "privacy": ["privacy", "datenschutz"],
+    ]
+
+    /// An element anywhere in the tree, scrolled off or not, whose label contains `text`
+    /// or one of its translations in `words`.
     static func find(_ app: XCUIApplication, _ text: String) -> XCUIElement? {
-        let predicate = NSPredicate(format: "label CONTAINS[c] %@", text)
+        let predicates = (words[text] ?? [text]).map { NSPredicate(format: "label CONTAINS[c] %@", $0) }
+        let predicate = NSCompoundPredicate(orPredicateWithSubpredicates: predicates)
         return [app.buttons, app.links, app.staticTexts].lazy.map { $0.matching(predicate).firstMatch }.first { $0.exists }
     }
 
@@ -793,7 +914,7 @@ enum Paywall {
         if drawn.isEmpty && !leaves.contains(where: { $0.label.range(of: price, options: .regularExpression) != nil }) {
             QA.record(context, "paywall-price", "P0", "", "a paywall with no price on screen: the plans did not load or the price is hidden")
         }
-        if find(app, "terms") == nil && find(app, "EULA") == nil {
+        if find(app, "terms") == nil {
             QA.record(context, "paywall-terms", "P1", "", "no Terms of Use (EULA) link anywhere on the paywall (3.1.2)")
         }
         if find(app, "privacy") == nil {
