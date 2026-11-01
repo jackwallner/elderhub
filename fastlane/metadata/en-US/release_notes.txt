@@ -1,2 +1,1 @@
-• If a change can't be saved, for example because your iPhone's storage is full, the app now tells you right away instead of losing it quietly.
-• Your records are kept safe if the app's data file is ever damaged.
+Behind-the-scenes improvements and fixes to keep Elderhub running smoothly. Thank you for being here.
