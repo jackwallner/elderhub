@@ -126,7 +126,6 @@ struct TodayView: View {
                 }
             }
             .navigationTitle("Today")
-            .opaqueNavigationBar()
             .navigationDestination(item: $quickAction) { action in
                 if let person = selectedPerson {
                     quickDestination(for: action, person: person)

@@ -183,7 +183,6 @@ struct PersonDetailView: View {
         // name and the avatar, and a large title repeating it cost most of the
         // first screen on the one screen whose job is to show what is here.
         .navigationTitle(person.displayLabel)
-        .opaqueNavigationBar()
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(item: pushesRoute ? route.feature : .constant(nil)) { feature in
             CareFeatureScreen(feature: feature, person: person)
