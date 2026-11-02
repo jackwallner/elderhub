@@ -104,26 +104,27 @@ extension XCTestCase {
 
     /// A vertical drag inside one pane. Unfolded on the Duo, the middle of the
     /// app is the fold between the panes, so a drag there scrolls neither:
-    /// Today and its tab strip lead, Care (`trailing`) follows. Folded it is
-    /// `QA.swipe` on the whole app.
+    /// Today and its tab strip lead, Care (`trailing`) follows. The app's own
+    /// frame is the rotated portrait one there (669 by 951 on a 951 by 669
+    /// display), so a drag measured against it starts below the screen and
+    /// scrolls nothing; the pane's list reports its true frame. Folded it is
+    /// `QA.swipe` on the list that is showing.
     @MainActor
     func paneSwipe(_ app: XCUIApplication, _ direction: QA.Direction, trailing: Bool = false) {
-        let today = app.buttons["pane-tab.today"]
-        let settings = app.buttons["pane-tab.settings"]
-        guard app.hasPaneTabStrip, today.exists, settings.exists, app.frame.width > 0 else {
-            // Drag the list that is showing, not the whole app: on the Duo's
-            // window the app frame is not the screen the user sees.
-            let list = app.collectionViews.allElementsBoundByIndex.first { $0.isHittable }
-                ?? app.tables.allElementsBoundByIndex.first { $0.isHittable }
-            QA.swipe(list ?? app, direction)
-            return
+        let lists = (app.collectionViews.allElementsBoundByIndex + app.tables.allElementsBoundByIndex)
+            .filter { $0.frame.height > 200 && $0.frame.width > 200 }
+        if app.hasPaneTabStrip, lists.count > 1 {
+            let pane = trailing ? lists.max { $0.frame.minX < $1.frame.minX } : lists.min { $0.frame.minX < $1.frame.minX }
+            if let pane {
+                QA.swipe(pane, direction)
+                return
+            }
         }
-        let leading = (today.frame.minX + settings.frame.maxX) / 2 / app.frame.width
-        let x = trailing ? 1 - leading : leading
-        let (fromY, toY): (CGFloat, CGFloat) = direction == .down ? (0.25, 0.8) : (0.8, 0.25)
-        app.coordinate(withNormalizedOffset: CGVector(dx: x, dy: fromY))
-            .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: x, dy: toY)),
-                   withVelocity: .fast, thenHoldForDuration: 0)
+        // Drag the list that is showing, not the whole app: on the Duo's
+        // window the app frame is not the screen the user sees.
+        let list = app.collectionViews.allElementsBoundByIndex.first { $0.isHittable }
+            ?? app.tables.allElementsBoundByIndex.first { $0.isHittable }
+        QA.swipe(list ?? app, direction)
     }
 
     /// Scope the Today tab to one person.

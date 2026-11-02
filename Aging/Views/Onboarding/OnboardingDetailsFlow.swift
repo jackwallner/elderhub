@@ -171,7 +171,9 @@ struct OnboardingDetailsFlow: View {
         // size and in the same place all the way through.
         .padding(.horizontal, 28)
         .padding(.bottom, 24)
-        .background(.bar)
+        .background {
+            Color(uiColor: .systemBackground).ignoresSafeArea(edges: .bottom)
+        }
     }
 
     // MARK: - Copy

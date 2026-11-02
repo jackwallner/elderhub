@@ -186,22 +186,26 @@ struct RootView: View {
 
             TabView(selection: $navigator.tab) {
                 TodayView()
+                    .tabBarBackdrop(chrome.showsSystemTabBar)
                     .systemTabBarHidden(!chrome.showsSystemTabBar)
                     .tabItem { Label("Today", systemImage: "checklist") }
                     .tag(Tab.today)
 
                 if split == nil {
                     PeopleView()
+                        .tabBarBackdrop()
                         .tabItem { Label("Care", systemImage: "person.2") }
                         .tag(Tab.people)
                 }
 
                 FamilyView()
+                    .tabBarBackdrop(chrome.showsSystemTabBar)
                     .systemTabBarHidden(!chrome.showsSystemTabBar)
                     .tabItem { Label("Sharing", systemImage: "person.3") }
                     .tag(Tab.family)
 
                 SettingsView()
+                    .tabBarBackdrop(chrome.showsSystemTabBar)
                     .systemTabBarHidden(!chrome.showsSystemTabBar)
                     .tabItem { Label("Settings", systemImage: "gear") }
                     .tag(Tab.settings)

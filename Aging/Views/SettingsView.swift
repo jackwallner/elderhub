@@ -144,6 +144,7 @@ struct SettingsView: View {
             }
             .disabled(isSigningOut)
             .navigationTitle("Settings")
+            .opaqueNavigationBar()
             .alert("Discard unsent changes?", isPresented: Binding(
                 get: { signOutWarning != nil }, set: { if !$0 { signOutWarning = nil } }
             )) {

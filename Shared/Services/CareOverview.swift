@@ -50,7 +50,7 @@ enum CareFeature: String, CaseIterable, Identifiable, Sendable {
     var symbol: String {
         switch self {
         case .medications: return "pills.fill"
-        case .tasks: return "checklist"
+        case .tasks: return "checkmark.circle.fill"
         case .vitals: return "heart.text.square.fill"
         case .visits: return "calendar"
         case .providers: return "list.bullet.clipboard.fill"
