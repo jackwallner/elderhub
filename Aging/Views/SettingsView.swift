@@ -484,12 +484,61 @@ struct SettingsView: View {
 /// confirmation they came for. Left pushed, the same screen just sits there
 /// still saying "Keep your list safe" with no sign it worked.
 private struct BackUpSignInView: View {
+    @Query(filter: #Predicate<Person> { $0.deletedAt == nil }, sort: \Person.createdAt)
+    private var people: [Person]
+
+    @Environment(GroupService.self) private var groups
+    @Environment(SyncCoordinator.self) private var sync
     @Environment(\.dismiss) private var dismiss
 
+    @State private var isAttaching = false
+    @State private var errorMessage: String?
+
     var body: some View {
-        SignInView(purpose: .backUp) { dismiss() }
-            .navigationTitle("Back Up")
-            .navigationBarTitleDisplayMode(.inline)
+        SignInView(purpose: .backUp) {
+            Task { await attachCircle() }
+        }
+        .navigationTitle("Back Up")
+        .navigationBarTitleDisplayMode(.inline)
+        .alert("Couldn't back up yet", isPresented: Binding(
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil; dismiss() } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("\(errorMessage ?? "")\n\nYou are signed in. Sharing → Start a care circle tries again.")
+        }
+    }
+
+    /// Sync only runs inside a care circle, so signing in alone uploaded
+    /// nothing and the "backed up" promise was false. The circle is created
+    /// the same way onboarding does it; it adds nobody until an invite is sent.
+    private func attachCircle() async {
+        guard !isAttaching else { return }
+        isAttaching = true
+        defer { isAttaching = false }
+
+        await groups.refresh()
+        do {
+            let groupID: UUID
+            if let existing = groups.activeGroupID {
+                groupID = existing
+            } else {
+                groupID = try await groups.createGroup(named: circleName)
+            }
+            await sync.adoptLocalData(into: groupID)
+            dismiss()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private var circleName: String {
+        guard let person = people.first else { return "Care circle" }
+        if person.isSelf { return "My care circle" }
+        let trimmed = person.name.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return "Care circle" }
+        return trimmed.hasSuffix("s") ? "\(trimmed)' care circle" : "\(trimmed)'s care circle"
     }
 }
 
