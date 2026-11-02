@@ -13,6 +13,7 @@ struct TodayView: View {
     @Environment(CheckInService.self) private var checkIn
     @Environment(AppNavigator.self) private var navigator
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var scopeSelection: TodayScope?
     @State private var quickAction: QuickAction?
@@ -170,9 +171,9 @@ struct TodayView: View {
                     if let undo {
                         UndoBanner(action: undo) {
                             undo.perform()
-                            withAnimation(.snappy) { self.undo = nil }
+                            withAnimation(reduceMotion ? nil : .snappy) { self.undo = nil }
                         }
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
                     } else {
                         Color.clear.frame(height: 0)
                     }
@@ -948,11 +949,11 @@ struct TodayView: View {
     private func offerUndo(_ message: String, perform: @escaping () -> Void) {
         confirmations += 1
         let action = UndoableAction(message: message, perform: perform)
-        withAnimation(.snappy) { undo = action }
+        withAnimation(reduceMotion ? nil : .snappy) { undo = action }
         Task {
             try? await Task.sleep(for: .seconds(7))
             guard undo?.id == action.id else { return }
-            withAnimation(.snappy) { undo = nil }
+            withAnimation(reduceMotion ? nil : .snappy) { undo = nil }
         }
     }
 

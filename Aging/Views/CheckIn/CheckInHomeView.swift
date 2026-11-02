@@ -18,6 +18,7 @@ struct CheckInHomeView: View {
     private var people: [Person]
 
     @Environment(AuthService.self) private var auth
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(GroupService.self) private var groups
     @Environment(SyncCoordinator.self) private var sync
     @Environment(CheckInService.self) private var checkIn
@@ -213,7 +214,7 @@ struct CheckInHomeView: View {
         return Button {
             guard !done else { return }
             checkIn.press(for: person, source: .selfPressed, by: auth.displayName)
-            withAnimation(.spring(duration: 0.35)) { justPressed = true }
+            withAnimation(reduceMotion ? nil : .spring(duration: 0.35)) { justPressed = true }
         } label: {
             VStack(spacing: 14) {
                 // Both of these scale with the reader's text size now. A bare
