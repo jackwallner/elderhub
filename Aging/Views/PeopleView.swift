@@ -202,6 +202,7 @@ struct PeopleView: View {
             }
         }
         .navigationTitle("Care")
+        .navigationBarBackdrop()
         // Leads with the kinds nobody guesses are searchable. The old
         // prompt named five of the eight `CareSearch` returns and left out
         // people, allergies and conditions, contacts, and incidents, so a

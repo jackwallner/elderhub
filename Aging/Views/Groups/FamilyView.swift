@@ -49,6 +49,7 @@ struct FamilyView: View {
                 }
             }
             .navigationTitle("Sharing")
+            .navigationBarBackdrop()
             .toolbar {
                 // `role` defaults to `.owner` for a device with no group at all,
                 // so the group has to be checked too or Rename shows on the
