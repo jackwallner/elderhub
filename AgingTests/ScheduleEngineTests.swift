@@ -149,13 +149,15 @@ struct ScheduleEngineTests {
         context.insert(person)
         let med = Medication(name: "Metformin", person: person)
         med.scheduleMinutes = [8 * 60]
+        med.startDate = day(2026, 1, 1)
         context.insert(med)
 
         // 2026-11-01 is 25 hours long in New York, 2026-03-08 is 23.
         for (month, dayOfMonth) in [(11, 1), (3, 8)] {
             let times = med.doseTimes(on: day(2026, month, dayOfMonth), calendar: calendar)
             #expect(times.count == 1)
-            #expect(calendar.dateComponents([.hour, .minute], from: times[0]).hour == 8)
+            let hour = times.first.map { calendar.dateComponents([.hour], from: $0).hour }
+            #expect(hour == 8)
         }
     }
 }
