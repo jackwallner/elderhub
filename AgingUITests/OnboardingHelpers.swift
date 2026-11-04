@@ -7,6 +7,15 @@ import XCTest
 /// steps. Adding the skippable details flow between naming the person and the
 /// feature overview broke all six identically, which is the argument for this
 /// file existing.
+extension XCUIApplication {
+    /// True on the unfolded Duo only. Folded, the strip is still in the tree
+    /// (invisible and accessibility hidden, yet found by queries), so it counts
+    /// only when the system tab bar is not there.
+    var hasPaneTabStrip: Bool {
+        tabBars.count == 0 && buttons["pane-tab.today"].exists
+    }
+}
+
 extension XCTestCase {
 
     /// Walks the fork, the name, the sign-in skip, every detail step and the
@@ -87,10 +96,35 @@ extension XCTestCase {
     /// below the fold, and a `List` does not render a row it has not scrolled
     /// to, so `exists` is false rather than merely off screen.
     @MainActor
-    func scrollUntilHittable(_ element: XCUIElement, in app: XCUIApplication, attempts: Int = 8) {
+    func scrollUntilHittable(_ element: XCUIElement, in app: XCUIApplication, attempts: Int = 8, trailing: Bool = false) {
         for _ in 0..<attempts where !element.isHittable {
-            app.swipeUp()
+            paneSwipe(app, .up, trailing: trailing)
         }
+    }
+
+    /// A vertical drag inside one pane. Unfolded on the Duo, the middle of the
+    /// app is the fold between the panes, so a drag there scrolls neither:
+    /// Today and its tab strip lead, Care (`trailing`) follows. The app's own
+    /// frame is the rotated portrait one there (669 by 951 on a 951 by 669
+    /// display), so a drag measured against it starts below the screen and
+    /// scrolls nothing; the pane's list reports its true frame. Folded it is
+    /// `QA.swipe` on the list that is showing.
+    @MainActor
+    func paneSwipe(_ app: XCUIApplication, _ direction: QA.Direction, trailing: Bool = false) {
+        let lists = (app.collectionViews.allElementsBoundByIndex + app.tables.allElementsBoundByIndex)
+            .filter { $0.frame.height > 200 && $0.frame.width > 200 }
+        if app.hasPaneTabStrip, lists.count > 1 {
+            let pane = trailing ? lists.max { $0.frame.minX < $1.frame.minX } : lists.min { $0.frame.minX < $1.frame.minX }
+            if let pane {
+                QA.swipe(pane, direction)
+                return
+            }
+        }
+        // Drag the list that is showing, not the whole app: on the Duo's
+        // window the app frame is not the screen the user sees.
+        let list = app.collectionViews.allElementsBoundByIndex.first { $0.isHittable }
+            ?? app.tables.allElementsBoundByIndex.first { $0.isHittable }
+        QA.swipe(list ?? app, direction)
     }
 
     /// Scope the Today tab to one person.

@@ -15,6 +15,7 @@ struct CareTasksView: View {
     let person: Person
 
     @Environment(\.modelContext) private var context
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(GroupService.self) private var groups
 
     @State private var isAddingTask = false
@@ -126,7 +127,7 @@ struct CareTasksView: View {
                     }
                 } header: {
                     Button {
-                        withAnimation { showDone.toggle() }
+                        withAnimation(reduceMotion ? nil : .default) { showDone.toggle() }
                     } label: {
                         HStack {
                             Text("Done")

@@ -81,8 +81,10 @@ enum ScheduleEngine {
 
     /// Formats minutes-from-midnight for display and for the schedule editor.
     static func timeLabel(forMinutes minutes: Int, calendar: Calendar = .current) -> String {
-        let startOfDay = calendar.startOfDay(for: Date())
-        guard let date = calendar.date(byAdding: .minute, value: minutes, to: startOfDay) else {
+        // Wall-clock hour and minute, not elapsed minutes since midnight: on a
+        // daylight-saving change day the latter reads an hour off.
+        guard let date = calendar.date(bySettingHour: minutes / 60, minute: minutes % 60,
+                                       second: 0, of: Date()) else {
             return ""
         }
         return date.formatted(date: .omitted, time: .shortened)

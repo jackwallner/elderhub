@@ -118,6 +118,16 @@ struct OnboardingView: View {
                         }
                         .padding(.horizontal, 28)
 
+                        // In the scrolling part, not the pinned footer: at
+                        // large text sizes it needs three lines, and a footer
+                        // that grows moves the button between steps.
+                        Text("A copy stays on this phone, so it opens with no signal.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.horizontal, 28)
+
                         Spacer(minLength: 0)
                     }
                     .padding(.vertical, 16)
@@ -147,11 +157,10 @@ struct OnboardingView: View {
                 )
 
                 // Reserved footer space either way, so the layout never shifts
-                // under the user's thumb as the button enables.
-                Text("A copy stays on this phone, so it opens with no signal.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
+                // under the user's thumb as the button enables, and the same
+                // height as the "Not now" row on the sign-in step so the call
+                // to action stays put between them at every text size.
+                Color.clear.frame(height: 44)
             }
             .padding(.horizontal, 28)
             .padding(.top, 12)

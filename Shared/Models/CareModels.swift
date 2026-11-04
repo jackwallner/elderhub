@@ -359,9 +359,10 @@ final class Medication {
     /// Concrete dose times for a given day, in order.
     func doseTimes(on date: Date, calendar: Calendar = .current) -> [Date] {
         guard isScheduled(on: date, calendar: calendar) else { return [] }
-        let startOfDay = calendar.startOfDay(for: date)
+        // Wall-clock hour and minute, not elapsed minutes since midnight: on a
+        // daylight-saving change day the latter lands an hour off.
         return scheduleMinutes.sorted().compactMap {
-            calendar.date(byAdding: .minute, value: $0, to: startOfDay)
+            calendar.date(bySettingHour: $0 / 60, minute: $0 % 60, second: 0, of: date)
         }
     }
 

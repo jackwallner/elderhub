@@ -164,12 +164,16 @@ struct OnboardingDetailsFlow: View {
                 advance(saving: false)
             }
             .font(.body)
-            .frame(height: 28)
+            .frame(height: 44)
             .accessibilityIdentifier("onboarding.details.skip")
         }
-        .padding(.horizontal, 24)
-        .padding(.bottom, 20)
-        .background(.bar)
+        // Same margins as the name and sign-in steps, so Continue is the same
+        // size and in the same place all the way through.
+        .padding(.horizontal, 28)
+        .padding(.bottom, 24)
+        .background {
+            Color(uiColor: .systemBackground).ignoresSafeArea(edges: .bottom)
+        }
     }
 
     // MARK: - Copy

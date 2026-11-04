@@ -356,6 +356,18 @@ struct PathPickerView: View {
     let onPick: (OnboardingFlow.Path) -> Void
 
     var body: some View {
+        // Scrolls so the cards can grow with the text size instead of cutting
+        // their sentences off; these are choices, not the step's one button.
+        GeometryReader { viewport in
+            ScrollView {
+                content
+                    .frame(minHeight: viewport.size.height)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+        }
+    }
+
+    private var content: some View {
         VStack(spacing: 26) {
             Spacer()
 
@@ -418,10 +430,12 @@ struct PathPickerView: View {
                     Text(title)
                         .font(.body.weight(.semibold))
                         .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
                     Text(detail)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: 0)
             }

@@ -281,7 +281,9 @@ struct PaywallView: View {
         .padding(.horizontal, 24)
         .padding(.top, 10)
         .padding(.bottom, 6)
-        .background(.bar)
+        .background {
+            Color(uiColor: .systemBackground).ignoresSafeArea(edges: .bottom)
+        }
     }
 
     /// What the sheet says when the store gave it nothing to sell.

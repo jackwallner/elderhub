@@ -29,13 +29,19 @@ final class ReleaseJourneysUITests: XCTestCase {
         QA.checkpoint(app, "overview")
         open.tap()
         today("first-today", in: app)
+        // Unfolded (iPhone Duo), the journey ends on Today. The Care pane is a
+        // second display XCTest cannot read, and taps on the tab strip in the
+        // inner display's status band do not reach it (the dump stays on Today),
+        // so the paywall is covered by the folded runs.
+        if isUnfolded(app) { return }
         tapTab("Care", in: app)
-        XCTAssertTrue(app.navigationBars["Care"].waitForExistence(timeout: 10))
+        showPeopleList(in: app)
         tap("Add person", in: app)
         XCTAssertTrue(app.buttons["paywall.plan.com.jackwallner.aging.pro.monthly"].waitForExistence(timeout: 20))
         QA.checkpoint(app, "upgrade", paywall: true)
         tap("Not now", in: app)
-        XCTAssertTrue(app.navigationBars["Care"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.navigationBars["Care"].waitForExistence(timeout: 10)
+            || app.buttons["Add person"].waitForExistence(timeout: 10))
         QA.checkpoint(app, "care-after-upgrade")
     }
 
@@ -55,25 +61,159 @@ final class ReleaseJourneysUITests: XCTestCase {
         today("today-after-relaunch", in: app)
     }
 
+    /// The loop the app exists for: put a medication on the record, take the
+    /// dose from Today, and find both still there after a relaunch.
+    func testCoreLoopAddMedicationTakeDoseSurvivesRelaunch() {
+        let app = XCUIApplication(bundleIdentifier: "com.jackwallner.aging")
+        QA.launch(app, arguments: ["-uitest-reset", "YES", "-uitest-wipe-store", "YES"])
+        completeOnboarding(app)
+        today("core-today-empty", in: app)
+
+        let drug = "Metformin"
+        let strength = "500 mg"
+        if isUnfolded(app) {
+            // The record sits on the Care pane, which the test cannot read;
+            // Today's setup list opens the same medication editor.
+            let add = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Add a medication")).firstMatch
+            scrollUntilHittable(add, in: app)
+            XCTAssertTrue(add.waitForExistence(timeout: 15))
+            add.tap()
+        } else {
+            openMedications(in: app)
+            let add = app.buttons["person-detail.add-medication"]
+            scrollUntilHittable(add, in: app)
+            XCTAssertTrue(add.waitForExistence(timeout: 15))
+            add.tap()
+        }
+
+        let nameField = app.textFields["Medication name"]
+        XCTAssertTrue(nameField.waitForExistence(timeout: 15))
+        nameField.tap()
+        nameField.typeText(drug)
+        let strengthField = app.textFields["Strength (10 mg)"]
+        XCTAssertTrue(strengthField.waitForExistence(timeout: 5))
+        strengthField.tap()
+        strengthField.typeText(strength)
+        QA.checkpoint(app, "core-med-editor")
+        app.buttons["medication-editor.save"].tap()
+
+        if !isUnfolded(app) {
+            let listed = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", drug)).firstMatch
+            XCTAssertTrue(listed.waitForExistence(timeout: 15), "the saved medication is not on the record")
+            QA.checkpoint(app, "core-med-listed")
+        }
+
+        let take = takeButton(drug, in: app)
+        returnToToday(until: take, in: app)
+        XCTAssertTrue(take.waitForExistence(timeout: 15), "Today shows no dose to take for \(drug)")
+        QA.checkpoint(app, "core-dose-due")
+        take.tap()
+
+        let status = doseStatus(drug, in: app)
+        XCTAssertTrue(status.waitForExistence(timeout: 10), "the dose did not record")
+        XCTAssertTrue(status.label.hasSuffix("Taken"), "dose status was \(status.label)")
+        XCTAssertFalse(take.exists)
+        QA.checkpoint(app, "core-dose-taken")
+
+        // Relaunch replays the launch arguments, and these two would wipe the
+        // store it is meant to prove survives.
+        let wipes: Set<String> = ["-uitest-reset", "-uitest-wipe-store", "YES"]
+        app.launchArguments.removeAll { wipes.contains($0) }
+        QA.relaunch(app)
+        today("core-after-relaunch", in: app)
+        let after = doseStatus(drug, in: app)
+        for _ in 0..<6 where !after.exists { paneSwipe(app, .up) }
+        XCTAssertTrue(after.waitForExistence(timeout: 15), "the taken dose is gone after relaunch")
+        XCTAssertTrue(after.label.hasSuffix("Taken"), "dose status after relaunch was \(after.label)")
+        XCTAssertFalse(takeButton(drug, in: app).exists)
+        QA.checkpoint(app, "core-dose-kept")
+    }
+
+    /// Care reopens where it was left, which after onboarding is the new
+    /// person's record, so the Care list is one step back on some layouts
+    /// (the Duo) and the screen itself on others.
+    private func showPeopleList(in app: XCUIApplication) {
+        let list = app.navigationBars["Care"]
+        if list.waitForExistence(timeout: 5) { return }
+        let menu = app.buttons["care-pane.record-menu"]
+        if menu.exists {
+            menu.tap()
+            app.buttons["All people"].firstMatch.tap()
+        } else {
+            let back = app.navigationBars.buttons.element(boundBy: 0)
+            if back.exists { back.tap() }
+        }
+        XCTAssertTrue(list.waitForExistence(timeout: 10) || app.buttons["Add person"].waitForExistence(timeout: 10))
+    }
+
+    /// The Duo's tab strip only exists when the two panes are showing.
+    private func isUnfolded(_ app: XCUIApplication) -> Bool {
+        app.hasPaneTabStrip
+    }
+
+    private func takeButton(_ drug: String, in app: XCUIApplication) -> XCUIElement {
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Mark \(drug) at")).firstMatch
+    }
+
+    private func doseStatus(_ drug: String, in app: XCUIApplication) -> XCUIElement {
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "\(drug) at")).firstMatch
+    }
+
+    private func openMedications(in app: XCUIApplication) {
+        selectPersonOnToday(app, named: "Eleanor Wallner")
+        let record = app.buttons["today.medications"]
+        scrollUntilHittable(record, in: app)
+        XCTAssertTrue(record.waitForExistence(timeout: 15))
+        record.tap()
+    }
+
+    /// Pops back with the back button named for Today, which folded is the
+    /// previous screen and unfolded does not exist because Today stays beside
+    /// the record.
+    private func returnToToday(until element: XCUIElement, in app: XCUIApplication) {
+        for _ in 0..<3 where !element.exists {
+            let back = app.navigationBars.buttons["Today"]
+            guard back.exists else { break }
+            back.tap()
+            _ = element.waitForExistence(timeout: 3)
+        }
+        for _ in 0..<3 where !element.exists { paneSwipe(app, .down) }
+        for _ in 0..<8 where !element.exists { paneSwipe(app, .up) }
+    }
+
     private func tap(_ label: String, in app: XCUIApplication) {
         let button = app.buttons[label].firstMatch
         XCTAssertTrue(button.waitForExistence(timeout: 15))
         button.tap()
     }
 
+    /// The system tab bar folded; on the unfolded Duo the tabs are the strip
+    /// across the leading pane (`pane-tab.<name>`), and Care is the trailing
+    /// pane, always showing, so it has no tab to tap.
     private func tapTab(_ label: String, in app: XCUIApplication) {
+        let strip = app.buttons["pane-tab.\(label.lowercased())"].firstMatch
+        if app.hasPaneTabStrip, strip.waitForExistence(timeout: 3) {
+            strip.tap()
+            // The strip sits in the inner display's status band, where a
+            // tap on the element can miss; its centre point does not.
+            if !strip.isSelected {
+                strip.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+            }
+            return
+        }
+        if label == "Care", app.hasPaneTabStrip { return }
         let button = app.tabBars.buttons[label].firstMatch
         XCTAssertTrue(button.waitForExistence(timeout: 15))
         button.tap()
     }
 
-    private func checkpoint(_ name: String, button label: String, in app: XCUIApplication) {
+    private func checkpoint(_ name: String, button label: String, in app: XCUIApplication, journey: String = #function) {
         XCTAssertTrue(app.buttons[label].firstMatch.waitForExistence(timeout: 15))
-        QA.checkpoint(app, name)
+        QA.checkpoint(app, name, journey: journey)
     }
 
-    private func today(_ name: String, in app: XCUIApplication) {
+    private func today(_ name: String, in app: XCUIApplication, journey: String = #function) {
         XCTAssertTrue(app.navigationBars["Today"].waitForExistence(timeout: 20))
-        QA.checkpoint(app, name)
+        QA.checkpoint(app, name, journey: journey)
     }
 }
