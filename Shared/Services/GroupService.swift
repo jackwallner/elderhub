@@ -284,12 +284,21 @@ final class GroupService {
     /// never escalated: the cache stays authoritative and the UI stays usable.
     /// A successful membership query with no rows, on a phone that holds a
     /// circle, is a removal. With no circle cached it is a new account.
-    static func membershipWasRevoked(rowCount: Int, hasCachedGroup: Bool) -> Bool {
-        rowCount == 0 && hasCachedGroup
+    ///
+    /// The answer only counts when the query carried this account's own
+    /// session. The SDK sends the anon key when it cannot produce an access
+    /// token (a refresh the auth server refused or rate limited), and row level
+    /// security answers an anonymous query with no rows, which would wipe the
+    /// circle and every write still waiting to be sent.
+    static func membershipWasRevoked(rowCount: Int, hasCachedGroup: Bool, wasAuthenticated: Bool) -> Bool {
+        rowCount == 0 && hasCachedGroup && wasAuthenticated
     }
 
     func refresh() async {
         guard let userID = auth.userID else { return }
+        // Read before the query, the same way the SDK picks its bearer token.
+        let session = try? await client.auth.session
+        let hasOwnSession = session.map { !$0.isExpired && $0.user.id == userID } ?? false
 
         struct MembershipRow: Decodable {
             struct GroupRow: Decodable { var id: UUID; var name: String }
@@ -314,7 +323,11 @@ final class GroupService {
                 // path. With a circle cached, the successful empty answer means
                 // the organizer removed this member, so the copy of the circle
                 // on this phone goes too (the same wipe as leaving).
-                if Self.membershipWasRevoked(rowCount: rows.count, hasCachedGroup: cachedGroup() != nil) {
+                if Self.membershipWasRevoked(
+                    rowCount: rows.count,
+                    hasCachedGroup: cachedGroup() != nil,
+                    wasAuthenticated: hasOwnSession
+                ) {
                     forgetGroupLocally()
                 }
                 return
