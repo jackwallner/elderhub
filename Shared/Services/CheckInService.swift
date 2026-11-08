@@ -191,6 +191,25 @@ final class CheckInService {
         return linked == signedInUserID
     }
 
+    /// Whether any record on this phone is this account's own, the only case in
+    /// which a caregiver's screen may keep a daily check-in reminder.
+    static func holdsOwnRecord(people: [Person], signedInUserID: UUID?) -> Bool {
+        people.contains {
+            remindsOnThisPhone(person: $0, signedInUserID: signedInUserID,
+                               handedOverPersonID: nil, isRecipientMode: false)
+        }
+    }
+
+    /// Up to 1.0.5 saving the check-in window scheduled the daily reminder on
+    /// the phone that saved it, which was a caregiver's. Nothing on a
+    /// caregiver's phone reschedules it any more, so without this it kept
+    /// telling the caregiver to check in every day, even after check-ins
+    /// were turned off.
+    func removeReminder() {
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: [Self.reminderID])
+    }
+
     func armReminder(for person: Person) async {
         if let settings = settings(for: person), settings.enabled {
             let center = UNUserNotificationCenter.current()

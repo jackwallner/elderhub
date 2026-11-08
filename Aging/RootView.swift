@@ -59,6 +59,11 @@ struct RootView: View {
                 CheckInHomeView()
             } else {
                 caregiverTabs
+                    .task(id: auth.userID) {
+                        guard !CheckInService.holdsOwnRecord(people: people, signedInUserID: auth.userID)
+                        else { return }
+                        CheckInService.shared.removeReminder()
+                    }
             }
         }
         .environment(navigator)
