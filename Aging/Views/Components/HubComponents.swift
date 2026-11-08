@@ -137,6 +137,8 @@ struct QuickActionChip: View {
     let symbol: String
     let tint: Color
 
+    @Environment(\.dynamicTypeSize) private var typeSize
+
     var body: some View {
         VStack(spacing: 8) {
             Image(systemName: symbol)
@@ -179,8 +181,13 @@ struct BigNavCard: View {
     let symbol: String
     let tint: Color
 
+    @Environment(\.dynamicTypeSize) private var typeSize
+
     var body: some View {
-        HStack(spacing: 16) {
+        let layout = typeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+            : AnyLayout(HStackLayout(spacing: 16))
+        layout {
             Image(systemName: symbol)
                 .font(.system(size: 24, weight: .semibold))
                 .foregroundStyle(tint)
@@ -191,17 +198,21 @@ struct BigNavCard: View {
                 Text(title)
                     .font(.title3.weight(.semibold))
                     .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(detail)
                     .font(.subheadline)
                     .foregroundStyle(Color.secondaryText)
                     .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
-            Spacer(minLength: 0)
+            if !typeSize.isAccessibilitySize {
+                Spacer(minLength: 0)
 
-            Image(systemName: "chevron.right")
-                .font(.body.weight(.semibold))
-                .foregroundStyle(.tertiary)
+                Image(systemName: "chevron.right")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(Color.secondaryText)
+            }
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -293,17 +304,21 @@ struct SetupProgressCard: View {
                                     Text(step.title)
                                         .font(.body.weight(.semibold))
                                         .foregroundStyle(.primary)
+                                        .fixedSize(horizontal: false, vertical: true)
                                     Text(step.detail)
                                         .font(.subheadline)
                                         .foregroundStyle(Color.secondaryText)
+                                        .fixedSize(horizontal: false, vertical: true)
                                 }
                                 .multilineTextAlignment(.leading)
 
                                 Spacer(minLength: 0)
 
-                                Image(systemName: "chevron.right")
-                                    .font(.footnote.weight(.semibold))
-                                    .foregroundStyle(.tertiary)
+                                if !typeSize.isAccessibilitySize {
+                                    Image(systemName: "chevron.right")
+                                        .font(.footnote.weight(.semibold))
+                                        .foregroundStyle(Color.secondaryText)
+                                }
                             }
                             .padding(.vertical, 11)
                             .contentShape(Rectangle())
