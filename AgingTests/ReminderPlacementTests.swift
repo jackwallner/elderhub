@@ -19,8 +19,14 @@ struct ReminderPlacementTests {
     }
 
     @Test func removedMemberForgetsTheCircle() {
-        #expect(GroupService.membershipWasRevoked(rowCount: 0, hasCachedGroup: true))
-        #expect(!GroupService.membershipWasRevoked(rowCount: 0, hasCachedGroup: false))
-        #expect(!GroupService.membershipWasRevoked(rowCount: 1, hasCachedGroup: true))
+        #expect(GroupService.membershipWasRevoked(rowCount: 0, hasCachedGroup: true, wasAuthenticated: true))
+        #expect(!GroupService.membershipWasRevoked(rowCount: 0, hasCachedGroup: false, wasAuthenticated: true))
+        #expect(!GroupService.membershipWasRevoked(rowCount: 1, hasCachedGroup: true, wasAuthenticated: true))
+    }
+
+    /// An anonymous query (no access token to send) sees no rows through RLS.
+    /// That is not a removal, and must not wipe the circle or its outbox.
+    @Test func anonymousEmptyAnswerKeepsTheCircle() {
+        #expect(!GroupService.membershipWasRevoked(rowCount: 0, hasCachedGroup: true, wasAuthenticated: false))
     }
 }
