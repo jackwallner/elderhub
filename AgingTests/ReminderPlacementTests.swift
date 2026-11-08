@@ -18,6 +18,22 @@ struct ReminderPlacementTests {
         #expect(!CheckInService.remindsOnThisPhone(person: own, signedInUserID: user, handedOverPersonID: other.id, isRecipientMode: true))
     }
 
+    /// A caregiver's phone holds no record of its own, so the reminder an
+    /// older version scheduled there is cleared.
+    @Test func caregiverPhoneHoldsNoOwnRecord() {
+        let user = UUID()
+        let mom = Person(name: "Eleanor", relationship: "Mom")
+        mom.linkedUserID = UUID()
+        let dad = Person(name: "Dad", relationship: "Dad")
+        #expect(!CheckInService.holdsOwnRecord(people: [mom, dad], signedInUserID: user))
+        #expect(!CheckInService.holdsOwnRecord(people: [mom, dad], signedInUserID: nil))
+        #expect(!CheckInService.holdsOwnRecord(people: [], signedInUserID: user))
+
+        let me = Person(name: "Me", relationship: "Self")
+        me.linkedUserID = user
+        #expect(CheckInService.holdsOwnRecord(people: [mom, me], signedInUserID: user))
+    }
+
     @Test func removedMemberForgetsTheCircle() {
         #expect(GroupService.membershipWasRevoked(rowCount: 0, hasCachedGroup: true, wasAuthenticated: true))
         #expect(!GroupService.membershipWasRevoked(rowCount: 0, hasCachedGroup: false, wasAuthenticated: true))
