@@ -48,7 +48,7 @@ struct CaregiverPINEntryView: View {
                         .foregroundStyle(.tint)
                     Text(purpose.detail)
                         .font(.body)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.secondaryText)
                         .multilineTextAlignment(.center)
                 }
                 .padding(.top, 20)

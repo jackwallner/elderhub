@@ -60,7 +60,7 @@ struct OnboardingView: View {
                                  ? "Your own list. You can add someone else later."
                                  : "The person you look after, not your own account. You can add more later.")
                                 .font(.body)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Color.secondaryText)
                                 .multilineTextAlignment(.center)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
@@ -123,7 +123,7 @@ struct OnboardingView: View {
                         // that grows moves the button between steps.
                         Text("A copy stays on this phone, so it opens with no signal.")
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.secondaryText)
                             .multilineTextAlignment(.center)
                             .fixedSize(horizontal: false, vertical: true)
                             .padding(.horizontal, 28)

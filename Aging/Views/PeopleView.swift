@@ -461,7 +461,7 @@ private struct SearchHitRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: hit.kind.symbol)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.secondaryText)
                 .frame(width: 22)
 
             VStack(alignment: .leading, spacing: 2) {
@@ -470,7 +470,7 @@ private struct SearchHitRow: View {
                 if !hit.snippet.isEmpty {
                     Text(hit.snippet)
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.secondaryText)
                         .lineLimit(2)
                 }
             }
@@ -480,7 +480,7 @@ private struct SearchHitRow: View {
             VStack(alignment: .trailing, spacing: 2) {
                 Text(hit.personName)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondaryText)
                 if isPrivate {
                     Text("Only on this phone")
                         .font(.caption2)
@@ -503,7 +503,7 @@ private struct PersonRow: View {
                     .fill(person.color.opacity(0.18))
                 Text(person.initials)
                     .font(.headline)
-                    .foregroundStyle(person.color)
+                    .foregroundStyle(.primary)
             }
             .frame(width: 44, height: 44)
 
@@ -512,7 +512,7 @@ private struct PersonRow: View {
                     .font(.body.weight(.medium))
                 Text(subtitle)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondaryText)
                 if let setupSummary {
                     Label(setupSummary, systemImage: "circle.dashed")
                         .font(.caption)

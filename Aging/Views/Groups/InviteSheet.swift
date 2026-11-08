@@ -100,7 +100,7 @@ struct InviteSheet: View {
                                 .font(.body.weight(.medium))
                             Text(option.detail)
                                 .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Color.secondaryText)
                         }
                         Spacer()
                         if kind == option {
@@ -119,7 +119,7 @@ struct InviteSheet: View {
         Section {
             if linkable.isEmpty {
                 Text("Everyone you track already has an account linked.")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondaryText)
             } else {
                 Picker("Their record", selection: $recipientID) {
                     Text("Choose").tag(UUID?.none)

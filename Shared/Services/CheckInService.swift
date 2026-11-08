@@ -107,10 +107,7 @@ final class CheckInService {
         ) else { return }
 
         SyncCoordinator.shared.enqueue(.checkInSettings, id: person.id)
-        Task {
-            await SyncCoordinator.shared.syncNow()
-            await scheduleReminder(for: person)
-        }
+        Task { await SyncCoordinator.shared.syncNow() }
     }
 
     /// Puts the agreed window on the person's settings row, and says whether
@@ -177,6 +174,34 @@ final class CheckInService {
     /// dot every day, and a repeating calendar trigger is the only mechanism iOS
     /// actually guarantees. It survives being offline, being in a drawer, and
     /// Low Power Mode.
+    /// Called from the person's own phone (their account, or a handed-over
+    /// handset). A caregiver changing the window never schedules it, since the
+    /// notification is a nudge to press the button and a caregiver's phone has
+    /// no button to press. Asks for permission only once a window is agreed.
+    /// True only for the linked account's own phone or a handed-over handset
+    /// naming this person; never for a caregiver looking at somebody else.
+    static func remindsOnThisPhone(
+        person: Person,
+        signedInUserID: UUID?,
+        handedOverPersonID: UUID?,
+        isRecipientMode: Bool
+    ) -> Bool {
+        if isRecipientMode, let handedOverPersonID { return handedOverPersonID == person.id }
+        guard let signedInUserID, let linked = person.linkedUserID else { return false }
+        return linked == signedInUserID
+    }
+
+    func armReminder(for person: Person) async {
+        if let settings = settings(for: person), settings.enabled {
+            let center = UNUserNotificationCenter.current()
+            let status = await center.notificationSettings().authorizationStatus
+            if status == .notDetermined {
+                await NotificationService.shared.requestAuthorization()
+            }
+        }
+        await scheduleReminder(for: person)
+    }
+
     func scheduleReminder(for person: Person) async {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: [Self.reminderID])

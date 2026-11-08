@@ -240,7 +240,7 @@ private struct TaskRow: View {
             Button(action: onComplete) {
                 Image(systemName: "circle")
                     .font(.title3)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondaryText)
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Mark \(task.title) done")
@@ -259,7 +259,7 @@ private struct TaskRow: View {
                 if !subtitle.isEmpty {
                     Text(subtitle)
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.secondaryText)
                 }
 
                 if !task.notes.isEmpty {
@@ -308,7 +308,7 @@ private struct DoneRow: View {
                 Text(task.title)
                     .font(.body)
                     .strikethrough(color: .secondary)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondaryText)
                 if let completedAt = task.completedAt {
                     Text(completedLabel(completedAt))
                         .font(.caption)

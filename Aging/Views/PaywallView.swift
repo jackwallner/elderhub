@@ -129,7 +129,7 @@ struct PaywallView: View {
                             .multilineTextAlignment(.center)
                         Text(subhead)
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.secondaryText)
                             .multilineTextAlignment(.center)
                     }
                     .padding(.top, 12)
@@ -244,7 +244,7 @@ struct PaywallView: View {
                 if selectedTrialDays != nil {
                     Text("No payment now · Cancel any time")
                         .font(.footnote.weight(.medium))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.secondaryText)
                 }
             }
 
@@ -260,18 +260,18 @@ struct PaywallView: View {
                 } else if let disclosureText {
                     Text(disclosureText)
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.secondaryText)
                         .multilineTextAlignment(.center)
                 }
 
                 HStack(spacing: 10) {
                     Button("Restore") { Task { await restore() } }
                         .disabled(isRestoring)
-                    Text("·").foregroundStyle(.secondary)
+                    Text("·").foregroundStyle(Color.secondaryText)
                     Link("Terms", destination: LegalLinks.terms)
-                    Text("·").foregroundStyle(.secondary)
+                    Text("·").foregroundStyle(Color.secondaryText)
                     Link("Privacy", destination: LegalLinks.privacy)
-                    Text("·").foregroundStyle(.secondary)
+                    Text("·").foregroundStyle(Color.secondaryText)
                     Link("EULA", destination: LegalLinks.eula)
                 }
                 .font(.caption)
@@ -297,7 +297,7 @@ struct PaywallView: View {
         VStack(spacing: 12) {
             Image(systemName: "exclamationmark.triangle")
                 .font(.system(size: 34))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.secondaryText)
 
             Text("Couldn't load the plans")
                 .font(.headline)
@@ -309,7 +309,7 @@ struct PaywallView: View {
             // purchase problem and not a problem with their records.
             Text("We couldn't reach the App Store just now. Everything you have already entered is safe on this phone, and the first person's care record stays free either way.")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.secondaryText)
                 .multilineTextAlignment(.center)
 
             Button {
@@ -326,7 +326,7 @@ struct PaywallView: View {
 
             Text("Already bought Elderhub Plus? Tap Restore below.")
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.secondaryText)
                 .multilineTextAlignment(.center)
 
             // StoreKit's own words, small and last. They are usually plain
@@ -400,7 +400,7 @@ struct PaywallView: View {
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
                                 .background(Color.green.opacity(0.18), in: Capsule())
-                                .foregroundStyle(.green)
+                                .foregroundStyle(Color(red: 0.0, green: 0.38, blue: 0.16))
                                 // The badge is the row's only differentiator, so
                                 // it must not be the thing that gets compressed
                                 // away when the caption grew a trial clause.
@@ -411,7 +411,7 @@ struct PaywallView: View {
                     if let caption = caption(for: plan) {
                         Text(caption)
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.secondaryText)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -528,7 +528,7 @@ private struct TrialTimeline: View {
                     .font(.subheadline.weight(.semibold))
                 Text(detail)
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondaryText)
             }
             .padding(.bottom, isLast ? 0 : 14)
             Spacer(minLength: 0)

@@ -119,7 +119,7 @@ private struct CareEventRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: event.kind.symbol)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.secondaryText)
                 .frame(width: 20)
 
             VStack(alignment: .leading, spacing: 3) {
@@ -129,18 +129,18 @@ private struct CareEventRow: View {
                     if event.severity > 0 {
                         Text("Severity \(event.severity)/10")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.secondaryText)
                     }
                     Spacer()
                     Text(event.occurredAt.formatted(date: .abbreviated, time: .shortened))
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.secondaryText)
                 }
 
                 if !event.note.isEmpty {
                     Text(event.note)
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.secondaryText)
                         .lineLimit(3)
                 }
 

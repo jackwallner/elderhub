@@ -237,7 +237,7 @@ struct PersonDetailView: View {
                         .font(.body.weight(.medium))
                     Text("Add one to track doses, times and refills.")
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.secondaryText)
                 }
                 .padding(.vertical, 2)
             } else {
@@ -540,7 +540,7 @@ private struct MedicationRow: View {
             if !subtitle.isEmpty {
                 Text(subtitle)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondaryText)
             }
         }
         .padding(.vertical, 2)

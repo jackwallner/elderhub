@@ -66,7 +66,7 @@ struct ConflictsView: View {
                     .font(.body.weight(.medium))
                 Text(subtitle(for: conflict))
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondaryText)
             }
 
             if conflict.hasVersions {
@@ -117,7 +117,7 @@ struct ConflictsView: View {
         VStack(alignment: .leading, spacing: 1) {
             Text(label)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.secondaryText)
             Text(text.isEmpty ? "Couldn't be described" : text)
                 .font(.subheadline)
                 .foregroundStyle(text.isEmpty ? .secondary : .primary)

@@ -80,7 +80,7 @@ struct ProvidersView: View {
             if !detail.isEmpty {
                 Text(detail.joined(separator: " · "))
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondaryText)
             }
         }
         .padding(.vertical, 4)
@@ -249,7 +249,7 @@ struct ProviderPickerField: View {
                     .foregroundStyle(.primary)
                 Spacer()
                 Text(selectedName ?? "None")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondaryText)
             }
         }
         .sheet(isPresented: $isPresentingPicker) {
@@ -306,7 +306,7 @@ private struct ProviderPickerSheet: View {
                                     if !provider.specialty.isEmpty {
                                         Text(provider.specialty)
                                             .font(.caption)
-                                            .foregroundStyle(.secondary)
+                                            .foregroundStyle(Color.secondaryText)
                                     }
                                 }
                                 Spacer()

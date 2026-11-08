@@ -407,7 +407,7 @@ struct PathPickerView: View {
 
             Text("You can change this later.")
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.secondaryText)
                 .padding(.bottom, 24)
         }
     }
@@ -433,7 +433,7 @@ struct PathPickerView: View {
                         .fixedSize(horizontal: false, vertical: true)
                     Text(detail)
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.secondaryText)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -460,7 +460,7 @@ private struct OnboardingFeatureOverview: View {
                         .font(.title.bold())
                     Text("Start with what matters today. You do not need to set everything up at once.")
                         .font(.body)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.secondaryText)
                 }
 
                 VStack(spacing: 12) {
@@ -474,7 +474,7 @@ private struct OnboardingFeatureOverview: View {
                     Label("Looking after more than one person?", systemImage: "person.2")
                         .font(.headline)
                     Text("Add Mom, Dad, or a partner under Care. Everyone you invite as a helper can see every person in this care circle.")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.secondaryText)
                 }
 
                 Button("Open \(personName)’s record") {
@@ -500,7 +500,7 @@ private struct OnboardingFeatureOverview: View {
                 Text(title).font(.headline)
                 Text(detail)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondaryText)
             }
             Spacer(minLength: 0)
         }
@@ -524,7 +524,7 @@ private struct JoinedCareCircleView: View {
                 .font(.body)
             Text("Elderhub keeps a copy on this phone, so the record remains available without a signal.")
                 .font(.body)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.secondaryText)
             Spacer()
             Button("Open the care circle") {
                 onContinue()

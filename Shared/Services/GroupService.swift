@@ -282,6 +282,12 @@ final class GroupService {
 
     /// Pulls the caller's membership row and the group billing row. Failure is
     /// never escalated: the cache stays authoritative and the UI stays usable.
+    /// A successful membership query with no rows, on a phone that holds a
+    /// circle, is a removal. With no circle cached it is a new account.
+    static func membershipWasRevoked(rowCount: Int, hasCachedGroup: Bool) -> Bool {
+        rowCount == 0 && hasCachedGroup
+    }
+
     func refresh() async {
         guard let userID = auth.userID else { return }
 
@@ -303,8 +309,14 @@ final class GroupService {
                 .value
 
             guard let row = rows.first else {
-                // Signed in but in no group. Not an error: it is the state
-                // between signing in and choosing a path.
+                // Signed in but in no group. With nothing cached that is not an
+                // error: it is the state between signing in and choosing a
+                // path. With a circle cached, the successful empty answer means
+                // the organizer removed this member, so the copy of the circle
+                // on this phone goes too (the same wipe as leaving).
+                if Self.membershipWasRevoked(rowCount: rows.count, hasCachedGroup: cachedGroup() != nil) {
+                    forgetGroupLocally()
+                }
                 return
             }
 

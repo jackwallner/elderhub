@@ -50,7 +50,7 @@ struct JoinGroupView: View {
                     .font(.title2.bold())
                 Text("Eight letters and numbers, from whoever invited you.")
                     .font(.body)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondaryText)
                     .multilineTextAlignment(.center)
             }
             .padding(.horizontal, 28)

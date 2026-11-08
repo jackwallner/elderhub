@@ -60,7 +60,7 @@ struct CheckInSettingsView: View {
                         .foregroundStyle(.orange)
                     Text("Check-ins are still recorded, but this phone will not remind anyone and will not be told when one is missed.")
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.secondaryText)
                     Button("Open iOS Settings") {
                         guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
                         UIApplication.shared.open(url)
@@ -72,7 +72,7 @@ struct CheckInSettingsView: View {
                         .foregroundStyle(.orange)
                     Text("Check-ins are still recorded, but this phone won't be told when one is missed. Check Notifications for Elderhub in iOS Settings, then reopen the app.")
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.secondaryText)
                 }
             }
 
@@ -107,11 +107,11 @@ struct CheckInSettingsView: View {
                         if last.source == .caregiverManual && !last.pressedByName.isEmpty {
                             Text("Recorded by \(last.pressedByName)")
                                 .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Color.secondaryText)
                         }
                     } else {
                         Text("No check-in recorded yet.")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.secondaryText)
                     }
 
                     if canEdit && person.linkedUserID == nil {

@@ -141,7 +141,7 @@ private struct TimelineRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: entry.kind.symbol)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.secondaryText)
                 .frame(width: 20)
 
             VStack(alignment: .leading, spacing: 3) {
@@ -150,11 +150,11 @@ private struct TimelineRow: View {
                 if !entry.detail.isEmpty {
                     Text(entry.detail)
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.secondaryText)
                 }
                 Text(metaLine)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondaryText)
             }
         }
         .padding(.vertical, 2)

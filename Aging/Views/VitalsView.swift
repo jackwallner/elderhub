@@ -81,13 +81,13 @@ struct VitalsView: View {
                 if !reading.note.isEmpty {
                     Text(reading.note)
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.secondaryText)
                 }
             }
             Spacer()
             Text(reading.recordedAt.formatted(date: .abbreviated, time: .shortened))
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.secondaryText)
         }
         .padding(.vertical, 2)
     }
@@ -144,12 +144,12 @@ struct VitalEditorSheet: View {
                             .keyboardType(.decimalPad)
                         if kind.isPaired {
                             Text("/")
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Color.secondaryText)
                             TextField("Diastolic", text: $secondary)
                                 .keyboardType(.decimalPad)
                         }
                         Text(kind.unit)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.secondaryText)
                     }
 
                     DatePicker("When", selection: $recordedAt)

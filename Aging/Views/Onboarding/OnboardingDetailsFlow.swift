@@ -103,7 +103,7 @@ struct OnboardingDetailsFlow: View {
             HStack {
                 Text("Step \(index + 1) of \(Step.allCases.count)")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondaryText)
                     .monospacedDigit()
                 Spacer()
                 if index > 0 {
@@ -137,7 +137,7 @@ struct OnboardingDetailsFlow: View {
                 .multilineTextAlignment(.leading)
             Text(detail(for: step))
                 .font(.body)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.secondaryText)
                 .multilineTextAlignment(.leading)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -322,7 +322,7 @@ struct OnboardingDetailsFlow: View {
                     // account and this flow deliberately does not force one.
                     Text("Sharing needs an account. You can sign in later from the Sharing tab; everything works on this phone without one.")
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.secondaryText)
                 }
             }
         }
@@ -372,7 +372,7 @@ struct OnboardingDetailsFlow: View {
                         items.wrappedValue.removeAll { $0 == item }
                     } label: {
                         Image(systemName: "minus.circle.fill")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.secondaryText)
                     }
                     .buttonStyle(.plain)
                 }
@@ -381,7 +381,7 @@ struct OnboardingDetailsFlow: View {
             if items.wrappedValue.isEmpty {
                 Text(empty)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondaryText)
             }
 
             HStack {

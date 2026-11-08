@@ -58,14 +58,14 @@ struct SignInView: View {
                     .multilineTextAlignment(.center)
                 Text(purpose.detail)
                     .font(.body)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondaryText)
                     .multilineTextAlignment(.center)
             }
             .padding(.horizontal, 28)
 
             Text("No password. Your saved care record still opens with no signal.")
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.secondaryText)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 28)
 
@@ -126,7 +126,7 @@ struct SignInView: View {
 
             Text("We sent a sign-in link to \(email.trimmingCharacters(in: .whitespacesAndNewlines)).")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.secondaryText)
                 .multilineTextAlignment(.center)
 
             Text("Open the email and tap the sign-in button. Elderhub will return here automatically.")

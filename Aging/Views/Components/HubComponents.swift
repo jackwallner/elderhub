@@ -55,7 +55,7 @@ struct FeatureTile: View {
                     .foregroundStyle(.primary)
                 Text(feature.blurb)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondaryText)
                     .lineLimit(2, reservesSpace: true)
             }
 
@@ -66,7 +66,7 @@ struct FeatureTile: View {
 
             Text(detail)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(isEmpty ? .tertiary : .secondary)
+                .foregroundStyle(Color.secondaryText)
                 .lineLimit(2)
         }
         .multilineTextAlignment(.leading)
@@ -106,7 +106,7 @@ struct StatTile: View {
                 .lineLimit(1)
             Text(label)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.secondaryText)
                 .lineLimit(2, reservesSpace: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -193,7 +193,7 @@ struct BigNavCard: View {
                     .multilineTextAlignment(.leading)
                 Text(detail)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondaryText)
                     .multilineTextAlignment(.leading)
             }
 
@@ -236,34 +236,38 @@ struct SetupProgressCard: View {
     /// rather than a nudge. Expanding is what makes every row reachable, which
     /// per-row dismissal needs it to be.
     @State private var isExpanded = false
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     private var done: Int { SetupChecklist.completed(steps) }
 
     private var undone: [SetupStep] { steps.filter { !$0.isDone } }
 
     private var remaining: [SetupStep] {
-        isExpanded ? undone : Array(undone.prefix(3))
+        isExpanded ? undone : Array(undone.prefix(typeSize.isAccessibilitySize ? 1 : 3))
     }
 
     private var hiddenCount: Int { undone.count - remaining.count }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .firstTextBaseline) {
+            let header = typeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+                : AnyLayout(HStackLayout(alignment: .firstTextBaseline))
+            header {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Set up \(personLabel)'s record")
                         .font(.title3.weight(.semibold))
                         .multilineTextAlignment(.leading)
                     Text("\(done) of \(steps.count) done")
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.secondaryText)
                         .monospacedDigit()
                 }
                 Spacer(minLength: 8)
                 Button("Hide", action: onHide)
                     .font(.body)
                     .buttonStyle(.plain)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondaryText)
                     .accessibilityLabel("Hide the whole setup list")
             }
 
@@ -277,11 +281,13 @@ struct SetupProgressCard: View {
                             onSelect(step)
                         } label: {
                             HStack(spacing: 14) {
-                                Image(systemName: step.symbol)
-                                    .font(.system(size: 19, weight: .semibold))
-                                    .foregroundStyle(.tint)
-                                    .frame(width: 40, height: 40)
-                                    .background(Color.accentColor.opacity(0.14), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                if !typeSize.isAccessibilitySize {
+                                    Image(systemName: step.symbol)
+                                        .font(.system(size: 19, weight: .semibold))
+                                        .foregroundStyle(.tint)
+                                        .frame(width: 40, height: 40)
+                                        .background(Color.accentColor.opacity(0.14), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                }
 
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(step.title)
@@ -289,7 +295,7 @@ struct SetupProgressCard: View {
                                         .foregroundStyle(.primary)
                                     Text(step.detail)
                                         .font(.subheadline)
-                                        .foregroundStyle(.secondary)
+                                        .foregroundStyle(Color.secondaryText)
                                 }
                                 .multilineTextAlignment(.leading)
 
@@ -312,7 +318,7 @@ struct SetupProgressCard: View {
                         } label: {
                             Image(systemName: "xmark")
                                 .font(.footnote.weight(.bold))
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Color.secondaryText)
                                 .frame(width: 44, height: 44)
                                 .contentShape(Rectangle())
                         }
@@ -363,7 +369,7 @@ struct EmergencyCardBanner: View {
                     .font(.headline)
                 Text("One page for the ER: \(personLabel)'s meds, allergies, contacts. Works with no signal.")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondaryText)
                     .multilineTextAlignment(.leading)
             }
 
@@ -398,7 +404,7 @@ struct PersonHeaderCard: View {
                     Circle().fill(person.color.opacity(0.18))
                     Text(person.initials)
                         .font(.title3.weight(.semibold))
-                        .foregroundStyle(person.color)
+                        .foregroundStyle(.primary)
                 }
                 .frame(width: 52, height: 52)
 
@@ -408,7 +414,7 @@ struct PersonHeaderCard: View {
                     if !subtitle.isEmpty {
                         Text(subtitle)
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.secondaryText)
                     }
                 }
 

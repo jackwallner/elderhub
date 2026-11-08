@@ -24,6 +24,8 @@ struct CheckInHomeView: View {
     @Environment(CheckInService.self) private var checkIn
 
     @Environment(DeviceModeService.self) private var deviceMode
+    @Environment(\.scenePhase) private var scenePhase
+    @Query private var checkInSettings: [CheckInSettings]
 
     @State private var justPressed = false
     @State private var isReloading = false
@@ -64,6 +66,15 @@ struct CheckInHomeView: View {
             return linked
         }
         return people.first(where: \.isSelf) ?? people.first
+    }
+
+    private var reminderKey: String {
+        let settings = me.flatMap { person in checkInSettings.first { $0.personID == person.id } }
+        return [
+            me?.id.uuidString ?? "",
+            settings.map { "\($0.enabled)-\($0.windowStartMinute)-\($0.windowEndMinute)" } ?? "",
+            scenePhase == .active ? "active" : "idle",
+        ].joined(separator: "|")
     }
 
     /// True while this phone was handed over to a named person whose record is
@@ -150,6 +161,19 @@ struct CheckInHomeView: View {
                 .padding(20)
             }
             .navigationTitle("Today")
+            // The reminder lives on this phone, the person's own, and only
+            // here: it is armed from whatever settings the family agreed,
+            // not from the settings screen only a caregiver ever opens.
+            .task(id: reminderKey) {
+                guard let person = me,
+                      CheckInService.remindsOnThisPhone(
+                        person: person,
+                        signedInUserID: auth.userID,
+                        handedOverPersonID: deviceMode.handedOverPersonID,
+                        isRecipientMode: deviceMode.isRecipientMode
+                      ) else { return }
+                await checkIn.armReminder(for: person)
+            }
             .toolbar {
                 // Only in handed-over mode. A subject whose *account* has the
                 // subject role has nothing to unlock into: their reduced
@@ -250,19 +274,19 @@ struct CheckInHomeView: View {
             if let last = checkIn.lastCheckIn(for: person) {
                 Text("Last checked in \(last.pressedAt.formatted(date: .abbreviated, time: .shortened))")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondaryText)
                 // Told honestly rather than hidden. A press that has not left
                 // the phone yet is still a press, and pretending otherwise is
                 // how people end up pressing it four times.
                 if last.isDirty {
                     Label("Saved on this phone, will send when you have signal", systemImage: "arrow.up.circle")
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.secondaryText)
                 }
             } else {
                 Text("Press the button once a day so your family knows you're OK.")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondaryText)
                     .multilineTextAlignment(.center)
             }
         }
@@ -307,7 +331,7 @@ private struct SubjectDoseRow: View {
                     .font(.title3.weight(.medium))
                 Text(slot.scheduledAt.formatted(date: .omitted, time: .shortened))
                     .font(.body)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondaryText)
             }
 
             Spacer()

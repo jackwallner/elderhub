@@ -66,7 +66,7 @@ struct EmergencyCardView: View {
 
                 Text("This list is maintained by a family member and is not a medical record.")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondaryText)
                     .padding(.top, 4)
             }
             .padding(20)
@@ -181,7 +181,7 @@ struct EmergencyCardView: View {
     private var notRecorded: some View {
         Text("Not recorded")
             .font(.title3)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Color.secondaryText)
     }
 
     private var providersBlock: some View {
@@ -229,7 +229,7 @@ struct EmergencyCardView: View {
             Text("Nothing on the card yet")
                 .font(.title3.weight(.semibold))
             Text("Add allergies, conditions, blood type and who to call. This is the page you hand to a paramedic.")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.secondaryText)
             if deviceMode.allowsEditing {
                 Button {
                     isEditingDetails = true
@@ -266,14 +266,14 @@ struct EmergencyCardView: View {
             // like the blood type below.
             Text(birthLine)
                 .font(.title3)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.secondaryText)
 
             // Named even when it is missing, for the same reason the sections
             // below are: a blank where a blood type would be does not tell a
             // reader whether it is unknown or simply not here.
             Text(person.bloodType.isEmpty ? "Blood type not recorded" : "Blood type \(person.bloodType)")
                 .font(.title3)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.secondaryText)
 
             // The exported one-pager prints when it was generated and the live
             // card printed nothing, so of the two routes to the same
@@ -284,7 +284,7 @@ struct EmergencyCardView: View {
             // worse answer than saying nothing.
             Text(freshnessLine)
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.secondaryText)
         }
     }
 
@@ -315,7 +315,7 @@ struct EmergencyCardView: View {
             if person.activeMedications.isEmpty {
                 Text("None recorded")
                     .font(.title3)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondaryText)
             } else {
                 ForEach(person.activeMedications) { med in
                     VStack(alignment: .leading, spacing: 2) {
@@ -324,7 +324,7 @@ struct EmergencyCardView: View {
                         if !detail(for: med).isEmpty {
                             Text(detail(for: med))
                                 .font(.body)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Color.secondaryText)
                         }
                     }
                 }

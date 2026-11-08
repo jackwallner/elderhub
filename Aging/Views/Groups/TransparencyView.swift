@@ -27,7 +27,7 @@ struct TransparencyView: View {
                         .font(.title.bold())
                     Text("You have joined \(groups.groupName.isEmpty ? "a care circle" : groups.groupName).")
                         .font(.body)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.secondaryText)
                 }
 
                 memberList
@@ -74,7 +74,7 @@ struct TransparencyView: View {
 
                 Text("This app helps a family keep track of medications. It is not a medical device, it does not give medical advice, and it cannot tell whether you are unwell or call anyone for help.")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondaryText)
 
                 if isOnboarding {
                     // Two buttons while the list is missing, and the retry is
@@ -168,7 +168,7 @@ struct TransparencyView: View {
                     .font(.body.weight(.medium))
                 Text("This phone has not been able to reach your family's circle, so it cannot name who is in it. Nothing of yours has been shared yet. Try again once you have a signal.")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondaryText)
             }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -188,7 +188,7 @@ struct TransparencyView: View {
                             .font(.body.weight(.medium))
                         Text(member.role.label)
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.secondaryText)
                     }
                     Spacer(minLength: 0)
                 }
@@ -205,7 +205,7 @@ struct TransparencyView: View {
                 .font(.headline)
             ForEach(lines, id: \.self) { line in
                 HStack(alignment: .top, spacing: 8) {
-                    Text("•").foregroundStyle(.secondary)
+                    Text("•").foregroundStyle(Color.secondaryText)
                     Text(line)
                 }
                 .font(.body)

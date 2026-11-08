@@ -70,3 +70,13 @@ extension Person {
         return letters.isEmpty ? "?" : String(letters).uppercased()
     }
 }
+
+extension Color {
+    /// `.secondary` measures about 3.4:1 on white, under the 4.5:1 text floor.
+    /// Same hierarchy, darker in light mode; dark mode keeps the system value.
+    static let secondaryText = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? .secondaryLabel
+            : UIColor(red: 0.388, green: 0.388, blue: 0.400, alpha: 1)
+    })
+}

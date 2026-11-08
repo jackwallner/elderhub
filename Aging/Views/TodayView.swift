@@ -292,7 +292,7 @@ struct TodayView: View {
                         .font(.title3.weight(.semibold))
                     Text(peopleSummary)
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.secondaryText)
                 }
                 .padding(.vertical, 2)
                 .accessibilityIdentifier("today.everyone-headline")
@@ -347,7 +347,7 @@ struct TodayView: View {
                                 .font(.body.weight(.medium))
                         } icon: {
                             Image(systemName: "hand.wave")
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Color.secondaryText)
                         }
                         .accessibilityIdentifier("today.everyone.check-in")
                     }
@@ -384,7 +384,7 @@ struct TodayView: View {
                                 systemImage: "tray.full"
                             )
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.secondaryText)
                         }
                         .buttonStyle(.plain)
                     }
@@ -407,7 +407,7 @@ struct TodayView: View {
                                     .font(.body.weight(.medium))
                                 Text(digest.statusLine)
                                     .font(.subheadline)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(Color.secondaryText)
                                 Spacer()
                                 Image(systemName: "chevron.right")
                                     .font(.caption.weight(.semibold))
@@ -544,7 +544,7 @@ struct TodayView: View {
                                 if let last = checkIn.lastCheckIn(for: person) {
                                     Text("Last at \(last.pressedAt.formatted(date: .abbreviated, time: .shortened))")
                                         .font(.subheadline)
-                                        .foregroundStyle(.secondary)
+                                        .foregroundStyle(Color.secondaryText)
                                 }
                             }
                         } icon: {
@@ -615,7 +615,7 @@ struct TodayView: View {
                                 .font(.body.weight(.medium))
                             Text("Everything \(person.displayLabel) takes is as-needed.")
                                 .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Color.secondaryText)
                         }
                         .padding(.vertical, 2)
                     } else {
@@ -1063,7 +1063,7 @@ private struct AppointmentRow: View {
         HStack(spacing: 12) {
             Image(systemName: "calendar")
                 .font(.title3)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.secondaryText)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(title)
@@ -1071,7 +1071,7 @@ private struct AppointmentRow: View {
                 if !subtitle.isEmpty {
                     Text(subtitle)
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.secondaryText)
                 }
             }
 
@@ -1079,7 +1079,7 @@ private struct AppointmentRow: View {
 
             Text(whenLabel)
                 .font(.subheadline.weight(.medium))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.secondaryText)
         }
         .padding(.vertical, 4)
     }
@@ -1129,7 +1129,7 @@ private struct TodayBillRow: View {
             Button(action: onPaid) {
                 Image(systemName: "circle")
                     .font(.title3)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondaryText)
                     // See `TodayTaskRow`: 44 points, matching the dose control.
                     .frame(minWidth: 44, minHeight: 44, alignment: .leading)
                     .contentShape(Rectangle())
@@ -1143,7 +1143,7 @@ private struct TodayBillRow: View {
                 if !subtitle.isEmpty {
                     Text(subtitle)
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.secondaryText)
                 }
             }
 
@@ -1152,7 +1152,7 @@ private struct TodayBillRow: View {
             Text(bill.amountLabel)
                 .font(.subheadline.weight(.medium))
                 .monospacedDigit()
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.secondaryText)
         }
         .padding(.vertical, 4)
     }
@@ -1180,7 +1180,7 @@ private struct TodayTaskRow: View {
             Button(action: onComplete) {
                 Image(systemName: "circle")
                     .font(.title3)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondaryText)
                     // The same 44-point floor the dose button was given, and
                     // for the same reason: these three controls sit in one
                     // column on one screen, tapped one-handed, and only one of
@@ -1198,7 +1198,7 @@ private struct TodayTaskRow: View {
                 if !subtitle.isEmpty {
                     Text(subtitle)
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.secondaryText)
                 }
             }
 
@@ -1236,7 +1236,7 @@ private struct RefillRow: View {
                     .font(.body.weight(.medium))
                 Text(daysLabel)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondaryText)
             }
             Spacer()
             Image(systemName: "exclamationmark.triangle")
@@ -1260,23 +1260,36 @@ private struct DoseRow: View {
     /// Nil means "put this back to not recorded yet".
     let onRecord: (DoseStatus?) -> Void
 
+    @Environment(\.dynamicTypeSize) private var typeSize
+
     var body: some View {
-        HStack(spacing: 14) {
+        let layout = typeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10))
+            : AnyLayout(HStackLayout(spacing: 14))
+        layout {
             VStack(alignment: .leading, spacing: 3) {
                 Text(slot.medicationName)
                     .font(.body.weight(.medium))
-                HStack(spacing: 6) {
-                    Text(slot.scheduledAt.formatted(date: .omitted, time: .shortened))
-                    if !slot.strength.isEmpty {
-                        Text("·")
-                        Text(slot.strength)
+                    .foregroundStyle(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+                let when = slot.scheduledAt.formatted(date: .omitted, time: .shortened)
+                if typeSize.isAccessibilitySize {
+                    Text(when)
+                    if !slot.strength.isEmpty { Text(slot.strength) }
+                } else {
+                    HStack(spacing: 6) {
+                        Text(when)
+                        if !slot.strength.isEmpty {
+                            Text("·")
+                            Text(slot.strength)
+                        }
                     }
                 }
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
             }
+            .font(.subheadline)
+            .foregroundStyle(Color.secondaryText)
 
-            Spacer()
+            if !typeSize.isAccessibilitySize { Spacer() }
 
             if let status = slot.status {
                 // A menu, not a label. Undo and Skip were reachable only by
@@ -1301,7 +1314,7 @@ private struct DoseRow: View {
                         if !slot.recordedBy.isEmpty {
                             Text(slot.recordedBy)
                                 .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Color.secondaryText)
                         }
                     }
                     // Colour is never the only signal: "Taken" is the word, and

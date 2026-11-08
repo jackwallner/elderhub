@@ -3,6 +3,7 @@ import SwiftUI
 
 struct MedicationEditorSheet: View {
     let person: Person
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// Nil to add, an existing row to correct one.
     ///
     /// Correction has to be in place rather than delete-and-recreate. A
@@ -116,7 +117,7 @@ struct MedicationEditorSheet: View {
                 }
 
                 Section {
-                    Toggle("Track refills", isOn: $trackRefills.animation())
+                    Toggle("Track refills", isOn: $trackRefills.animation(reduceMotion ? nil : .default))
 
                     if trackRefills {
                         HStack {
@@ -351,7 +352,7 @@ private struct WeekdayPicker: View {
                 Text("Days")
                 Spacer()
                 Text(summary)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondaryText)
             }
 
             HStack(spacing: 6) {

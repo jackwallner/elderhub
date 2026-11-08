@@ -157,7 +157,7 @@ private struct VisitRow: View {
             if !visit.reason.isEmpty, visit.reason != visit.displayTitle() {
                 Text(visit.reason)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondaryText)
             }
 
             if !visit.notes.isEmpty {

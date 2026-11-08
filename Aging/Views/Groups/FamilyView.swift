@@ -152,7 +152,7 @@ struct FamilyView: View {
         Section {
             if auth.isSignedIn {
                 Text("You are not sharing with anyone yet.")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondaryText)
                 Button("Start a care circle") {
                     if people.contains(where: { !$0.isSelf && $0.surrogateAttestedAt == nil }) {
                         isConfirmingSharing = true
@@ -165,7 +165,7 @@ struct FamilyView: View {
                 // Existing local-only installs land here. The whole tracker keeps
                 // working; sharing is the thing being offered, not a wall (I3).
                 Text("Everything you have entered is on this phone. Sign in to back it up and share it with family.")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondaryText)
                 NavigationLink("Sign in") {
                     SignInView(purpose: .createFamily) {
                         Task { await createGroup() }
@@ -196,7 +196,7 @@ struct FamilyView: View {
                                 .font(.body.weight(.medium))
                             Text(memberSubtitle(member))
                                 .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Color.secondaryText)
                         }
                         Spacer()
                         if groups.role == .owner, !member.isSelf {
@@ -441,7 +441,7 @@ private struct MemberSheet: View {
                                     Text(option.label)
                                     Text(describe(option))
                                         .font(.subheadline)
-                                        .foregroundStyle(.secondary)
+                                        .foregroundStyle(Color.secondaryText)
                                 }
                                 Spacer()
                                 if member.role == option {
@@ -673,7 +673,7 @@ private struct LeaveOrDeleteView: View {
             if isLastOwner && !isOnlyMember {
                 Section {
                     Text("You are the only organizer. Make someone else the organizer first, then you can leave.")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.secondaryText)
                 }
             } else if isOnlyMember && groups.role == .owner {
                 Section {

@@ -72,7 +72,7 @@ struct CareRecordPane: View {
             HStack(spacing: 8) {
                 Text(person.initials)
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(person.color)
+                    .foregroundStyle(.primary)
                     .frame(width: 28, height: 28)
                     .background(person.color.opacity(0.18), in: Circle())
                 Text(screenTitle)
@@ -81,7 +81,7 @@ struct CareRecordPane: View {
                     .lineLimit(1)
                 Image(systemName: "chevron.down")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondaryText)
             }
         }
         .accessibilityLabel("\(screenTitle), \(person.displayLabel)'s record")

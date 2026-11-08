@@ -135,7 +135,7 @@ private struct CareNoteRow: View {
                 if !note.previewBody.isEmpty {
                     Text(note.previewBody)
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.secondaryText)
                         .lineLimit(2)
                 }
 

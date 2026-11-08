@@ -97,7 +97,7 @@ struct SettingsView: View {
                                     .font(.headline)
                                 Text("Add more people to this care circle. Every feature is already free for the first person.")
                                     .font(.subheadline)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(Color.secondaryText)
                             }
                         }
                     } footer: {
@@ -139,7 +139,7 @@ struct SettingsView: View {
                     // one on the emergency card both stay.
                     Text("This app helps you organize medication and health information. It is not a medical device and does not provide medical advice. It cannot tell whether anyone is unwell and it does not call for help. Always follow the guidance of a licensed clinician.")
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.secondaryText)
                 }
             }
             .disabled(isSigningOut)
@@ -359,11 +359,11 @@ struct SettingsView: View {
                     // lost one, and saying so is what stops people re-entering
                     // everything.
                     Text("Not synced yet. Your list is safe on this phone.")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.secondaryText)
                 }
                 if auth.isOffline || sync.isOffline {
                     Label("Showing your saved copy", systemImage: "wifi.slash")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.secondaryText)
                 } else if let lastError = sync.lastError {
                     // Said out loud, because the alternative is what shipped:
                     // a "last synced" line that kept advancing while nothing
@@ -374,7 +374,7 @@ struct SettingsView: View {
                             .foregroundStyle(.orange)
                         Text("Your changes are saved on this phone and will be sent when this clears. \(lastError)")
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.secondaryText)
                     }
                 }
                 if sync.conflictCount > 0 {
@@ -405,7 +405,7 @@ struct SettingsView: View {
                 // anywhere. Sharing is not the point being made here; not
                 // losing the list is.
                 Text("Everything is saved on this phone, and nowhere else. If you lose the phone, the record goes with it.")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondaryText)
                 NavigationLink {
                     BackUpSignInView()
                 } label: {
@@ -565,7 +565,7 @@ private struct DeleteAccountSheet: View {
                 Section {
                     Text("Your account is removed and this phone is signed out.")
                     Text("What your family built together stays with them. Anything you entered keeps your name on it, so their record still makes sense.")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.secondaryText)
                 }
 
                 Section {
