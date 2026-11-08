@@ -21,6 +21,9 @@ Core flow:
 7. Sharing tab offers account setup and invitations by email, link, or code
 8. To test Elderhub Plus, finish setup with one person, then open Care
    and tap Add person. The second-person action presents the paywall.
+9. Back Up (new in 1.0.6): Settings > Back Up signs in with Apple and saves
+   the care record to that account, so it survives a lost or replaced
+   phone. It asks for nothing after sign-in.
 
 Every feature is free for the first person. Elderhub Plus (IAP via
 RevenueCat) unlocks additional people in the same care circle. Monthly,
