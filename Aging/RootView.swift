@@ -45,18 +45,22 @@ struct RootView: View {
                     onboardingSessionActive = false
                 }
                 .onAppear { onboardingSessionActive = true }
+                .readableColumn(maxWidth: 600)
             } else if groups.requiresTransparency {
                 TransparencyView(isOnboarding: true) {
                     Task { await sync.syncNow() }
                 }
+                .readableColumn(maxWidth: 600)
             } else if deviceMode.isRecipientMode {
                 // Handed over on purpose, on this handset only. Same screen the
                 // subject role gets, because it is the same person in the same
                 // situation; the only difference is that this one has a way
                 // back and that one does not.
                 CheckInHomeView()
+                    .readableColumn(maxWidth: 600)
             } else if groups.role == .subject && groups.activeGroupID != nil {
                 CheckInHomeView()
+                    .readableColumn(maxWidth: 600)
             } else {
                 caregiverTabs
                     .task(id: auth.userID) {
@@ -171,7 +175,10 @@ struct RootView: View {
     private var split: UnfoldedSplit? {
         UnfoldedSplit.make(
             width: paneGeometry.width,
-            isRegularWidth: horizontalSizeClass == .regular,
+            // An iPad is regular width too but has no fold: it keeps one
+            // adaptive layout, never the Duo's two phone-width panes.
+            isRegularWidth: horizontalSizeClass == .regular
+                && UIDevice.current.userInterfaceIdiom == .phone,
             fold: paneGeometry.fold
         )
     }
