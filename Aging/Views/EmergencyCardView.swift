@@ -70,6 +70,7 @@ struct EmergencyCardView: View {
                     .padding(.top, 4)
             }
             .padding(20)
+            .readableColumn()
         }
         .navigationTitle("Emergency Card")
         .navigationBarTitleDisplayMode(.inline)

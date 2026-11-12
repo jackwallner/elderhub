@@ -1,10 +1,10 @@
 # Elderhub: Family Care Log
 
-> Elderhub is a family medication tracker app for iPhone. Keep medications, doses, visits and an emergency card for the people you look after, free for one.
+> Elderhub is a family medication tracker app for iPhone and iPad. Keep medications, doses, visits and an emergency card for the people you look after, free for one.
 
 ## App
 
-- [Family Medication Tracker App | Elderhub: Family Care Log](https://jackwallner.com/ios/elderhub/index.html.md): Elderhub is a family medication tracker app for iPhone. Keep medications, doses, visits and an emergency card for the people you look after, free for one.
+- [Family Medication Tracker App | Elderhub: Family Care Log](https://jackwallner.com/ios/elderhub/index.html.md): Elderhub is a family medication tracker app for iPhone and iPad. Keep medications, doses, visits and an emergency card for the people you look after, free for one.
 
 ## Guides
 

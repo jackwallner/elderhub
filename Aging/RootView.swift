@@ -45,18 +45,22 @@ struct RootView: View {
                     onboardingSessionActive = false
                 }
                 .onAppear { onboardingSessionActive = true }
+                .readableColumn(maxWidth: 600)
             } else if groups.requiresTransparency {
                 TransparencyView(isOnboarding: true) {
                     Task { await sync.syncNow() }
                 }
+                .readableColumn(maxWidth: 600)
             } else if deviceMode.isRecipientMode {
                 // Handed over on purpose, on this handset only. Same screen the
                 // subject role gets, because it is the same person in the same
                 // situation; the only difference is that this one has a way
                 // back and that one does not.
                 CheckInHomeView()
+                    .readableColumn(maxWidth: 600)
             } else if groups.role == .subject && groups.activeGroupID != nil {
                 CheckInHomeView()
+                    .readableColumn(maxWidth: 600)
             } else {
                 caregiverTabs
                     .task(id: auth.userID) {
@@ -167,11 +171,19 @@ struct RootView: View {
         }
     }
 
+    private var padColumnMargin: CGFloat {
+        guard UIDevice.current.userInterfaceIdiom == .pad else { return 0 }
+        return max(0, (paneGeometry.width - 680) / 2)
+    }
+
     /// Unfolded, Care has its own pane beside the tabs, so it is never a tab.
     private var split: UnfoldedSplit? {
         UnfoldedSplit.make(
             width: paneGeometry.width,
-            isRegularWidth: horizontalSizeClass == .regular,
+            // An iPad is regular width too but has no fold: it keeps one
+            // adaptive layout, never the Duo's two phone-width panes.
+            isRegularWidth: horizontalSizeClass == .regular
+                && UIDevice.current.userInterfaceIdiom == .phone,
             fold: paneGeometry.fold
         )
     }
@@ -219,6 +231,10 @@ struct RootView: View {
             // its words through the tab icons (Today's quick actions under
             // Sharing). The lists still scroll to clear it.
             .toolbarBackground(.visible, for: .tabBar)
+            // An iPad is wide: every tab and every screen pushed from it keeps
+            // a phone-like column, margins on the scroll content so the scroll
+            // bar and the grouped background stay at the screen edge.
+            .contentMargins(.horizontal, padColumnMargin, for: .scrollContent)
             // iOS 27.1 lays the bar row of a stack that reaches the top safe
             // edge into the inner display's tall status band. Split, the strip
             // takes that row in the leading pane, and the TabView starts a few

@@ -189,6 +189,11 @@ struct PaywallView: View {
             // when the plan changes or an error appears.
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 purchaseFooter
+                    .frame(maxWidth: 600)
+                    .frame(maxWidth: .infinity)
+                    .background {
+                        Color(uiColor: .systemBackground).ignoresSafeArea(edges: .bottom)
+                    }
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -219,6 +224,7 @@ struct PaywallView: View {
                 Text(restoreResult ?? "")
             }
         }
+        .modifier(PadPageSheet())
     }
 
     /// CTA, reassurance, disclosure and legal, all at the point of purchase.
@@ -540,4 +546,17 @@ private struct TrialTimeline: View {
 #Preview {
     PaywallView()
         .environment(StoreService.shared)
+}
+
+/// The default iPad form sheet is short enough to cut a plan card off behind
+/// the pinned purchase button. Page sizing gives it the full height on iPadOS 18
+/// and later; iPhone and iOS 17 keep the system sheet.
+private struct PadPageSheet: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 18.0, *) {
+            content.presentationSizing(.page)
+        } else {
+            content
+        }
+    }
 }

@@ -10,7 +10,7 @@ Last updated: October 21, 2026
 
 ## Overview
 
-Elderhub is an iPhone app for keeping a care record for a parent, partner,
+Elderhub is an iPhone and iPad app for keeping a care record for a parent, partner,
 or another person you help. It records medications and other health
 information, along with care tasks, notes, bills, contacts, and family
 sharing. Much of what is in it is information about someone other than the
