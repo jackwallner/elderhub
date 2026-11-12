@@ -6,11 +6,11 @@ Web page: https://jackwallner.com/ios/elderhub/best-family-medication-tracker-ap
 
 ## Best family medication tracker app for iPhone (November 2026)
 
-By [Jack Wallner](https://jackwallner.com/). Last updated November 11, 2026.
+By [Jack Wallner](https://jackwallner.com/). Last updated November 12, 2026.
 
 Most medication apps assume you track your own pills, so check how each handles other people. Best for one record per person that a family shares, with no account to start: Elderhub. Best for reminders, interaction warnings and a large user base: Medisafe. Best for scanning labels and logging who gave each dose: ScanMyPills. Best for the simplest private list for several people: My Meds. Best if your family already uses a Hero pill dispenser: Hero.
 
-**How we compared.** I read each App Store listing and pulled its rating, update date and supported devices from Apple's public lookup on November 11, 2026 (US storefront), and I took price models from the listings' in-app purchase sections. I did not install and test these apps, so every claim about a competitor comes from its listing. None of these apps replaces advice from a doctor or pharmacist. Jack Wallner makes Elderhub: Family Care Log, so read its entries with that in mind.
+**How we compared.** I read each App Store listing and pulled its rating, update date and supported devices from Apple's public lookup on November 12, 2026 (US storefront), and I took price models from the listings' in-app purchase sections. I did not install and test these apps, so every claim about a competitor comes from its listing. None of these apps replaces advice from a doctor or pharmacist. Jack Wallner makes Elderhub: Family Care Log, so read its entries with that in mind.
 
 ## How do the family medication tracker apps compare?
 
@@ -18,14 +18,14 @@ Medisafe is the most-rated and has the most features, Elderhub keeps one shared 
 
 | App | Best for | Price model | Apple Watch | iPad | Account | Rating (count) | Last updated |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Elderhub: Family Care Log | One care record per person, shared with a care circle | Free for one person; paid for more people | No | Yes | No account; Sign in with Apple only to share | 5.00 (1) | Nov 10, 2026 |
-| Medisafe Medication Management | Reminders, interaction warnings and family syncing | Free + subscription | Yes | Yes | Not stated in listing | 4.71 (101,597) | Nov 3, 2026 |
-| ScanMyPills Medication Tracker | Label scanning, a care circle and a record of who gave each dose | Free + subscription | No | Yes | Not stated in listing | 4.35 (34) | Nov 11, 2026 |
-| Max - Pill reminder | Simple reminders with Share & Care for family | Free (no in-app purchases listed) | No | Yes | Not stated in listing | 4.77 (9,922) | Jul 14, 2026 |
-| My Meds - Personal Meds List | A simple private list for several people | Free (no in-app purchases listed) | No | Yes | No account described; data stays on the device | 4.27 (11) | Mar 30, 2026 |
-| Hero: Medication Manager | Families already using the Hero pill dispenser | Requires a Hero membership and smart dispenser | Yes | Yes | Needs a Hero membership | 4.70 (10,831) | Nov 10, 2026 |
+| Elderhub: Family Care Log | One care record per person, shared with a care circle | Free for one person; paid for more people | No | No (iPhone only) | No account; Sign in with Apple only to share | 5.00 (1) | Nov 10, 2026 |
+| Medisafe Medication Management | Reminders, interaction warnings and family syncing | Free + subscription | Yes | No (iPhone only) | One account for the family (per listing) | 4.71 (101,596) | Nov 3, 2026 |
+| ScanMyPills Medication Tracker | Label scanning, a care circle and a record of who gave each dose | Subscription after a free trial | No | No (iPhone only) | Not stated in listing | 4.35 (34) | Nov 11, 2026 |
+| Max - Pill reminder | Simple reminders with Share & Care for family | Free (no in-app purchases listed) | No | No (iPhone only) | Not stated in listing | 4.77 (9,926) | Jul 14, 2026 |
+| My Meds - Personal Meds List | A simple private list for several people | Free (no in-app purchases listed) | No | No (iPhone only) | No account described; data stays on the device | 4.27 (11) | Mar 30, 2026 |
+| Hero: Medication Manager | Families already using the Hero pill dispenser | Requires a Hero membership and smart dispenser | Yes | No (iPhone only) | Needs a Hero membership | 4.70 (10,836) | Nov 10, 2026 |
 
-Ratings, update dates and device support come from Apple's App Store lookup on November 11, 2026. Elderhub is new and has only one rating, so its score says little yet. "Not stated" means the listing does not say.
+Ratings, update dates and device support come from Apple's App Store lookup on November 12, 2026. Elderhub is new and has only one rating, so its score says little yet. "Not stated" means the listing does not say.
 
 ## Elderhub: Family Care Log
 
@@ -53,7 +53,7 @@ Hero is the app for a smart pill dispenser that sorts and dispenses medications.
 
 ## What other medication tracker apps will you see?
 
-One more app shows up when you search for a family medication tracker. I did not install it; the note below comes from its App Store listing as of November 11, 2026.
+One more app shows up when you search for a family medication tracker. I did not install it; the note below comes from its App Store listing as of November 12, 2026.
 
 ### Pill Reminder MyTherapy
 
@@ -92,7 +92,7 @@ No. They are organizational tools. They do not diagnose or treat anything, and i
 
 ### Do I need to make an account?
 
-Elderhub works without one and asks you to sign in with Apple only to share. For Medisafe, ScanMyPills and Max, the listings do not say.
+Elderhub works without one and asks you to sign in with Apple only to share. Medisafe's listing describes managing your whole family from one account. For ScanMyPills and Max, the listings do not say.
 
 ### How do you keep track of multiple medications?
 
