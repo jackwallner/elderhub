@@ -183,7 +183,12 @@ struct PaywallView: View {
                     }
                 }
                 .padding(24)
+                .frame(maxWidth: 600)
+                .frame(maxWidth: .infinity)
             }
+            // The root TabView's iPad column margin reaches sheets too; the
+            // paywall sizes itself instead.
+            .contentMargins(.horizontal, 0, for: .scrollContent)
             // The purchase area is pinned rather than scrolled to, so the
             // decision is always under the reader's thumb and does not move
             // when the plan changes or an error appears.
