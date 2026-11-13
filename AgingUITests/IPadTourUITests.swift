@@ -53,6 +53,7 @@ final class IPadTourUITests: XCTestCase {
     func testCare() { tourRoute("care", "care") }
     func testHub() { tourRoute("hub", "care+mom") }
     func testEmergencyCard() { tourRoute("card", "care+mom.card") }
+    func testMedications() { tourRoute("medications", "care+mom.medications") }
     func testTasks() { tourRoute("tasks", "care+mom.tasks") }
     func testBills() { tourRoute("bills", "care+mom.bills") }
     func testVisits() { tourRoute("visits", "care+mom.visits") }
