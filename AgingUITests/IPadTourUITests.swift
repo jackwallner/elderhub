@@ -61,6 +61,44 @@ final class IPadTourUITests: XCTestCase {
     func testSharing() { tourRoute("sharing", "sharing") }
     func testSettings() { tourRoute("settings", "settings") }
 
+    /// The store frames that need a real walk through the hub: a pushed route
+    /// does not reliably land on these three.
+    func testStoreFrames() {
+        for (name, tile) in [("medications", "Medications."), ("tasks", "Tasks."), ("visits", "Appointments.")] {
+            let app = launch(["-uitest-family", "YES", "-seedDemo", "YES"], landscape: false)
+            app.buttons["Care"].firstMatch.tap()
+            let person = app.staticTexts["Eleanor Wallner"].firstMatch
+            _ = person.waitForExistence(timeout: 20)
+            person.tap()
+            let hide = app.buttons["Hide the whole setup list"]
+            if hide.waitForExistence(timeout: 5) { hide.tap() }
+            if name == "medications" {
+                // The hub's own list: scroll until the section is in view.
+                let add = app.buttons["person-detail.add-medication"]
+                for _ in 0..<6 where !add.exists || !add.isHittable { app.swipeUp() }
+                sleep(2)
+                attach(app, "store-\(name)", false)
+                app.terminate()
+                continue
+            }
+            let target = app.descendants(matching: .any)
+                .matching(NSPredicate(format: "label BEGINSWITH %@ OR label CONTAINS %@", tile, tile)).firstMatch
+            for _ in 0..<4 where !target.exists || !target.isHittable { app.swipeUp() }
+            if !target.exists {
+                let dump = XCTAttachment(string: app.debugDescription)
+                dump.name = "tree-\(name)"
+                dump.lifetime = .keepAlways
+                add(dump)
+                app.terminate()
+                continue
+            }
+            target.tap()
+            sleep(4)
+            attach(app, "store-\(name)", false)
+            app.terminate()
+        }
+    }
+
     func testOnboarding() {
         orientations { landscape in
             let app = launch(["-uitest-reset", "YES", "-uitest-wipe-store", "YES"], landscape: landscape)

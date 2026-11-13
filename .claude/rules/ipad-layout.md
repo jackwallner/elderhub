@@ -33,6 +33,9 @@ never be removed, so every screen has to be checked there before a build.
 - The paywall is page-sized on iPadOS 18+ (`PadPageSheet`), its pinned purchase
   area capped at 600 pt; the default form sheet cut the Yearly card off.
   Other sheets stay centred form sheets.
+- Sheets inherit the root `.contentMargins`, so a sheet that sizes its own
+  content must reset it (`.contentMargins(.horizontal, 0, for: .scrollContent)`,
+  as the paywall does).
 - iPad frames come from `AgingUITests/IPadTourUITests.swift`, because gh-sim
   cannot rotate a simulator: `gh-sim test --scheme AgingUITests --only
   AgingUITests/IPadTourUITests --device "iPad Pro 13-inch (M5)"`, frames in
@@ -42,4 +45,6 @@ never be removed, so every screen has to be checked there before a build.
   `-DuoScreen <route>` routes (an iPad is never split, so a route lands as it
   does folded on a phone). Split View widths are a manual check.
 - The store set is 13-inch iPad (2064x2752), built from those captures with
-  the same headlines as the iPhone set.
+  the same headlines as the iPhone set. `testStoreFrames` walks the hub for the
+  medications (the hub's own list), tasks and appointments frames, because a
+  `-DuoScreen` route does not reliably land there. Shipped in the 1.0.7 train.
