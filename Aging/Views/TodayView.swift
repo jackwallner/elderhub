@@ -1288,6 +1288,10 @@ private struct DoseRow: View {
             }
             .font(.subheadline)
             .foregroundStyle(Color.secondaryText)
+            // One element for name, time and strength, so the time, the dot and
+            // the strength are not three tiny tap targets of their own.
+            .accessibilityElement(children: .combine)
+            .frame(minHeight: 44, alignment: .leading)
 
             if !typeSize.isAccessibilitySize { Spacer() }
 

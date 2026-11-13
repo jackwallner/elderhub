@@ -71,6 +71,14 @@ extension XCTestCase {
         // leaves Continue disabled.
         let control = row.switches.firstMatch
         if control.exists { control.tap() } else { row.tap() }
+        if (row.value as? String) != "1" {
+            // The tap can land before the keyboard has finished resizing the
+            // form; the switch sits at the row's trailing edge.
+            Thread.sleep(forTimeInterval: 1)
+            if (row.value as? String) != "1" {
+                row.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+            }
+        }
         XCTAssertEqual(row.value as? String, "1", "The attestation toggle did not flip")
     }
 

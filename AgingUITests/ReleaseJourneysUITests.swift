@@ -87,6 +87,13 @@ final class ReleaseJourneysUITests: XCTestCase {
         }
 
         let nameField = app.textFields["Medication name"]
+        if !nameField.waitForExistence(timeout: 8) {
+            // A tap that lands while the screen is still settling opens nothing.
+            let retry = isUnfolded(app)
+                ? app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Add a medication")).firstMatch
+                : app.buttons["person-detail.add-medication"]
+            if retry.exists, retry.isHittable { retry.tap() }
+        }
         XCTAssertTrue(nameField.waitForExistence(timeout: 15))
         nameField.tap()
         nameField.typeText(drug)
@@ -204,7 +211,14 @@ final class ReleaseJourneysUITests: XCTestCase {
         if label == "Care", app.hasPaneTabStrip { return }
         let button = app.tabBars.buttons[label].firstMatch
         XCTAssertTrue(button.waitForExistence(timeout: 15))
-        button.tap()
+        // iPad's floating tab bar can miss a tap while the previous tab is
+        // still settling, so confirm the selection and retry on its centre.
+        for attempt in 0..<3 {
+            if attempt == 0 { button.tap() }
+            else { button.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap() }
+            if button.isSelected || button.waitForExistence(timeout: 1) && button.isSelected { return }
+            Thread.sleep(forTimeInterval: 1)
+        }
     }
 
     private func checkpoint(_ name: String, button label: String, in app: XCUIApplication, journey: String = #function) {
