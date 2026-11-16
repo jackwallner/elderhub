@@ -87,7 +87,7 @@ final class ReleaseJourneysUITests: XCTestCase {
         }
 
         let nameField = app.textFields["Medication name"]
-        if !nameField.waitForExistence(timeout: 8) {
+        for _ in 0..<3 where !nameField.waitForExistence(timeout: 8) {
             // A tap that lands while the screen is still settling opens nothing.
             let retry = isUnfolded(app)
                 ? app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Add a medication")).firstMatch
@@ -213,11 +213,13 @@ final class ReleaseJourneysUITests: XCTestCase {
         XCTAssertTrue(button.waitForExistence(timeout: 15))
         // iPad's floating tab bar can miss a tap while the previous tab is
         // still settling, so confirm the selection and retry on its centre.
+        let destination = app.navigationBars[label]
         for attempt in 0..<3 {
             if attempt == 0 { button.tap() }
             else { button.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap() }
-            if button.isSelected || button.waitForExistence(timeout: 1) && button.isSelected { return }
-            Thread.sleep(forTimeInterval: 1)
+            // Selection is not always reported for the floating bar, so the
+            // destination's title is the proof the tab changed.
+            if destination.waitForExistence(timeout: 4) || button.isSelected { return }
         }
     }
 

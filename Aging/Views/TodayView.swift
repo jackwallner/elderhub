@@ -1274,8 +1274,10 @@ private struct DoseRow: View {
                     .fixedSize(horizontal: false, vertical: true)
                 let when = slot.scheduledAt.formatted(date: .omitted, time: .shortened)
                 if typeSize.isAccessibilitySize {
-                    Text(when)
-                    if !slot.strength.isEmpty { Text(slot.strength) }
+                    Text(when).fixedSize(horizontal: false, vertical: true)
+                    if !slot.strength.isEmpty {
+                        Text(slot.strength).fixedSize(horizontal: false, vertical: true)
+                    }
                 } else {
                     HStack(spacing: 6) {
                         Text(when)
@@ -1288,6 +1290,7 @@ private struct DoseRow: View {
             }
             .font(.subheadline)
             .foregroundStyle(Color.secondaryText)
+            .fixedSize(horizontal: false, vertical: true)
             // One element for name, time and strength, so the time, the dot and
             // the strength are not three tiny tap targets of their own.
             .accessibilityElement(children: .combine)
