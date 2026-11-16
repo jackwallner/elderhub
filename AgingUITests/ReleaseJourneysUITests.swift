@@ -71,9 +71,10 @@ final class ReleaseJourneysUITests: XCTestCase {
 
         let drug = "Metformin"
         let strength = "500 mg"
-        if isUnfolded(app) {
-            // The record sits on the Care pane, which the test cannot read;
-            // Today's setup list opens the same medication editor.
+        if opensFromToday(app) {
+            // The record sits on the Care pane (Duo) or behind a tile tap that
+            // iPad drops while the screen settles; Today's setup list opens
+            // the same medication editor.
             let add = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Add a medication")).firstMatch
             scrollUntilHittable(add, in: app)
             XCTAssertTrue(add.waitForExistence(timeout: 15))
@@ -89,7 +90,7 @@ final class ReleaseJourneysUITests: XCTestCase {
         let nameField = app.textFields["Medication name"]
         for _ in 0..<3 where !nameField.waitForExistence(timeout: 8) {
             // A tap that lands while the screen is still settling opens nothing.
-            let retry = isUnfolded(app)
+            let retry = opensFromToday(app)
                 ? app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Add a medication")).firstMatch
                 : app.buttons["person-detail.add-medication"]
             if retry.exists, retry.isHittable { retry.tap() }
@@ -104,7 +105,7 @@ final class ReleaseJourneysUITests: XCTestCase {
         QA.checkpoint(app, "core-med-editor")
         app.buttons["medication-editor.save"].tap()
 
-        if !isUnfolded(app) {
+        if !opensFromToday(app) {
             let listed = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", drug)).firstMatch
             XCTAssertTrue(listed.waitForExistence(timeout: 15), "the saved medication is not on the record")
             QA.checkpoint(app, "core-med-listed")
@@ -113,7 +114,11 @@ final class ReleaseJourneysUITests: XCTestCase {
         let take = takeButton(drug, in: app)
         returnToToday(until: take, in: app)
         XCTAssertTrue(take.waitForExistence(timeout: 15), "Today shows no dose to take for \(drug)")
+        // A row stopped under the navigation bar reads as clipped, so the
+        // screen is read from the top and the row is brought back to hand.
+        scrollToTop(app)
         QA.checkpoint(app, "core-dose-due")
+        scrollUntilHittable(take, in: app)
         take.tap()
 
         let status = doseStatus(drug, in: app)
@@ -133,6 +138,7 @@ final class ReleaseJourneysUITests: XCTestCase {
         XCTAssertTrue(after.waitForExistence(timeout: 15), "the taken dose is gone after relaunch")
         XCTAssertTrue(after.label.hasSuffix("Taken"), "dose status after relaunch was \(after.label)")
         XCTAssertFalse(takeButton(drug, in: app).exists)
+        scrollToTop(app)
         QA.checkpoint(app, "core-dose-kept")
     }
 
@@ -156,6 +162,15 @@ final class ReleaseJourneysUITests: XCTestCase {
     /// The Duo's tab strip only exists when the two panes are showing.
     private func isUnfolded(_ app: XCUIApplication) -> Bool {
         app.hasPaneTabStrip
+    }
+
+    private func scrollToTop(_ app: XCUIApplication) {
+        for _ in 0..<8 { paneSwipe(app, .down) }
+    }
+
+    /// The Duo and the iPad add the medication from Today's setup row.
+    private func opensFromToday(_ app: XCUIApplication) -> Bool {
+        isUnfolded(app) || UIDevice.current.userInterfaceIdiom == .pad
     }
 
     private func takeButton(_ drug: String, in app: XCUIApplication) -> XCUIElement {
@@ -212,14 +227,15 @@ final class ReleaseJourneysUITests: XCTestCase {
         let button = app.tabBars.buttons[label].firstMatch
         XCTAssertTrue(button.waitForExistence(timeout: 15))
         // iPad's floating tab bar can miss a tap while the previous tab is
-        // still settling, so confirm the selection and retry on its centre.
+        // still settling, and reports selection before the screen changes, so
+        // the destination's title on screen is the only proof.
         let destination = app.navigationBars[label]
-        for attempt in 0..<5 {
-            if attempt == 0 { button.tap() }
+        let shown = NSPredicate(format: "exists == true AND isHittable == true")
+        for attempt in 0..<6 {
+            if attempt % 2 == 0 { button.tap() }
             else { button.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap() }
-            // Selection is not always reported for the floating bar, so the
-            // destination's title is the proof the tab changed.
-            if destination.waitForExistence(timeout: 5) || button.isSelected { return }
+            let proof = XCTNSPredicateExpectation(predicate: shown, object: destination)
+            if XCTWaiter().wait(for: [proof], timeout: 4) == .completed { return }
         }
     }
 
