@@ -75,7 +75,7 @@ final class ReleaseJourneysUITests: XCTestCase {
             // The record sits on the Care pane (Duo) or behind a tile tap that
             // iPad drops while the screen settles; Today's setup list opens
             // the same medication editor.
-            let add = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Add a medication")).firstMatch
+            let add = addMedicationRow(in: app)
             scrollUntilHittable(add, in: app)
             XCTAssertTrue(add.waitForExistence(timeout: 15))
             add.tap()
@@ -92,7 +92,7 @@ final class ReleaseJourneysUITests: XCTestCase {
             // A tap that lands while the screen is still settling opens nothing,
             // and the row's element tap can miss where its centre point does not.
             let retry = opensFromToday(app)
-                ? app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Add a medication")).firstMatch
+                ? addMedicationRow(in: app)
                 : app.buttons["person-detail.add-medication"]
             guard retry.exists else { continue }
             if attempt % 2 == 0, retry.isHittable { retry.tap() }
@@ -176,6 +176,14 @@ final class ReleaseJourneysUITests: XCTestCase {
         isUnfolded(app) || UIDevice.current.userInterfaceIdiom == .pad
     }
 
+    /// The setup row itself. The card around it is a button whose label also
+    /// starts with the row's title, and tapping that taps the card's centre.
+    private func addMedicationRow(in app: XCUIApplication) -> XCUIElement {
+        app.buttons.matching(NSPredicate(
+            format: "label BEGINSWITH %@ AND identifier != %@", "Add a medication", "today.setup-card"
+        )).firstMatch
+    }
+
     private func takeButton(_ drug: String, in app: XCUIApplication) -> XCUIElement {
         app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Mark \(drug) at")).firstMatch
     }
@@ -236,7 +244,8 @@ final class ReleaseJourneysUITests: XCTestCase {
         // still settling, and reports selection before the screen changes, so
         // the destination's title on screen is the only proof.
         let destination = app.navigationBars[label]
-        let shown = NSPredicate(format: "exists == true AND isHittable == true")
+        // `exists` alone: the large title on iPad is never reported hittable.
+        let shown = NSPredicate(format: "exists == true")
         for attempt in 0..<6 {
             if attempt % 2 == 0 { button.tap() }
             else { button.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap() }
