@@ -88,13 +88,15 @@ final class ReleaseJourneysUITests: XCTestCase {
         }
 
         let nameField = app.textFields["Medication name"]
-        for _ in 0..<3 where !nameField.waitForExistence(timeout: 8) {
-            // A tap that lands while the screen is still settling opens nothing.
+        for attempt in 0..<5 where !nameField.waitForExistence(timeout: 8) {
+            // A tap that lands while the screen is still settling opens nothing,
+            // and the row's element tap can miss where its centre point does not.
             let retry = opensFromToday(app)
                 ? app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Add a medication")).firstMatch
                 : app.buttons["person-detail.add-medication"]
-            if retry.exists, retry.isHittable { retry.tap() }
-            else if retry.exists { retry.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap() }
+            guard retry.exists else { continue }
+            if attempt % 2 == 0, retry.isHittable { retry.tap() }
+            else { retry.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.5)).tap() }
         }
         XCTAssertTrue(nameField.waitForExistence(timeout: 15))
         nameField.tap()
@@ -225,7 +227,10 @@ final class ReleaseJourneysUITests: XCTestCase {
             return
         }
         if label == "Care", app.hasPaneTabStrip { return }
-        let button = app.tabBars.buttons[label].firstMatch
+        // iPad's floating tab bar is not always exposed as a tab bar, so its
+        // buttons are found among the plain buttons when the query comes up empty.
+        var button = app.tabBars.buttons[label].firstMatch
+        if !button.waitForExistence(timeout: 5) { button = app.buttons[label].firstMatch }
         XCTAssertTrue(button.waitForExistence(timeout: 15))
         // iPad's floating tab bar can miss a tap while the previous tab is
         // still settling, and reports selection before the screen changes, so
