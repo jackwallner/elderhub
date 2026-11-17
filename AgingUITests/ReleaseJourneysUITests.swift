@@ -245,7 +245,8 @@ final class ReleaseJourneysUITests: XCTestCase {
     private func tapPadTab(_ label: String, in app: XCUIApplication) {
         let buttons = app.buttons.matching(NSPredicate(format: "label == %@", label))
         let bar: () -> XCUIElement? = {
-            buttons.allElementsBoundByIndex.first { $0.exists && $0.frame.minY < 160 && $0.frame.width > 0 }
+            // A wide hidden twin of some tabs sits first; only the hittable one is the item.
+            buttons.allElementsBoundByIndex.first { $0.exists && $0.isHittable && $0.frame.minY < 160 && $0.frame.width > 0 }
         }
         let deadline = Date().addingTimeInterval(20)
         while bar() == nil, Date() < deadline { _ = XCTWaiter().wait(for: [XCTestExpectation()], timeout: 0.5) }
