@@ -231,7 +231,7 @@ struct PeopleView: View {
                 }
             }
         }
-        .sheet(isPresented: $isAddingPerson) {
+        .padSheet(isPresented: $isAddingPerson) {
             PersonEditorSheet(requiresAttestation: groups.activeGroupID != nil) { draft in
                 let person = Person(
                     name: draft.name,
@@ -246,7 +246,7 @@ struct PeopleView: View {
                 person.recordLocalChange(in: context)
             }
         }
-        .sheet(isPresented: $showPaywall) {
+        .padSheet(isPresented: $showPaywall) {
             PaywallView()
         }
         .confirmationDialog(

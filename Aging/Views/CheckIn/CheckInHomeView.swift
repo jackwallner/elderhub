@@ -206,7 +206,7 @@ struct CheckInHomeView: View {
                     EmergencyCardView(person: person)
                 }
             }
-            .sheet(isPresented: $showTransparency) {
+            .padSheet(isPresented: $showTransparency) {
                 NavigationStack {
                     TransparencyView(isOnboarding: false)
                 }
@@ -216,7 +216,7 @@ struct CheckInHomeView: View {
             // presenting goes with it: accepting the code left the keypad on
             // screen over a root that had already changed underneath it, with
             // no way out. Verify, dismiss, then switch.
-            .sheet(isPresented: $isUnlocking, onDismiss: {
+            .padSheet(isPresented: $isUnlocking, onDismiss: {
                 guard let acceptedPIN else { return }
                 self.acceptedPIN = nil
                 deviceMode.returnToCaregiver(pin: acceptedPIN)

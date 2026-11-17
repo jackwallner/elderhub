@@ -95,10 +95,10 @@ struct BillsView: View {
                 .accessibilityIdentifier("bills.add")
             }
         }
-        .sheet(isPresented: $isAddingBill) {
+        .padSheet(isPresented: $isAddingBill) {
             BillEditorSheet(person: person, bill: nil)
         }
-        .sheet(item: $editingBill) { bill in
+        .padSheet(item: $editingBill) { bill in
             BillEditorSheet(person: person, bill: bill)
         }
         .recordDeletionConfirmation($pendingDeletion)

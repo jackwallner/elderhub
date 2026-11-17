@@ -54,10 +54,10 @@ struct ProvidersView: View {
                 }
             }
         }
-        .sheet(isPresented: $isAddingProvider) {
+        .padSheet(isPresented: $isAddingProvider) {
             ProviderEditorSheet(person: person, provider: nil)
         }
-        .sheet(item: $editingProvider) { provider in
+        .padSheet(item: $editingProvider) { provider in
             ProviderEditorSheet(person: person, provider: provider)
         }
         .recordDeletionConfirmation($pendingDeletion)
@@ -252,7 +252,7 @@ struct ProviderPickerField: View {
                     .foregroundStyle(Color.secondaryText)
             }
         }
-        .sheet(isPresented: $isPresentingPicker) {
+        .padSheet(isPresented: $isPresentingPicker) {
             ProviderPickerSheet(
                 person: person, isPharmacy: isPharmacy, title: title, selection: $selection
             )
@@ -337,7 +337,7 @@ private struct ProviderPickerSheet: View {
                     Button("Done") { dismiss() }
                 }
             }
-            .sheet(isPresented: $isAddingProvider) {
+            .padSheet(isPresented: $isAddingProvider) {
                 ProviderEditorSheet(
                     person: person, provider: nil, defaultIsPharmacy: isPharmacy
                 ) { newID in

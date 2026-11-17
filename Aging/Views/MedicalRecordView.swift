@@ -63,7 +63,7 @@ struct MedicalRecordView: View {
         .navigationDestination(item: $pushed) { feature in
             destination(for: feature)
         }
-        .sheet(isPresented: $isEditingDetails) {
+        .padSheet(isPresented: $isEditingDetails) {
             PersonDetailsEditorSheet(person: person)
         }
     }

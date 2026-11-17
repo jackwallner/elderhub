@@ -78,10 +78,10 @@ struct CareNotesView: View {
                 .accessibilityIdentifier("notes.add")
             }
         }
-        .sheet(isPresented: $isAddingNote) {
+        .padSheet(isPresented: $isAddingNote) {
             CareNoteEditorSheet(person: person, note: nil)
         }
-        .sheet(item: $editingNote) { note in
+        .padSheet(item: $editingNote) { note in
             CareNoteEditorSheet(person: person, note: note)
         }
         .recordDeletionConfirmation($pendingDeletion)

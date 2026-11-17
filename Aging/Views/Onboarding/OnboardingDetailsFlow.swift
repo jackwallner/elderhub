@@ -75,19 +75,19 @@ struct OnboardingDetailsFlow: View {
 
             footer
         }
-        .sheet(isPresented: $isAddingContact) {
+        .padSheet(isPresented: $isAddingContact) {
             EmergencyContactEditorSheet(person: person, contact: nil)
         }
-        .sheet(isPresented: $isAddingMedication) {
+        .padSheet(isPresented: $isAddingMedication) {
             MedicationEditorSheet(person: person)
         }
-        .sheet(isPresented: $isAddingProvider) {
+        .padSheet(isPresented: $isAddingProvider) {
             ProviderEditorSheet(person: person, provider: nil)
         }
-        .sheet(isPresented: $isAddingPharmacy) {
+        .padSheet(isPresented: $isAddingPharmacy) {
             ProviderEditorSheet(person: person, provider: nil, defaultIsPharmacy: true)
         }
-        .sheet(isPresented: $isInviting) {
+        .padSheet(isPresented: $isInviting) {
             InviteSheet(people: [person])
         }
         .notificationsBlockedAlert(isPresented: $showNotificationsBlocked)

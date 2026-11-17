@@ -93,7 +93,7 @@ struct EmergencyCardView: View {
                 }
             }
         }
-        .sheet(isPresented: $isEditingDetails) {
+        .padSheet(isPresented: $isEditingDetails) {
             PersonDetailsEditorSheet(person: person)
         }
     }

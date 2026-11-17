@@ -76,10 +76,10 @@ struct CareEventsView: View {
                 }
             }
         }
-        .sheet(isPresented: $isAddingEvent) {
+        .padSheet(isPresented: $isAddingEvent) {
             CareEventEditorSheet(person: person, event: nil)
         }
-        .sheet(item: $editingEvent) { event in
+        .padSheet(item: $editingEvent) { event in
             CareEventEditorSheet(person: person, event: event)
         }
         .recordDeletionConfirmation($pendingDeletion)

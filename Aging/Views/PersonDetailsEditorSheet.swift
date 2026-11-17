@@ -256,10 +256,10 @@ struct EmergencyContactsView: View {
                 }
             }
         }
-        .sheet(isPresented: $isAddingContact) {
+        .padSheet(isPresented: $isAddingContact) {
             EmergencyContactEditorSheet(person: person, contact: nil)
         }
-        .sheet(item: $editingContact) { contact in
+        .padSheet(item: $editingContact) { contact in
             EmergencyContactEditorSheet(person: person, contact: contact)
         }
         .confirmationDialog(

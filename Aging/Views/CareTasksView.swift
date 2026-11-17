@@ -155,10 +155,10 @@ struct CareTasksView: View {
                 .accessibilityIdentifier("tasks.add")
             }
         }
-        .sheet(isPresented: $isAddingTask) {
+        .padSheet(isPresented: $isAddingTask) {
             CareTaskEditorSheet(person: person, task: nil)
         }
-        .sheet(item: $editingTask) { task in
+        .padSheet(item: $editingTask) { task in
             CareTaskEditorSheet(person: person, task: task)
         }
         .recordDeletionConfirmation($pendingDeletion)

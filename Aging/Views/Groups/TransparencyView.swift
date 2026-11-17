@@ -146,7 +146,7 @@ struct TransparencyView: View {
         .navigationTitle(isOnboarding ? "" : "Who Can See Me")
         .navigationBarTitleDisplayMode(.inline)
         .task { await groups.loadMembers() }
-        .sheet(isPresented: $isLeaving) {
+        .padSheet(isPresented: $isLeaving) {
             LeaveGroupSheet { dismiss() }
         }
     }

@@ -190,13 +190,13 @@ struct PersonDetailView: View {
         .navigationDestination(isPresented: pushesRoute ? route.showsEmergencyCard : .constant(false)) {
             EmergencyCardView(person: person)
         }
-        .sheet(isPresented: $isAddingMedication) {
+        .padSheet(isPresented: $isAddingMedication) {
             MedicationEditorSheet(person: person)
         }
-        .sheet(item: $editingMedication) { medication in
+        .padSheet(item: $editingMedication) { medication in
             MedicationEditorSheet(person: person, medication: medication)
         }
-        .sheet(isPresented: $isEditingDetails) {
+        .padSheet(isPresented: $isEditingDetails) {
             PersonDetailsEditorSheet(person: person)
         }
         .recordDeletionConfirmation($pendingDeletion)

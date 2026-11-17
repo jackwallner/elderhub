@@ -167,13 +167,13 @@ struct SettingsView: View {
             } message: {
                 Text(signOutError ?? "")
             }
-            .sheet(isPresented: $showPaywall) {
+            .padSheet(isPresented: $showPaywall) {
                 PaywallView()
             }
-            .sheet(isPresented: $isDeletingAccount) {
+            .padSheet(isPresented: $isDeletingAccount) {
                 DeleteAccountSheet()
             }
-            .sheet(item: $setupPerson) { person in
+            .padSheet(item: $setupPerson) { person in
                 NavigationStack {
                     OnboardingDetailsFlow(person: person) {
                         // Waving a row away and then re-running setup is a
@@ -191,7 +191,7 @@ struct SettingsView: View {
                     }
                 }
             }
-            .sheet(isPresented: $isSettingPIN) {
+            .padSheet(isPresented: $isSettingPIN) {
                 SetCaregiverPINSheet()
             }
             .confirmationDialog(

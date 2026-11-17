@@ -75,10 +75,10 @@ struct VisitsView: View {
                 .accessibilityIdentifier("visits.add")
             }
         }
-        .sheet(item: $newVisitDate) { date in
+        .padSheet(item: $newVisitDate) { date in
             VisitEditorSheet(person: person, initialDate: date.value)
         }
-        .sheet(item: $editingVisit) { visit in
+        .padSheet(item: $editingVisit) { visit in
             VisitEditorSheet(person: person, visit: visit)
         }
         .recordDeletionConfirmation($pendingDeletion)

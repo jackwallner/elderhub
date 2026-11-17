@@ -149,12 +149,12 @@ struct TodayView: View {
                     }
                 }
             }
-            .sheet(isPresented: $isEditingDetails) {
+            .padSheet(isPresented: $isEditingDetails) {
                 if let person = selectedPerson {
                     PersonDetailsEditorSheet(person: person)
                 }
             }
-            .sheet(isPresented: $isAddingMedication) {
+            .padSheet(isPresented: $isAddingMedication) {
                 if let person = selectedPerson {
                     MedicationEditorSheet(person: person)
                 }

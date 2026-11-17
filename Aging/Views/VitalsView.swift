@@ -64,10 +64,10 @@ struct VitalsView: View {
                 }
             }
         }
-        .sheet(isPresented: $isAddingReading) {
+        .padSheet(isPresented: $isAddingReading) {
             VitalEditorSheet(person: person, kind: selectedKind)
         }
-        .sheet(item: $editingReading) { reading in
+        .padSheet(item: $editingReading) { reading in
             VitalEditorSheet(person: person, kind: reading.kind, reading: reading)
         }
         .recordDeletionConfirmation($pendingDeletion)

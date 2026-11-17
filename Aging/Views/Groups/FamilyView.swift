@@ -83,14 +83,14 @@ struct FamilyView: View {
             .onChange(of: navigator.wantsJoin) { _, _ in
                 openJoinIfRequested()
             }
-            .sheet(isPresented: $isInviting) {
+            .padSheet(isPresented: $isInviting) {
                 // Only rows the circle actually holds. A subject invite links
                 // an account to a recipient row on the server, so offering a
                 // local-only person here produced an invitation that could
                 // never resolve, and offered it as if the record were shared.
                 InviteSheet(people: circlePeople)
             }
-            .sheet(isPresented: $isJoining) {
+            .padSheet(isPresented: $isJoining) {
                 NavigationStack {
                     JoinGroupView(
                         isOnboarding: false,
@@ -104,12 +104,12 @@ struct FamilyView: View {
                     }
                 }
             }
-            .sheet(isPresented: $isConfirmingSharing) {
+            .padSheet(isPresented: $isConfirmingSharing) {
                 SharingConsentSheet(people: people) {
                     attestPeopleAndCreateGroup()
                 }
             }
-            .sheet(item: $memberUnderEdit) { member in
+            .padSheet(item: $memberUnderEdit) { member in
                 MemberSheet(member: member, people: circlePeople)
             }
             .alert("Group name", isPresented: $isRenaming) {
@@ -695,7 +695,7 @@ private struct LeaveOrDeleteView: View {
         }
         .navigationTitle("Leave")
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $isLeaving) {
+        .padSheet(isPresented: $isLeaving) {
             LeaveGroupSheet { dismiss() }
         }
         .confirmationDialog("Delete this group?", isPresented: $isDeleting, titleVisibility: .visible) {
