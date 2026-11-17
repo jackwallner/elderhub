@@ -12,7 +12,7 @@ extension XCUIApplication {
     /// (invisible and accessibility hidden, yet found by queries), so it counts
     /// only when the system tab bar is not there.
     var hasPaneTabStrip: Bool {
-        tabBars.count == 0 && buttons["pane-tab.today"].exists
+        UIDevice.current.userInterfaceIdiom != .pad && tabBars.count == 0 && buttons["pane-tab.today"].exists
     }
 }
 

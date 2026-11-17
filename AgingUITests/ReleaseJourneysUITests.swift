@@ -94,6 +94,7 @@ final class ReleaseJourneysUITests: XCTestCase {
                 ? app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Add a medication")).firstMatch
                 : app.buttons["person-detail.add-medication"]
             if retry.exists, retry.isHittable { retry.tap() }
+            else if retry.exists { retry.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap() }
         }
         XCTAssertTrue(nameField.waitForExistence(timeout: 15))
         nameField.tap()
