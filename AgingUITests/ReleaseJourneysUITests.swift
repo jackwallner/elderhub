@@ -176,12 +176,10 @@ final class ReleaseJourneysUITests: XCTestCase {
         isUnfolded(app) || UIDevice.current.userInterfaceIdiom == .pad
     }
 
-    /// The setup row itself. The card around it is a button whose label also
-    /// starts with the row's title, and tapping that taps the card's centre.
+    /// The setup row. Its card's identifier is inherited by the rows inside it,
+    /// so the row cannot be told apart by identifier; the first match is the row.
     private func addMedicationRow(in app: XCUIApplication) -> XCUIElement {
-        app.buttons.matching(NSPredicate(
-            format: "label BEGINSWITH %@ AND identifier != %@", "Add a medication", "today.setup-card"
-        )).firstMatch
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Add a medication")).firstMatch
     }
 
     private func takeButton(_ drug: String, in app: XCUIApplication) -> XCUIElement {
@@ -235,22 +233,33 @@ final class ReleaseJourneysUITests: XCTestCase {
             return
         }
         if label == "Care", app.hasPaneTabStrip { return }
-        // iPad's floating tab bar is not always exposed as a tab bar, so its
-        // buttons are found among the plain buttons when the query comes up empty.
-        var button = app.tabBars.buttons[label].firstMatch
-        if !button.waitForExistence(timeout: 5) { button = app.buttons[label].firstMatch }
+        if UIDevice.current.userInterfaceIdiom == .pad { tapPadTab(label, in: app); return }
+        let button = app.tabBars.buttons[label].firstMatch
         XCTAssertTrue(button.waitForExistence(timeout: 15))
-        // iPad's floating tab bar can miss a tap while the previous tab is
-        // still settling, and reports selection before the screen changes, so
-        // the destination's title on screen is the only proof.
-        let destination = app.navigationBars[label]
-        // `exists` alone: the large title on iPad is never reported hittable.
-        let shown = NSPredicate(format: "exists == true")
+        button.tap()
+    }
+
+    /// iPad's floating tab bar sits in the top band and is not always exposed
+    /// as a tab bar. Every tab's navigation bar can exist while another tab
+    /// shows, so the title proves nothing; the tab's own selected state does.
+    private func tapPadTab(_ label: String, in app: XCUIApplication) {
+        let buttons = app.buttons.matching(NSPredicate(format: "label == %@", label))
+        let bar: () -> XCUIElement? = {
+            buttons.allElementsBoundByIndex.first { $0.exists && $0.frame.minY < 160 && $0.frame.width > 0 }
+        }
+        let deadline = Date().addingTimeInterval(20)
+        while bar() == nil, Date() < deadline { _ = XCTWaiter().wait(for: [XCTestExpectation()], timeout: 0.5) }
+        XCTAssertNotNil(bar(), "tab \(label) not found")
         for attempt in 0..<6 {
-            if attempt % 2 == 0 { button.tap() }
-            else { button.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap() }
-            let proof = XCTNSPredicateExpectation(predicate: shown, object: destination)
-            if XCTWaiter().wait(for: [proof], timeout: 4) == .completed { return }
+            guard let tab = bar() else { break }
+            if tab.isSelected { return }
+            if attempt % 2 == 0 { tab.tap() }
+            else { tab.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap() }
+            let settled = Date().addingTimeInterval(4)
+            while Date() < settled {
+                if bar()?.isSelected == true { return }
+                _ = XCTWaiter().wait(for: [XCTestExpectation()], timeout: 0.25)
+            }
         }
     }
 
