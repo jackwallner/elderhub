@@ -14,8 +14,7 @@ final class ReleaseJourneysUITests: XCTestCase {
         let name = app.textFields["Their name"]
         XCTAssertTrue(name.waitForExistence(timeout: 15))
         QA.checkpoint(app, "name")
-        name.tap()
-        name.typeText("Eleanor Wallner")
+        QA.type("Eleanor Wallner", into: name, in: app)
         attest(app)
         tap("Continue", in: app)
         checkpoint("sign-in", button: "Not now", in: app)
@@ -99,12 +98,10 @@ final class ReleaseJourneysUITests: XCTestCase {
             else { retry.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.5)).tap() }
         }
         XCTAssertTrue(nameField.waitForExistence(timeout: 15))
-        nameField.tap()
-        nameField.typeText(drug)
+        QA.type(drug, into: nameField, in: app)
         let strengthField = app.textFields["Strength (10 mg)"]
         XCTAssertTrue(strengthField.waitForExistence(timeout: 5))
-        strengthField.tap()
-        strengthField.typeText(strength)
+        QA.type(strength, into: strengthField, in: app)
         QA.checkpoint(app, "core-med-editor")
         app.buttons["medication-editor.save"].tap()
 
@@ -233,35 +230,7 @@ final class ReleaseJourneysUITests: XCTestCase {
             return
         }
         if label == "Care", app.hasPaneTabStrip { return }
-        if UIDevice.current.userInterfaceIdiom == .pad { tapPadTab(label, in: app); return }
-        let button = app.tabBars.buttons[label].firstMatch
-        XCTAssertTrue(button.waitForExistence(timeout: 15))
-        button.tap()
-    }
-
-    /// iPad's floating tab bar sits in the top band and is not always exposed
-    /// as a tab bar. Every tab's navigation bar can exist while another tab
-    /// shows, so the title proves nothing; the tab's own selected state does.
-    private func tapPadTab(_ label: String, in app: XCUIApplication) {
-        let buttons = app.buttons.matching(NSPredicate(format: "label == %@", label))
-        let bar: () -> XCUIElement? = {
-            // A wide hidden twin of some tabs sits first; only the hittable one is the item.
-            buttons.allElementsBoundByIndex.first { $0.exists && $0.isHittable && $0.frame.minY < 160 && $0.frame.width > 0 }
-        }
-        let deadline = Date().addingTimeInterval(20)
-        while bar() == nil, Date() < deadline { _ = XCTWaiter().wait(for: [XCTestExpectation()], timeout: 0.5) }
-        XCTAssertNotNil(bar(), "tab \(label) not found")
-        for attempt in 0..<6 {
-            guard let tab = bar() else { break }
-            if tab.isSelected { return }
-            if attempt % 2 == 0 { tab.tap() }
-            else { tab.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap() }
-            let settled = Date().addingTimeInterval(4)
-            while Date() < settled {
-                if bar()?.isSelected == true { return }
-                _ = XCTWaiter().wait(for: [XCTestExpectation()], timeout: 0.25)
-            }
-        }
+        QA.openTab(app, label, timeout: 15)
     }
 
     private func checkpoint(_ name: String, button label: String, in app: XCUIApplication, journey: String = #function) {

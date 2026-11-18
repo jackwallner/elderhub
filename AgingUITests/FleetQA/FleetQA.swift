@@ -273,6 +273,8 @@ struct Leaf {
     let identifier: String
     let frame: CGRect
     let inScroll: Bool
+    /// Inside a system tab bar, toolbar or navigation bar, which floats over scrolling content by design.
+    var inBar = false
 
     var name: String { identifier.isEmpty ? label : identifier }
 }
@@ -281,6 +283,7 @@ struct Leaf {
 enum Layout {
     static let textual: Set<XCUIElement.ElementType> = [.staticText, .button, .textField, .secureTextField, .switch, .link]
     static let scrolling: Set<XCUIElement.ElementType> = [.scrollView, .collectionView, .table, .webView]
+    static let bars: Set<XCUIElement.ElementType> = [.tabBar, .toolbar, .navigationBar]
 
     struct Result {
         var final: [Leaf]
@@ -298,8 +301,9 @@ enum Layout {
         let window = root.children.first { $0.elementType == .window }?.frame ?? root.frame
         var seen: [String: Int] = [:]
         var out: [Leaf] = []
-        func walk(_ node: XCUIElementSnapshot, inScroll: Bool) {
+        func walk(_ node: XCUIElementSnapshot, inScroll: Bool, inBar: Bool = false) {
             let scroll = inScroll || scrolling.contains(node.elementType)
+            let bar = inBar || bars.contains(node.elementType)
             if node.children.isEmpty || node.elementType == .button || node.elementType == .switch {
                 let frame = node.frame
                 let label = node.label
@@ -309,11 +313,11 @@ enum Layout {
                     let n = seen[base, default: 0]
                     seen[base] = n + 1
                     out.append(Leaf(key: "\(base)#\(n)", type: node.elementType, label: label,
-                                    identifier: node.identifier, frame: frame, inScroll: scroll))
+                                    identifier: node.identifier, frame: frame, inScroll: scroll, inBar: bar))
                 }
                 return
             }
-            for child in node.children { walk(child, inScroll: scroll) }
+            for child in node.children { walk(child, inScroll: scroll, inBar: bar) }
         }
         walk(root, inScroll: false)
         return (out, window.width, window.height)
@@ -444,7 +448,8 @@ enum Layout {
     /// Two texts, or two buttons, drawn over each other.
     static func overlaps(_ app: XCUIApplication, _ leaves: [Leaf], _ rendered: [Render.Line], context: QA.Context) {
         let candidates = leaves.filter { $0.type == .staticText || $0.type == .button }
-        var reported = Set<String>()
+        var seen = Set<String>()
+        var found: [(a: Leaf, b: Leaf, region: CGRect, share: CGFloat, pair: String)] = []
         // One live lookup per element: a leaf that overlaps many others is asked about once, not once per pair.
         var shown: [String: Bool] = [:]
         func isShown(_ leaf: Leaf) -> Bool {
@@ -460,34 +465,54 @@ enum Layout {
                 if a.frame.contains(b.frame) || b.frame.contains(a.frame) { continue }
                 let smaller = min(a.frame.width * a.frame.height, b.frame.width * b.frame.height)
                 guard overlap.width * overlap.height > 0.2 * smaller else { continue }
+                // A system tab bar, toolbar or navigation bar floats over the list under it by
+                // design, and its glass lets the rows show through (Keyring's garage cards under
+                // its tab bar were most of the fleet's overlap findings, Nov 2026).
+                if a.inBar != b.inBar, (a.inBar ? b : a).inScroll { continue }
                 let pair = [a.name, b.name].sorted().joined(separator: " / ")
-                guard !reported.contains(pair) else { continue }
-                // TabView keeps every tab in the accessibility tree at full size;
-                // only a pair the user can actually see is an overlap.
-                // Both must actually be drawn there (TabView keeps hidden tabs in the
-                // tree and even reports them hittable), and the text must read badly:
-                // two labels whose frames touch but that both read cleanly are padding.
-                // Text stacked on text often reads as one garbled line ("BOSSTVADELPARAPICK"),
-                // so neither label is found: that counts too, when something is drawn in
-                // the overlap that no cleanly read element accounts for.
-                let readA = Render.presence(a, rendered), readB = Render.presence(b, rendered)
-                // Partly drawn counts only the words each label does not share with the
-                // other, or a line covered by a card reads as drawn through the card's own words.
-                let ownA = Render.presence(a, rendered, excluding: b.label)
-                let ownB = Render.presence(b, rendered, excluding: a.label)
-                let partly = ownA >= 0.3 && ownB >= 0.3 && min(readA, readB) < 0.9
-                // Stacked text that reads as one garbled line still carries letters of both labels; text
-                // of a hidden tab under an unrelated visible line does not, and asking the app whether
-                // each of those is shown costs seconds per element.
-                let garbled = max(readA, readB) < 0.9 && Render.unexplained(in: overlap, rendered, leaves: leaves)
-                    && Render.related(overlap, rendered, a, b)
-                guard partly || garbled, isShown(a), isShown(b) else { continue }
-                reported.insert(pair)
-                QA.record(context, "overlap", "P1", pair,
-                          String(format: "%@ \"%@\" overlaps \"%@\" by %.0f%%", typeName(a.type), a.name, b.name,
-                                 100 * overlap.width * overlap.height / smaller))
+                guard !seen.contains(pair), drawnOver(a, b, overlap, rendered, leaves), isShown(a), isShown(b) else { continue }
+                seen.insert(pair)
+                found.append((a, b, overlap, overlap.width * overlap.height / smaller, pair))
             }
         }
+        guard !found.isEmpty else { return }
+        // A frame caught mid-transition, or glass still blending what scrolled under it, reads
+        // differently a moment later. Only an overlap that a second capture still shows is drawn.
+        usleep(700_000)
+        let again = Render.read(QA.capture(app))
+        for item in found where drawnOver(item.a, item.b, item.region, again, leaves) {
+            QA.record(context, "overlap", "P1", item.pair,
+                      String(format: "%@ \"%@\" overlaps \"%@\" by %.0f%%", typeName(item.a.type), item.a.name,
+                             item.b.name, 100 * item.share))
+        }
+    }
+
+    /// Whether the screenshot shows two overlapping elements actually drawn over each other.
+    static func drawnOver(_ a: Leaf, _ b: Leaf, _ overlap: CGRect, _ rendered: [Render.Line], _ leaves: [Leaf]) -> Bool {
+        // Scrolling content passing under a pinned element (a bottom button bar, a header) is
+        // hidden there when the pinned one reads cleanly and none of the content's own words are
+        // drawn inside the overlap: the list goes on under the bar, the user scrolls to it.
+        // Content that shows through an unbacked pinned label still has its words there.
+        if a.inScroll != b.inScroll {
+            let (content, pinned) = a.inScroll ? (a, b) : (b, a)
+            if Render.presence(pinned, rendered) >= 0.9,
+               !Render.drawnInside(overlap, rendered, content, excluding: pinned.label) { return false }
+        }
+        // Both must actually be drawn there (TabView keeps hidden tabs in the tree and even
+        // reports them hittable), and the text must read badly: two labels whose frames touch
+        // but that both read cleanly are padding. Text stacked on text often reads as one
+        // garbled line ("BOSSTVADELPARAPICK"), so neither label is found: that counts too,
+        // when something is drawn in the overlap that no cleanly read element accounts for.
+        let readA = Render.presence(a, rendered), readB = Render.presence(b, rendered)
+        // Partly drawn counts only the words each label does not share with the
+        // other, or a line covered by a card reads as drawn through the card's own words.
+        let ownA = Render.presence(a, rendered, excluding: b.label)
+        let ownB = Render.presence(b, rendered, excluding: a.label)
+        if ownA >= 0.3 && ownB >= 0.3 && min(readA, readB) < 0.9 { return true }
+        // Stacked text that reads as one garbled line still carries letters of both labels; text
+        // of a hidden tab under an unrelated visible line does not.
+        return max(readA, readB) < 0.9 && Render.unexplained(in: overlap, rendered, leaves: leaves)
+            && Render.related(overlap, rendered, a, b)
     }
 
     /// Resolves a snapshot leaf back to a live element and asks whether a tap
@@ -787,6 +812,19 @@ enum Render {
         return Double(wanted.filter { drawn.contains($0) }.count) / Double(wanted.count)
     }
 
+    /// True when any of the element's own words (not shared with `other`) is drawn with its
+    /// middle inside `region`. A label with no words of its own cannot be told apart, so it counts.
+    static func drawnInside(_ region: CGRect, _ lines: [Line], _ leaf: Leaf, excluding other: String) -> Bool {
+        let shared = Set(words(other))
+        let wanted = Set(words(leaf.label)).subtracting(shared)
+        guard !wanted.isEmpty else { return true }
+        let area = region.insetBy(dx: -2, dy: -2)
+        let drawn = lines.flatMap { $0.words.isEmpty ? [$0] : $0.words }
+            .filter { area.contains(CGPoint(x: $0.frame.midX, y: $0.frame.midY)) }
+            .map { $0.text.lowercased() }.joined(separator: " ")
+        return wanted.contains { drawn.contains($0) }
+    }
+
     /// True when text drawn in `region` shares at least two three-letter runs with either label.
     static func related(_ region: CGRect, _ lines: [Line], _ a: Leaf, _ b: Leaf) -> Bool {
         func grams(_ text: String) -> Set<String> {
@@ -1043,5 +1081,239 @@ enum Paywall {
         QA.record(context, "paywall-prominence", "P1", loudest.line.text,
                   String(format: "\"%@\" (worked out from the yearly price) is drawn %.0fpt tall, larger than the billed \"%@\" at %.0fpt (3.1.2(c))",
                          loudest.line.text, loudest.line.frame.height, billed.line.text, billed.line.frame.height))
+    }
+}
+
+// MARK: - Journey helpers: the steps every journey repeats, done once for every device
+
+/// Journeys broke most often on the same few steps, each app solving them again
+/// (Oct 28 to Nov 18 2026): a tab looked up through `tabBars`, which the iPad's
+/// floating bar and sidebar are not in; a tap on a control large text had pushed
+/// below the fold or under a floating tab bar; a tap on the unfolded Duo's tab
+/// capsule that did not select it; text typed into a field that still held the
+/// old value, or that never took focus. These helpers do each step one way that
+/// works on the phone, the Duo and the iPad in both orientations.
+extension QA {
+    /// A tab by its label: English first, then the German one for the german persona
+    /// (`QA.tab(app, "Today", "Heute")`). Looks in the iPhone tab bar first, then at
+    /// any button or cell, which covers the iPad's floating bar and sidebar and the
+    /// Duo's capsule.
+    static func tab(_ app: XCUIApplication, _ labels: String...) -> XCUIElement {
+        tab(app, labels)
+    }
+
+    static func tab(_ app: XCUIApplication, _ labels: [String]) -> XCUIElement {
+        let named = NSPredicate(format: "label IN %@ OR identifier IN %@", labels, labels)
+        let inBar = app.tabBars.buttons.matching(named).firstMatch
+        if inBar.exists { return inBar }
+        let kinds = NSPredicate(format: "elementType IN %@", [XCUIElement.ElementType.button.rawValue,
+                                                               XCUIElement.ElementType.cell.rawValue])
+        let query = app.descendants(matching: .any)
+            .matching(NSCompoundPredicate(andPredicateWithSubpredicates: [kinds, named]))
+        // The iPad's floating bar keeps a wide hidden twin of some tabs ahead of the
+        // real item (Elder Hub, Nov 2026), so the first match a tap can reach wins.
+        let matches = query.allElementsBoundByIndex
+        if matches.count > 1, let reachable = matches.first(where: { Layout.tappable(app, $0) }) { return reachable }
+        return query.firstMatch
+    }
+
+    /// Opens a tab and returns it. Waits for the tab, taps it, and if it does not
+    /// read as selected presses its centre (a tap can miss the unfolded Duo's capsule
+    /// and the iPad's top bar). Every tab's title can be in the tree while another tab
+    /// shows, so the journey asserts something only the opened tab draws.
+    @discardableResult
+    static func openTab(_ app: XCUIApplication, _ labels: String..., timeout: TimeInterval = 20,
+                        file: StaticString = #filePath, line: UInt = #line) -> XCUIElement {
+        openTab(app, labels, timeout: timeout, file: file, line: line)
+    }
+
+    @discardableResult
+    static func openTab(_ app: XCUIApplication, _ labels: [String], timeout: TimeInterval = 20,
+                        file: StaticString = #filePath, line: UInt = #line) -> XCUIElement {
+        var button = tab(app, labels)
+        let deadline = Date().addingTimeInterval(timeout)
+        while !button.exists && Date() < deadline {
+            usleep(500_000)
+            button = tab(app, labels)
+        }
+        guard button.exists else {
+            XCTFail("the \(labels.joined(separator: "/")) tab never appeared", file: file, line: line)
+            return button
+        }
+        // The keyboard covers the tab bar; a user finishes typing first.
+        if app.keyboards.firstMatch.exists, !Layout.tappable(app, button) { endEditing(app) }
+        for attempt in 0..<3 {
+            if attempt == 0 { button.tap() } else {
+                button.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(forDuration: 0.05)
+            }
+            if wait(for: "isSelected == true", on: button, timeout: 3) { break }
+            button = tab(app, labels)
+        }
+        return button
+    }
+
+    /// Puts the keyboard away the way a user would: Return in a one-line field. A text
+    /// view takes Return as a new line, so it is left as it is.
+    static func endEditing(_ app: XCUIApplication) {
+        let focused = app.descendants(matching: .any).matching(NSPredicate(format: "hasKeyboardFocus == true")).firstMatch
+        guard focused.exists, focused.elementType != .textView else { return }
+        focused.typeText("\n")
+        _ = app.keyboards.firstMatch.waitForNonExistence(timeout: 3)
+    }
+
+    /// The button labelled with any of these (English, then German).
+    static func button(_ app: XCUIApplication, _ labels: String...) -> XCUIElement {
+        app.buttons.matching(NSPredicate(format: "label IN %@ OR identifier IN %@", labels, labels)).firstMatch
+    }
+
+    /// Scrolls until the element can take a tap: large text pushes controls below
+    /// the fold, a floating tab bar or footer covers the last row, and a lazy list
+    /// has not built a row that is off screen yet. Swipes up first, then back down
+    /// past where it started. Returns whether the element can now be tapped.
+    @discardableResult
+    static func reveal(_ element: XCUIElement, in app: XCUIApplication, swipes: Int = 8) -> Bool {
+        if Layout.tappable(app, element) { return true }
+        let surface = scroller(for: element, in: app)
+        for (direction, count) in [(Direction.up, swipes), (.down, swipes * 2)] {
+            for _ in 0..<count {
+                let before = element.exists ? element.frame : nil
+                drag(surface, direction, in: app)
+                usleep(400_000)  // the scroll decelerates before hit testing is true again
+                if Layout.tappable(app, element) { return true }
+                // The list is at its end this way: the element did not move.
+                if let before, element.exists, element.frame == before { break }
+            }
+        }
+        return false
+    }
+
+    /// A vertical drag across the part of `surface` the keyboard leaves showing: a
+    /// drag that starts on the keyboard scrolls nothing. Normalized to the surface, as
+    /// `swipe` is, so it lands right on the unfolded Duo too.
+    static func drag(_ surface: XCUIElement, _ direction: Direction, in app: XCUIApplication) {
+        var low: CGFloat = 0.8
+        let keyboard = app.keyboards.firstMatch
+        let frame = surface.frame
+        if keyboard.exists, frame.height > 0, keyboard.frame.minY < frame.maxY {
+            low = max(0.3, min(0.8, (keyboard.frame.minY - frame.minY) / frame.height - 0.05))
+        }
+        let high = max(0.05, low - 0.5)
+        let (from, to) = direction == .down ? (high, low) : (low, high)
+        surface.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: from))
+            .press(forDuration: 0.05, thenDragTo: surface.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: to)),
+                   withVelocity: .fast, thenHoldForDuration: 0)
+    }
+
+    /// What to drag to scroll toward an element: the tall scroll view, list or
+    /// collection under it, latest in the tree. A form sheet on the iPad is shorter
+    /// than the screen, so a drag across the app starts below it (Keyring), and on
+    /// the unfolded Duo each pane scrolls on its own (Baby Docs). A short carousel
+    /// inside a list is not it. Falls back to the whole app.
+    static func scroller(for element: XCUIElement, in app: XCUIApplication) -> XCUIElement {
+        let types = [XCUIElement.ElementType.scrollView, .collectionView, .table].map(\.rawValue)
+        let tall = app.frame.height * 0.4
+        let candidates = app.descendants(matching: .any).matching(NSPredicate(format: "elementType IN %@", types))
+            .allElementsBoundByIndex.filter { $0.exists && $0.frame.height >= tall && app.frame.intersects($0.frame) }
+        let x = element.exists ? element.frame.midX : nil
+        let under = candidates.filter { pane in x.map { pane.frame.minX <= $0 && $0 <= pane.frame.maxX } ?? true }
+        return under.last ?? candidates.last ?? app
+    }
+
+    /// Taps an element once a user could: waits for it, scrolls it clear when it is
+    /// off screen or covered, then waits until it is hittable. Fails the journey
+    /// with `what` when it never gets there.
+    static func tap(_ element: XCUIElement, in app: XCUIApplication, _ what: String = "", timeout: TimeInterval = 20,
+                    file: StaticString = #filePath, line: UInt = #line) {
+        let name = what.isEmpty ? "\(element)" : what
+        // A lazy list only builds rows near the screen, so a missing element may need a scroll to exist.
+        if !element.waitForExistence(timeout: min(timeout, 3)) { reveal(element, in: app) }
+        guard element.waitForExistence(timeout: timeout) else {
+            XCTFail("\(name) never appeared", file: file, line: line)
+            return
+        }
+        // A user finishes typing before reaching for a control the keyboard covers.
+        if app.keyboards.firstMatch.exists, !Layout.tappable(app, element) { endEditing(app) }
+        reveal(element, in: app)
+        let deadline = Date().addingTimeInterval(timeout)
+        while !Layout.tappable(app, element) && Date() < deadline {
+            // The last row of a list can sit half under the keyboard with no scroll left to
+            // bring it up; a user taps the half that shows.
+            if let part = showing(element, in: app) {
+                element.coordinate(withNormalizedOffset: part).tap()
+                return
+            }
+            usleep(250_000)
+        }
+        guard Layout.tappable(app, element) else {
+            XCTFail("\(name) is there but a tap cannot reach it (off screen or covered)", file: file, line: line)
+            return
+        }
+        element.tap()
+    }
+
+    /// The centre of the part of an element the keyboard leaves showing, normalized to
+    /// the element, when at least 12 points of it show above the keyboard.
+    static func showing(_ element: XCUIElement, in app: XCUIApplication) -> CGVector? {
+        let keyboard = app.keyboards.firstMatch
+        guard element.exists, keyboard.exists else { return nil }
+        let frame = element.frame
+        let shown = frame.intersection(app.frame).intersection(
+            CGRect(x: app.frame.minX, y: app.frame.minY, width: app.frame.width, height: keyboard.frame.minY - app.frame.minY))
+        guard !shown.isNull, shown.height >= 12, frame.height > 0, frame.width > 0 else { return nil }
+        return CGVector(dx: (shown.midX - frame.minX) / frame.width, dy: (shown.midY - frame.minY) / frame.height)
+    }
+
+    /// Puts exactly `text` in a field or text view: taps it (scrolling it clear
+    /// first), waits for keyboard focus, deletes what was there, types it a character
+    /// at a time, and checks the field reads back `text`, clearing and typing once
+    /// more if it does not.
+    /// Pass `verify: false` for a field that formats what it shows.
+    static func type(_ text: String, into field: XCUIElement, in app: XCUIApplication, replacing: Bool = true,
+                     verify: Bool = true, file: StaticString = #filePath, line: UInt = #line) {
+        tap(field, in: app, "the text field", file: file, line: line)
+        guard focus(field) else {
+            XCTFail("tapping \(field) never gave it keyboard focus", file: file, line: line)
+            return
+        }
+        let checks = verify && field.elementType != .secureTextField
+        for attempt in 0..<2 {
+            if replacing || attempt > 0 { clear(field) }
+            // One keystroke at a time: typed as one string, SwiftUI's binding often missed the
+            // last character while the field drew it, so Save stored "QA Teste" (iOS 27, Nov 2026).
+            for character in text { field.typeText(String(character)) }
+            guard checks else { return }
+            if reads(field) == text { return }
+        }
+        XCTAssertEqual(reads(field), text, "\(field) does not read back what was typed", file: file, line: line)
+    }
+
+    /// The field's text, ignoring a placeholder and the whitespace a text view adds.
+    static func reads(_ field: XCUIElement) -> String {
+        let value = (field.value as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        return value == field.placeholderValue ? "" : value
+    }
+
+    private static func focus(_ field: XCUIElement) -> Bool {
+        if wait(for: "hasKeyboardFocus == true", on: field, timeout: 3) { return true }
+        // At large text the first tap can land while the field is still scrolling into place.
+        field.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
+        return wait(for: "hasKeyboardFocus == true", on: field, timeout: 10)
+    }
+
+    /// Parks the caret after the last character (the bottom-right corner of the
+    /// field, which in a text view is below the last line) and deletes back past it.
+    private static func clear(_ field: XCUIElement) {
+        for _ in 0..<3 {
+            let current = reads(field)
+            if current.isEmpty { return }
+            let corner = field.elementType == .textView ? CGVector(dx: 0.98, dy: 0.95) : CGVector(dx: 0.99, dy: 0.5)
+            field.coordinate(withNormalizedOffset: corner).tap()
+            field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: current.count + 2))
+        }
+    }
+
+    private static func wait(for predicate: String, on element: XCUIElement, timeout: TimeInterval) -> Bool {
+        let expectation = XCTNSPredicateExpectation(predicate: NSPredicate(format: predicate), object: element)
+        return XCTWaiter().wait(for: [expectation], timeout: timeout) == .completed
     }
 }
