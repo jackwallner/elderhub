@@ -42,6 +42,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.jackwallner.aging.model.Medication
+import com.jackwallner.aging.model.NumberInput
 import com.jackwallner.aging.model.MedicationForm
 import com.jackwallner.aging.model.ScheduleEngine
 import com.jackwallner.aging.ui.Format
@@ -153,7 +154,7 @@ fun MedicationEditorScreen(personId: UUID, medicationId: UUID?) {
                 name = name.trim(), strength = strength.trim(), form = form, purpose = purpose.trim(),
                 instructions = instructions.trim(), isAsNeeded = asNeeded, scheduleMinutes = times.distinct().sorted(),
                 weekdays = if (weekdays.size == 7) emptyList() else weekdays.sorted(), tracksRefills = tracks,
-                quantityRemaining = quantity.toDoubleOrNull() ?: 0.0, unitsPerDose = perDose.toDoubleOrNull()?.takeIf { it > 0 } ?: 1.0,
+                quantityRemaining = NumberInput.value(quantity) ?: 0.0, unitsPerDose = NumberInput.value(perDose)?.takeIf { it > 0 } ?: 1.0,
                 prescriber = prescriber.trim(), pharmacy = pharmacy.trim(),
             ),
         )
