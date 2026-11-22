@@ -56,7 +56,7 @@ object SyncWire {
         p.linkedUserId?.let { put("linked_user_id", it.toString()) }
         put("name", p.name)
         put("relationship", p.relationship)
-        p.birthDate?.let { put("birth_date", dayAtNoonUtc(it)) }
+        putClearable("birth_date", p.birthDate?.let(::dayAtNoonUtc))
         put("blood_type", p.bloodType)
         put("color_index", p.colorIndex)
         put("allergies", JSONArray(p.allergies))
@@ -76,15 +76,15 @@ object SyncWire {
         put("purpose", m.purpose)
         put("prescriber", m.prescriber)
         put("pharmacy", m.pharmacy)
-        m.providerId?.let { put("provider_id", it.toString()) }
-        m.pharmacyId?.let { put("pharmacy_id", it.toString()) }
+        putClearable("provider_id", m.providerId?.toString())
+        putClearable("pharmacy_id", m.pharmacyId?.toString())
         put("instructions", m.instructions)
         put("schedule_minutes", JSONArray(m.scheduleMinutes))
         put("weekdays", JSONArray(m.weekdays))
         put("is_as_needed", m.isAsNeeded)
         put("is_active", m.isActive)
         put("start_date", m.startDate.toString())
-        m.endDate?.let { put("end_date", it.toString()) }
+        putClearable("end_date", m.endDate?.toString())
         put("tracks_refills", m.tracksRefills)
         put("quantity_remaining", m.quantityRemaining)
         put("units_per_dose", m.unitsPerDose)
@@ -110,7 +110,7 @@ object SyncWire {
         put("care_recipient_id", v.personId.toString())
         put("date", v.date.toString())
         put("provider", v.provider)
-        v.providerId?.let { put("provider_id", it.toString()) }
+        putClearable("provider_id", v.providerId?.toString())
         put("specialty", v.specialty)
         put("reason", v.reason)
         put("notes", v.notes)
@@ -142,6 +142,16 @@ object SyncWire {
         put("notes", p.notes)
         put("is_pharmacy", p.isPharmacy)
         putDeleted(deletedAt)
+    }
+
+    /**
+     * A nullable column a person can empty, sent as an explicit null when it is empty. An upsert
+     * only writes the columns in its body, so leaving the key out never cleared it on the server
+     * and the old value came back on the next pull (iOS `Clearable`). Server-owned columns
+     * (`linked_user_id`, `surrogate_attested_at`, `updated_at`) stay out when empty.
+     */
+    private fun JSONObject.putClearable(key: String, value: String?) {
+        put(key, value ?: JSONObject.NULL)
     }
 
     private fun JSONObject.putDeleted(deletedAt: Instant?) {

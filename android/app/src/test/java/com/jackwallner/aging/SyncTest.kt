@@ -146,10 +146,24 @@ class SyncWireTest {
     @Test fun nullOptionalsAreLeftOutButDeletedAtIsAlwaysSent() {
         val o = SyncWire.person(Person(name = "Eleanor"), group)
         assertFalse(o.has("linked_user_id"))
-        assertFalse(o.has("birth_date"))
+        assertFalse(o.has("surrogate_attested_at"))
         assertFalse(o.has("updated_at"))
         assertFalse(o.has("last_check_in_at"))
         assertTrue(o.has("deleted_at") && o.isNull("deleted_at"))
+    }
+
+    @Test fun aClearedColumnGoesUpAsAnExplicitNull() {
+        // An upsert only writes the columns in its body, so a field emptied here has to be sent as
+        // null or the server keeps the old value and the next pull puts it back (iOS 15641b2).
+        val person = SyncWire.person(Person(name = "Eleanor"), group)
+        assertTrue(person.has("birth_date") && person.isNull("birth_date"))
+        val med = SyncWire.medication(Medication(personId = UUID.randomUUID(), name = "Warfarin", startDate = T0), group)
+        for (column in listOf("end_date", "provider_id", "pharmacy_id")) assertTrue(column, med.has(column) && med.isNull(column))
+        val visit = SyncWire.visit(Visit(personId = UUID.randomUUID(), date = T0), group)
+        assertTrue(visit.has("provider_id") && visit.isNull("provider_id"))
+        // Columns the server or another phone owns stay out of the body when empty.
+        assertFalse(person.has("linked_user_id"))
+        assertFalse(person.has("surrogate_attested_at"))
     }
 
     @Test fun aMedicationRoundTripsThroughTheWire() {
@@ -279,6 +293,28 @@ class SyncEngineTest {
     ).apply { remove("deleted_at") }
 
     private fun sync(store: CareStore, remote: SyncRemote, pageSize: Int = 200) = runBlocking { SyncEngine(store, { clock.now }, pageSize).sync(remote, group) }
+
+    @Test fun aRestartedMedicationStaysRestartedAfterTheNextPull() {
+        val remote = Remote()
+        val a = circleStore(group, clock)
+        val mom = Person(name = "Eleanor", groupId = group)
+        val med = Medication(personId = mom.id, name = "Warfarin", scheduleMinutes = listOf(480), startDate = T0)
+        a.upsertPerson(mom); a.upsertMedication(med)
+        clock.advance(); a.upsertMedication(med.stopped(clock.now))
+        sync(a, remote)
+        assertFalse(remote.tables.getValue(SyncEntity.MEDICATION)[med.id]!!.isNull("end_date"))
+
+        clock.advance(); a.upsertMedication(a.state.medications.single().restarted())
+        sync(a, remote)
+        assertTrue(remote.tables.getValue(SyncEntity.MEDICATION)[med.id]!!.isNull("end_date"))
+        // The pull in that cycle, and a second phone's first pull, both see it running.
+        assertNull(a.state.medications.single().endDate)
+        assertTrue(a.state.medications.single().isActive)
+        val b = circleStore(group, clock)
+        sync(b, remote)
+        assertNull(b.state.medications.single().endDate)
+        assertTrue(b.state.medications.single().isActive)
+    }
 
     @Test fun aRecordTypedOnOnePhoneArrivesOnAnother() {
         val remote = Remote()
