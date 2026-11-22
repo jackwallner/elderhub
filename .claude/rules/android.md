@@ -106,9 +106,12 @@ build is R8-optimized with no key and no debug hooks.
   `SyncEngine` KDoc: a dirty person or medication newer than the incoming row
   is kept (iOS overwrites it with the older server copy), and `deleted_at` is
   always sent, so a dose re-taken after an undo is live on the server too (iOS
-  omits nil and leaves that server row deleted; worth fixing there). Other nil
-  optionals are omitted so `linked_user_id` and `last_filled_at` survive an
-  Android upsert. Device clock vs server `updated_at` skew can still flag a
+  omits nil and leaves that server row deleted; worth fixing there). Columns a person can empty (`birth_date`, `end_date`,
+  `provider_id`, `pharmacy_id`) go up as an explicit null (iOS `Clearable`), or a restarted
+  medication got its end date back on the next pull; server-owned optionals
+  (`linked_user_id`, `surrogate_attested_at`) are omitted so they survive an
+  Android upsert. An empty membership answer on a phone holding a circle means
+  the organizer removed this member, and `refresh` forgets the circle. Device clock vs server `updated_at` skew can still flag a
   false conflict on an edit made within seconds of a push, on both platforms.
 - **Invitations.** `InviteLink`/`InviteMessage` port the iOS rules; the message
   says "on your phone", not "iPhone". The manifest takes
@@ -156,7 +159,7 @@ build is R8-optimized with no key and no debug hooks.
 ## Build and test on jmbp
 
     cd android
-    fm-gradle :app:testDebugUnitTest                       # 126 JVM tests
+    fm-gradle :app:testDebugUnitTest                       # 148 JVM tests
     fm-gradle :app:lintDebug :app:assembleDebug :app:assembleQa
     ANDROID_SERIAL=emulator-5584 fm-gradle :app:connectedDebugAndroidTest   # device tests
 
