@@ -73,6 +73,23 @@ object ScheduleEngine {
         return taken.toDouble() / scheduled
     }
 
+    /**
+     * Where [minutes] after midnight falls on [day], as the clock reads it (iOS `date(forMinutes:)`).
+     *
+     * A schedule is a time on the clock, so it is placed by hour and minute, not by adding elapsed
+     * minutes to midnight: the two change days a year are 23 and 25 hours long. The one time of day
+     * with no clock reading is the hour the clocks skip; there the elapsed minutes are the only
+     * answer left, which keeps a 2:00 and a 2:30 dose two slots. A repeated hour takes the first.
+     */
+    fun instant(minutes: Int, day: LocalDate, zone: ZoneId): Instant {
+        val startOfDay = day.atStartOfDay(zone)
+        val elapsed = startOfDay.plusMinutes(minutes.toLong()).toInstant()
+        if (minutes !in 0 until 24 * 60) return elapsed
+        val onTheClock = day.atTime(minutes / 60, minutes % 60).atZone(zone)
+        if (onTheClock.hour != minutes / 60 || onTheClock.minute != minutes % 60) return elapsed
+        return onTheClock.toInstant()
+    }
+
     fun timeLabel(minutes: Int, locale: Locale = Locale.getDefault()): String =
         LocalTime.MIDNIGHT.plusMinutes(minutes.toLong())
             .format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale))

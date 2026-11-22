@@ -110,8 +110,10 @@ data class Medication(
     /** Concrete dose times for the day containing [on], in order. */
     fun doseTimes(on: Instant, zone: ZoneId): List<Instant> {
         if (!isScheduled(on, zone)) return emptyList()
-        val startOfDay = on.atZone(zone).toLocalDate().atStartOfDay(zone)
-        return scheduleMinutes.sorted().map { startOfDay.plusMinutes(it.toLong()).toInstant() }
+        val day = on.atZone(zone).toLocalDate()
+        // Two schedule times can only land on one instant on the day the clocks skip an hour:
+        // one slot, not two with the same id.
+        return scheduleMinutes.sorted().map { ScheduleEngine.instant(it, day, zone) }.distinct()
     }
 
     private val dosesPerDay: Double

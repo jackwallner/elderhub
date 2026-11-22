@@ -84,15 +84,70 @@ class ScheduleEngineTest {
         assertEquals("12:30 PM", ScheduleEngine.timeLabel(12 * 60 + 30, Locale.US).replace(' ', ' '))
     }
 
-    @Test fun daylightSavingDayMatchesIosToTheSecond() {
-        // iOS adds the minutes as elapsed time (`Calendar.date(byAdding: .minute)`), so on the
-        // 2026-03-08 spring-forward day the 8:00 dose lands at 9:00 local, epoch 1772974800
-        // (checked by compiling the Swift call). Matching the instant keeps DoseLog ids equal
-        // across platforms; a wall-clock fix has to land on both at once.
-        val med = Medication(personId = person.id, name = "Metformin", scheduleMinutes = listOf(8 * 60), startDate = day(2026, 3, 1))
-        val time = med.doseTimes(day(2026, 3, 8), zone)[0]
-        assertEquals(1_772_974_800L, time.epochSecond)
+    // Daylight saving (iOS ea7c92e). A schedule is a time on the clock, so it is placed by the
+    // clock's hour and minute, not by elapsed minutes after midnight: those days are 23 and 25
+    // hours long, and the 8:00 AM tablet used to be listed at 9:00 AM (spring) or 7:00 AM (fall)
+    // while the reminder fired at 8:00 AM.
+    private val losAngeles = ZoneId.of("America/Los_Angeles")
+
+    private fun clock(times: List<Instant>, z: ZoneId) = times.map {
+        val t = it.atZone(z)
+        "%02d:%02d".format(t.hour, t.minute)
+    }
+
+    private fun daily(vararg minutes: Int, from: Instant) =
+        Medication(personId = person.id, name = "Metformin", scheduleMinutes = minutes.toList(), startDate = from)
+
+    @Test fun daylightSavingSpringForwardKeepsTheEightAmDoseAtEight() {
+        // Epoch 1772971200 is 2026-03-08 08:00 EDT, checked against the iOS wall-clock call.
+        val med = daily(8 * 60, 20 * 60, from = day(2026, 3, 1))
+        val times = med.doseTimes(day(2026, 3, 8), zone)
+        assertEquals(1_772_971_200L, times[0].epochSecond)
+        assertEquals(listOf("08:00", "20:00"), clock(times, zone))
         assertEquals(8 * 60, ScheduleEngine.minutes(med.doseTimes(day(2026, 3, 9), zone)[0], zone))
+    }
+
+    @Test fun daylightSavingFallBackKeepsTheEightAmDoseAtEight() {
+        val med = daily(8 * 60, 20 * 60, from = day(2026, 10, 1))
+        assertEquals(listOf("08:00", "20:00"), clock(med.doseTimes(day(2026, 11, 1), zone), zone))
+    }
+
+    @Test fun westCoastChangeDaysKeepTheClockToo() {
+        val spring = daily(8 * 60, from = LocalDate.of(2026, 3, 1).atStartOfDay(losAngeles).toInstant())
+        val fall = daily(8 * 60, from = LocalDate.of(2026, 10, 1).atStartOfDay(losAngeles).toInstant())
+        val springDay = LocalDate.of(2026, 3, 8).atStartOfDay(losAngeles).toInstant()
+        val fallDay = LocalDate.of(2026, 11, 1).atStartOfDay(losAngeles).toInstant()
+        assertEquals(listOf("08:00"), clock(spring.doseTimes(springDay, losAngeles), losAngeles))
+        assertEquals(listOf("08:00"), clock(fall.doseTimes(fallDay, losAngeles), losAngeles))
+    }
+
+    @Test fun todaysListShowsTheSameClockTimesOnTheDayTheClocksChange() {
+        val med = daily(8 * 60, from = day(2026, 10, 1))
+        val slots = ScheduleEngine.slots(state(med), person.id, day(2026, 11, 1), zone)
+        assertEquals(listOf("08:00"), clock(slots.map { it.scheduledAt }, zone))
+    }
+
+    @Test fun aDoseLoggedOnTheChangeDayStillMatchesItsSlot() {
+        val med = daily(8 * 60, from = day(2026, 10, 1))
+        val target = day(2026, 11, 1)
+        val slot = ScheduleEngine.slots(state(med), person.id, target, zone)[0]
+        val log = DoseLog.create(med.id, slot.scheduledAt, DoseStatus.TAKEN, "Test")
+        val again = ScheduleEngine.slots(state(med, doses = listOf(log)), person.id, target, zone)[0]
+        assertEquals(DoseStatus.TAKEN, again.status)
+    }
+
+    @Test fun twoDosesInTheHourTheClocksSkipStayTwoSlots() {
+        // 2:00 and 2:30 AM do not exist on 2026-03-08; each still gets its own slot.
+        val med = daily(2 * 60, 2 * 60 + 30, from = day(2026, 3, 1))
+        val times = med.doseTimes(day(2026, 3, 8), zone)
+        assertEquals(2, times.size)
+        assertEquals(2, times.toSet().size)
+        assertTrue(times[0] < times[1])
+    }
+
+    @Test fun aScheduleLabelReadsTheSameOnTheDaysTheClocksChange() {
+        // The label comes from LocalTime, which has no zone, so it cannot drift by an hour.
+        assertEquals("8:00 AM", ScheduleEngine.timeLabel(8 * 60, Locale.US).replace(' ', ' '))
     }
 
     @Test fun stoppedMedicationLeavesTheDoseList() {

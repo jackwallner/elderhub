@@ -34,10 +34,11 @@ screen renders from it and nothing waits on a network.
 
 ## Parity rules (tested in `app/src/test`)
 
-- `ScheduleEngine` mirrors the Swift one, including Foundation's elapsed-minute
-  addition: on a spring-forward day the 8:00 dose lands at 9:00 local on both
-  platforms (epoch checked by compiling the Swift call). Changing that to wall
-  clock must happen on iOS and Android together, or `DoseLog` ids diverge.
+- `ScheduleEngine` mirrors the Swift one, including wall-clock placement
+  (iOS `ea7c92e`): a dose time is set by hour and minute, so on a DST change
+  day the 8:00 dose stays at 8:00 on both platforms, and the skipped hour falls
+  back to elapsed minutes so two doses there stay two slots. Both platforms
+  must change together, or `DoseLog` ids diverge.
 - `DoseLog.deterministicId` is the iOS UUIDv5 (namespace
   `6f1d5b3e-...`, `"<med uuid lowercased>:<epoch minute>"`); vectors in
   `DeterministicIdTest` come from running `Shared/Services/DeterministicID.swift`.
