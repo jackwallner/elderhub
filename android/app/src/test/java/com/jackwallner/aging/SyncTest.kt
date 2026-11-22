@@ -436,6 +436,58 @@ class SyncEngineTest {
         assertEquals(0, a.state.sync.conflictCount)
     }
 
+    @Test fun anUnsentPersonOrMedicationEditSurvivesAnOlderCopyBeingPulled() {
+        // iOS 33d6852: the newest row of a table is pulled again with a stamp older than anything
+        // typed since, and must not overwrite the unsent edit or clear its dirty flag.
+        val remote = Remote()
+        val a = circleStore(group, clock)
+        val mom = Person(name = "Eleanor", groupId = group)
+        val med = Medication(personId = mom.id, name = "Warfarin", scheduleMinutes = listOf(480), startDate = T0, tracksRefills = true, quantityRemaining = 30.0)
+        a.upsertPerson(mom); a.upsertMedication(med)
+        sync(a, remote)
+        val oldPerson = SyncWire.person(mom, group).put("updated_at", clock.now.toString())
+        val oldMed = SyncWire.medication(med, group).put("updated_at", clock.now.toString())
+
+        clock.advance(120)
+        a.upsertPerson(mom.copy(allergies = listOf("Penicillin")))
+        a.upsertMedication(med.copy(quantityRemaining = 29.0))
+        val engine = SyncEngine(a, { clock.now })
+        var s = a.state
+        s = engine.applyRow(s, SyncEntity.PERSON, oldPerson, emptySet()).first
+        s = engine.applyRow(s, SyncEntity.MEDICATION, oldMed, emptySet()).first
+
+        assertEquals(listOf("Penicillin"), s.person(mom.id)!!.allergies)
+        assertEquals(29.0, s.medications.single().quantityRemaining, 0.0)
+        assertTrue(s.sync.meta.getValue(mom.id).isDirty)
+        assertTrue(s.sync.meta.getValue(med.id).isDirty)
+        assertEquals(0, s.sync.conflictCount)
+    }
+
+    @Test fun everyQueuedWriteToAConflictedRecordWaitsForThePersonsChoice() {
+        // iOS 50adc56: saved twice before the conflict is found and once after, the record still
+        // has one queue entry and nothing of this phone's goes up until the person chooses.
+        val remote = Remote()
+        val a = circleStore(group, clock)
+        val mom = Person(name = "Eleanor", groupId = group)
+        val med = Medication(personId = mom.id, name = "Warfarin", strength = "5 mg", scheduleMinutes = listOf(480), startDate = T0)
+        a.upsertPerson(mom); a.upsertMedication(med)
+        sync(a, remote)
+        clock.advance(); a.upsertMedication(med.copy(strength = "2.5 mg"))
+        clock.advance(); a.upsertMedication(med.copy(strength = "2.5 mg", purpose = "Blood thinner"))
+        clock.advance(); remote.put(SyncEntity.MEDICATION, JSONObject(remote.tables.getValue(SyncEntity.MEDICATION)[med.id].toString()).put("strength", "7.5 mg"))
+        remote.pushes.clear()
+        assertEquals(1, sync(a, remote).conflicts)
+
+        clock.advance(); a.upsertMedication(med.copy(strength = "2.5 mg", purpose = "Blood thinner", instructions = "With food"))
+        sync(a, remote)
+
+        val entries = a.state.sync.outbox.filter { it.entityId == med.id }
+        assertEquals(1, entries.size)
+        assertEquals(OutboxStatus.NEEDS_REVIEW, entries.single().status)
+        assertTrue(remote.pushes.none { it.first == SyncEntity.MEDICATION })
+        assertEquals("7.5 mg", remote.tables.getValue(SyncEntity.MEDICATION)[med.id]!!.getString("strength"))
+    }
+
     @Test fun aNewerLocalVisitNoteIsNotClobberedByAnOlderPull() {
         val remote = Remote()
         val a = circleStore(group, clock)
