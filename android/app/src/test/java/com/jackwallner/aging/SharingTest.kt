@@ -255,6 +255,38 @@ class GroupServiceTest {
         assertTrue(relaunched.hasSharedWithFamily)
     }
 
+    @Test fun aMemberTheOrganizerRemovedForgetsTheCircleOnTheNextRefresh() = runBlocking {
+        // iOS 4012eb2: a successful, empty membership answer on a phone holding a circle is a removal.
+        val code = server.seedSarahsCircle()
+        signIn()
+        groups.acceptInvite(code)
+        sync.syncNow()
+        assertTrue(care.state.people.any { it.name == "Eleanor Wallner" })
+
+        server.members.filter { it.userId == auth.userId }.forEach { it.removed = true }
+        groups.refresh()
+
+        assertNull(groups.activeGroupId)
+        assertTrue(care.state.people.none { it.name == "Eleanor Wallner" })
+    }
+
+    @Test fun anEmptyAnswerWithNothingCachedIsANewAccountNotARemoval() {
+        assertTrue(GroupService.membershipWasRevoked(rowCount = 0, hasCachedGroup = true))
+        assertFalse(GroupService.membershipWasRevoked(rowCount = 0, hasCachedGroup = false))
+        assertFalse(GroupService.membershipWasRevoked(rowCount = 1, hasCachedGroup = true))
+    }
+
+    @Test fun anOfflineRefreshNeverForgetsTheCircle() = runBlocking {
+        // iOS a6d233f: only a real answer counts. A refused or unreachable server keeps the cache.
+        val code = server.seedSarahsCircle()
+        signIn()
+        groups.acceptInvite(code)
+        server.members.filter { it.userId == auth.userId }.forEach { it.removed = true }
+        server.isOnline = false
+        groups.refresh()
+        assertEquals("Eleanor's care circle", groups.groupName)
+    }
+
     @Test fun restrictingAccessRemovesTheOtherRecordsLocallyAndNeverDeletesThemForTheFamily() = runBlocking {
         val code = server.seedSarahsCircle()
         signIn()

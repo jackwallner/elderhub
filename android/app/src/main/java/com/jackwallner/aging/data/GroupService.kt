@@ -100,7 +100,11 @@ class GroupService(
         val userId = auth.userId ?: return
         try {
             val rows = backend.memberships(userId)
-            val row = rows.firstOrNull() ?: return
+            val row = rows.firstOrNull() ?: run {
+                // The organizer removed this member: the copy of the circle on this phone goes too.
+                if (membershipWasRevoked(rows.size, activeGroupId != null)) forgetGroupLocally()
+                return
+            }
             if (rows.size > 1) {
                 lastError = "This account belongs to more than one care circle. Contact support so the records can be merged safely."
             }
@@ -335,6 +339,15 @@ class GroupService(
     }
 
     companion object {
+        /**
+         * A successful membership query with no rows, on a phone that holds a circle, is a removal
+         * (iOS `membershipWasRevoked`). With no circle cached it is a new account. A failed or
+         * offline query never reaches here, and every request carries this account's own access
+         * token (`SupabaseClient.accessToken` throws rather than fall back to the anon key), so
+         * the anonymous-empty-answer case iOS a6d233f guards against cannot occur.
+         */
+        fun membershipWasRevoked(rowCount: Int, hasCachedGroup: Boolean): Boolean = rowCount == 0 && hasCachedGroup
+
         private const val KEY_ID = "group.id"
         private const val KEY_NAME = "group.name"
         private const val KEY_ROLE = "group.role"
