@@ -32,7 +32,7 @@ struct ReviewMomentTests {
 
     @Test func theLastDoseTakenIsAGoodMoment() {
         let day = digests(doseLogged: .taken)
-        #expect(day.allSatisfy(\.isClear), "precondition: the day is done")
+        #expect(day.allSatisfy { $0.isClear }, "precondition: the day is done")
         #expect(ReviewPrompt.isGoodMoment(.dose(.taken), digests: day))
     }
 
@@ -44,7 +44,7 @@ struct ReviewMomentTests {
 
     @Test func aSkippedOrMissedDoseNeverAsks() {
         let skipped = digests(doseLogged: .skipped)
-        #expect(skipped.allSatisfy(\.isClear), "precondition: skipped is an answered slot")
+        #expect(skipped.allSatisfy { $0.isClear }, "precondition: skipped is an answered slot")
         #expect(!ReviewPrompt.isGoodMoment(.dose(.skipped), digests: skipped))
         #expect(!ReviewPrompt.isGoodMoment(.dose(.missed), digests: digests(doseLogged: .missed)))
     }
