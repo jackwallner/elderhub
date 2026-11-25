@@ -398,6 +398,27 @@ final class StoreService: NSObject {
         return introEligibility[plan.id] == true ? days : nil
     }
 
+    // MARK: - Remote config
+
+    /// The current offering's metadata, which is where a RevenueCat
+    /// Experiment's variant lives. Nil on the simulator, so every test there
+    /// sees the control.
+    private var remoteMetadata: [String: Any]? { offerings?.current?.metadata }
+
+    /// Which wording the paywall's trial button uses.
+    var trialCTA: TrialCTA { TrialCTA.from(metadata: remoteMetadata) }
+
+    func isOn(_ remoteSwitch: RemoteSwitch) -> Bool {
+        RemoteConfig.isOn(remoteSwitch, in: remoteMetadata)
+    }
+
+    /// Tags the customer with the trial button arm they were shown, so a
+    /// wording test can be read by attribute as well as by Experiment.
+    func recordTrialCTAShown() {
+        guard isConfigured else { return }
+        Purchases.shared.attribution.setAttributes([TrialCTA.metadataKey: trialCTA.rawValue])
+    }
+
     /// Populates `plans` from the local `.storekit` catalog. Only ever runs when
     /// RevenueCat is not configured, i.e. on the simulator.
     private func loadStoreKitTestingPlans() async {

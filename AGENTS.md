@@ -13,6 +13,9 @@ repository is `elderhub`.
   family groups. No CloudKit.
 - XcodeGen (`project.yml`). Targets: iOS 17+
 - RevenueCat, entitlement `Aging+`, resolved as `store.isPro || groups.hasPlus`
+- Wording tests go through current-offering metadata (`RemoteConfig`): `trial_cta`
+  (`seven_day` control, `my`, `your`) and `rating_prompt: off`. Set switch keys
+  the same on every offering.
 
 ## Targets / bundle IDs
 - `Aging`: `com.jackwallner.aging`
