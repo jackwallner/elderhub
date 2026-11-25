@@ -105,6 +105,13 @@ enum ReviewPrompt {
 
     // MARK: - Eligibility
 
+    /// The good moment: a tick-off that left nothing outstanding for anyone
+    /// today. Never true for an empty day (nobody to look after) or while any
+    /// dose, task, bill, refill, appointment or check-in is still open.
+    static func isGoodMoment(_ digests: [PersonDigest]) -> Bool {
+        !digests.isEmpty && digests.allSatisfy(\.isClear)
+    }
+
     static func passivePromptAllowed(now: Date = .now) -> Bool {
         guard outcome != .openedWriteReview else { return false }
         guard let last = lastShownDate else { return true }

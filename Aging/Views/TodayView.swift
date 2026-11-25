@@ -24,6 +24,10 @@ struct TodayView: View {
     @State private var showNotificationsBlocked = false
     @State private var undo: UndoableAction?
     @State private var reviewTask: Task<Void, Never>?
+    /// Whether Today itself is the screen in front of the reader. False once
+    /// another tab is chosen or a screen is pushed over it, so a rating ask
+    /// scheduled from a tick-off never lands on whatever they went to next.
+    @State private var isOnScreen = false
     @Environment(\.requestReview) private var requestReview
     /// Bumped on every tick-off so the phone confirms it in the hand. Doses,
     /// tasks and bills gave no feedback at all; only the check-in button did.
@@ -189,9 +193,11 @@ struct TodayView: View {
             }
         }
         .onAppear {
+            isOnScreen = true
             applyPendingNotificationRoute()
             refreshSetupVisibility()
         }
+        .onDisappear { isOnScreen = false }
         .onChange(of: scopeSelection) { _, _ in refreshSetupVisibility() }
         .onChange(of: notificationRoute.pendingPersonID) { _, _ in
             applyPendingNotificationRoute()
@@ -963,12 +969,15 @@ struct TodayView: View {
     /// outstanding for anyone today. This is a Medical-category app opened by
     /// worried people, so an ask in front of an overdue 8am dose is worse than
     /// never asking. A blocked ask keeps the moment pending for the next one.
+    ///
+    /// RevenueCat's `rating_prompt: off` pauses it without a release.
     private func scheduleReviewRequestAfterPositiveMoment() {
         ReviewPrompt.recordPositiveMoment()
         reviewTask?.cancel()
         reviewTask = Task { @MainActor in
             try? await Task.sleep(for: .seconds(3))
             guard !Task.isCancelled, isTodayClear, isQuietDay,
+                  StoreService.shared.isOn(.ratingPrompt),
                   ReviewPrompt.shouldRequestAfterPositiveMoment(hasCompletedSetup: !people.isEmpty)
             else { return }
             ReviewPrompt.markShown()
@@ -978,13 +987,13 @@ struct TodayView: View {
 
     /// Everything for everybody is dealt with today.
     private var isQuietDay: Bool {
-        let digests = TodayDigest.build(for: people, on: Date(), checkInState: checkInState)
-        return !digests.isEmpty && digests.allSatisfy(\.isClear)
+        ReviewPrompt.isGoodMoment(TodayDigest.build(for: people, on: Date(), checkInState: checkInState))
     }
 
-    /// No sheet, alert or other screen is presented over Today.
+    /// Today is on screen and no sheet, alert or other screen is over it.
     private var isTodayClear: Bool {
-        guard !showNotificationsBlocked, UIApplication.shared.applicationState == .active else { return false }
+        guard isOnScreen, !showNotificationsBlocked, UIApplication.shared.applicationState == .active
+        else { return false }
         return !UIApplication.shared.connectedScenes
             .compactMap { $0 as? UIWindowScene }
             .flatMap(\.windows)
