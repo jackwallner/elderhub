@@ -135,6 +135,62 @@ enum ProProduct {
     }
 }
 
+/// What a failed purchase is shown as.
+///
+/// RevenueCat's own descriptions are English developer text, and a pending
+/// Ask to Buy is not a failure at all: a parent has the request, Apple
+/// finishes it later and the customer-info update unlocks Plus. Showing it
+/// as a red error said something had broken when nothing had.
+enum PurchaseError: LocalizedError, Equatable {
+    /// Ask to Buy, or any purchase Apple has accepted but not yet approved.
+    case waitingForApproval
+    /// The App Store could not be reached.
+    case storeUnreachable
+
+    var errorDescription: String? {
+        switch self {
+        case .waitingForApproval:
+            return "Waiting for approval. Your purchase unlocks once it is approved."
+        case .storeUnreachable:
+            return "We couldn't reach the App Store just now."
+        }
+    }
+
+    /// True for the one outcome that is not a failure.
+    var isPending: Bool { self == .waitingForApproval }
+
+    /// The error a purchase should surface. A pending payment becomes
+    /// `.waitingForApproval`, a lost connection the app's own "couldn't reach
+    /// the App Store" line, and anything else passes through untouched.
+    static func shown(_ error: Error) -> Error {
+        guard let code = revenueCatCode(of: error) else { return error }
+        switch code {
+        case .paymentPendingError: return PurchaseError.waitingForApproval
+        case .networkError, .offlineConnectionError: return PurchaseError.storeUnreachable
+        default: return error
+        }
+    }
+
+    /// RevenueCat throws its public errors as `NSError`s in its own domain,
+    /// so both the typed cast and the domain and code are read.
+    private static func revenueCatCode(of error: Error) -> RevenueCat.ErrorCode? {
+        if let code = error as? RevenueCat.ErrorCode { return code }
+        let nsError = error as NSError
+        guard nsError.domain == revenueCatErrorDomain else { return nil }
+        return RevenueCat.ErrorCode(rawValue: nsError.code)
+    }
+
+    /// The domain RevenueCat's public errors carry, read off the SDK itself
+    /// rather than spelled out here.
+    static let revenueCatErrorDomain = (RevenueCat.ErrorCode.unknownError as NSError).domain
+
+    /// `ErrorCode.paymentPendingError` and friends as the `NSError` RevenueCat
+    /// throws, for tests that should not need to import the SDK.
+    static func revenueCatError(code: Int) -> NSError {
+        NSError(domain: revenueCatErrorDomain, code: code)
+    }
+}
+
 enum RevenueCatConfig {
     static let apiKey = "appl_dvyPWLaZxKyjLUrFVzDynNGjVGb"
     /// Entitlement identifier as configured on the RevenueCat dashboard. It is
@@ -378,7 +434,15 @@ final class StoreService: NSObject {
             return
         }
         let startedTrial = package.storeProduct.introductoryDiscount?.paymentMode == .freeTrial
-        let result = try await Purchases.shared.purchase(package: package)
+        let result: PurchaseResultData
+        do {
+            result = try await Purchases.shared.purchase(package: package)
+        } catch {
+            let shown = PurchaseError.shown(error)
+            let outcome = (shown as? PurchaseError)?.isPending == true ? "pending" : "error"
+            log.info("purchase \(outcome, privacy: .public): \((error as NSError).code)")
+            throw shown
+        }
         guard !result.userCancelled else { return }
         apply(result.customerInfo)
         if isPro {
@@ -448,6 +512,17 @@ final class StoreService: NSObject {
         await GroupService.shared.refreshBilling()
     }
 
+    /// A purchase approved later (Ask to Buy), a renewal, or a purchase made
+    /// on another device. Without this the app only learned about them at the
+    /// next launch or the next paywall open, so an approved Ask to Buy left
+    /// the family locked out for as long as the app stayed in memory.
+    fileprivate func receivedUpdated(_ info: CustomerInfo) {
+        let wasPro = isPro
+        apply(info)
+        guard isPro, !wasPro else { return }
+        Task { await propagateToGroup() }
+    }
+
     private func apply(_ info: CustomerInfo) {
         guard localOverride == nil else { return }
         let identifiers = [RevenueCatConfig.proEntitlement] + RevenueCatConfig.fallbackEntitlements
@@ -485,6 +560,17 @@ final class StoreService: NSObject {
         Purchases.configure(withAPIKey: RevenueCatConfig.apiKey)
         isConfigured = true
         #endif
+        if isConfigured {
+            Purchases.shared.delegate = self
+        }
+    }
+}
+
+extension StoreService: PurchasesDelegate {
+    nonisolated func purchases(_ purchases: Purchases, receivedUpdated customerInfo: CustomerInfo) {
+        Task { @MainActor in
+            StoreService.shared.receivedUpdated(customerInfo)
+        }
     }
 }
 

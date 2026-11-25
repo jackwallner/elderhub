@@ -17,6 +17,10 @@ struct PaywallView: View {
     @State private var isPurchasing = false
     @State private var isRestoring = false
     @State private var errorMessage: String?
+    /// Set when Apple accepted the purchase but a parent still has to
+    /// approve it (Ask to Buy). Shown calmly in the error's slot, never as an
+    /// error, and it dies with the sheet: nothing is armed to fire later.
+    @State private var pendingMessage: String?
     @State private var restoreResult: String?
     @State private var selectedPlanID: String?
 
@@ -220,6 +224,11 @@ struct PaywallView: View {
                     await store.refreshIntroEligibility()
                 }
             }
+            // An Ask to Buy approved while the sheet is still up arrives
+            // through RevenueCat's customer-info update, not the purchase call.
+            .onChange(of: store.isPro) { _, isPro in
+                if isPro { dismiss() }
+            }
             .alert(
                 "Restore purchases",
                 isPresented: Binding(get: { restoreResult != nil }, set: { if !$0 { restoreResult = nil } })
@@ -268,6 +277,12 @@ struct PaywallView: View {
                         .font(.caption)
                         .foregroundStyle(.red)
                         .multilineTextAlignment(.center)
+                } else if let pendingMessage {
+                    Text(pendingMessage)
+                        .font(.caption)
+                        .foregroundStyle(Color.secondaryText)
+                        .multilineTextAlignment(.center)
+                        .accessibilityIdentifier("paywall.pending")
                 } else if let disclosureText {
                     Text(disclosureText)
                         .font(.caption2)
@@ -394,6 +409,7 @@ struct PaywallView: View {
             // The message was about the last attempt. Left up, it kept the
             // disclosure for the newly picked plan off the screen.
             errorMessage = nil
+            pendingMessage = nil
         } label: {
             HStack(alignment: .center, spacing: 12) {
                 Image(systemName: isSelected ? "largecircle.fill.circle" : "circle")
@@ -459,11 +475,14 @@ struct PaywallView: View {
     private func purchase(_ plan: PlanOption) {
         isPurchasing = true
         errorMessage = nil
+        pendingMessage = nil
         Task {
             defer { isPurchasing = false }
             do {
                 try await store.purchase(plan)
                 if store.isPro { dismiss() }
+            } catch let error as PurchaseError where error.isPending {
+                pendingMessage = error.localizedDescription
             } catch {
                 errorMessage = error.localizedDescription
             }
