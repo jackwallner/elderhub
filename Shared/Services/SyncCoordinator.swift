@@ -63,6 +63,13 @@ final class SyncCoordinator {
         let task = Task {
             let outcome = await engine.sync(remote: remote, groupID: groupID)
             apply(outcome)
+            // A sibling's change (a stopped medication, a moved or deleted
+            // appointment) can arrive on any cycle, not only the one a
+            // foreground runs, and iOS keeps firing what was scheduled before
+            // it until the plan is rebuilt.
+            if outcome.pulled > 0 {
+                await DoseReminderScheduler.refresh(in: CareModelStore.sharedModelContainer.mainContext)
+            }
         }
         syncTask = task
         await task.value

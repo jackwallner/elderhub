@@ -127,6 +127,10 @@ struct VisitsView: View {
             confirmLabel: "Delete",
             perform: {
                 for visit in doomed { visit.tombstone(in: context) }
+                // The evening-before reminder is held by iOS under the visit's
+                // id, so it fires for a deleted appointment unless the plan is
+                // rebuilt now, as saving and deleting a medication already do.
+                Task { await DoseReminderScheduler.refresh(in: context) }
             }
         )
     }
