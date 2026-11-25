@@ -391,6 +391,9 @@ struct PaywallView: View {
         let isSelected = selectedPlan?.id == plan.id
         return Button {
             selectedPlanID = plan.id
+            // The message was about the last attempt. Left up, it kept the
+            // disclosure for the newly picked plan off the screen.
+            errorMessage = nil
         } label: {
             HStack(alignment: .center, spacing: 12) {
                 Image(systemName: isSelected ? "largecircle.fill.circle" : "circle")
@@ -455,6 +458,7 @@ struct PaywallView: View {
 
     private func purchase(_ plan: PlanOption) {
         isPurchasing = true
+        errorMessage = nil
         Task {
             defer { isPurchasing = false }
             do {
