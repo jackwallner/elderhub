@@ -90,12 +90,13 @@ struct PaywallView: View {
             : "Add everyone you look after. Full access from today, nothing to pay now."
     }
 
+    /// Worded by RevenueCat's `trial_cta` (control: the shipped wording).
     private var ctaTitle: String {
-        guard let plan = selectedPlan else { return "Continue" }
-        if isPurchasing { return "Working…" }
-        if let days = selectedTrialDays { return "Start My \(days)-Day Free Trial" }
-        if plan.period == .lifetime { return "Unlock Lifetime" }
-        return "Subscribe"
+        store.trialCTA.buttonTitle(
+            period: selectedPlan?.period,
+            trialDays: selectedTrialDays,
+            isPurchasing: isPurchasing
+        )
     }
 
     /// Apple's required disclosure, rebuilt for the selected plan so the billed
@@ -222,6 +223,9 @@ struct PaywallView: View {
                 } else {
                     await store.refreshIntroEligibility()
                 }
+                // The arm rides to RevenueCat only when the button really
+                // offered a trial, so the test reads by attribute too.
+                if selectedTrialDays != nil { store.recordTrialCTASeen() }
             }
             // An Ask to Buy approved while the sheet is still up arrives
             // through the store's customer-info updates, not this button.

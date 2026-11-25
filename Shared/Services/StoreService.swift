@@ -473,6 +473,12 @@ final class StoreService: NSObject {
         Purchases.shared.attribution.setAttributes(attributes)
     }
 
+    /// Tags the customer with the `trial_cta` arm their trial button showed.
+    func recordTrialCTASeen() {
+        guard isConfigured else { return }
+        Purchases.shared.attribution.setAttributes([TrialCTA.metadataKey: trialCTA.rawValue])
+    }
+
     func restore() async throws {
         guard isConfigured else { return }
         let info = try await Purchases.shared.restorePurchases()
