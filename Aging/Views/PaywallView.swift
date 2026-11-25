@@ -16,7 +16,10 @@ struct PaywallView: View {
 
     @State private var isPurchasing = false
     @State private var isRestoring = false
-    @State private var errorMessage: String?
+    /// What the last purchase attempt said, for the selected plan only:
+    /// cleared by a new attempt and by picking another plan, so it never sits
+    /// over the disclosure of a plan it was not about.
+    @State private var purchaseNotice: PurchaseNotice?
     @State private var restoreResult: String?
     @State private var selectedPlanID: String?
 
@@ -220,6 +223,11 @@ struct PaywallView: View {
                     await store.refreshIntroEligibility()
                 }
             }
+            // An Ask to Buy approved while the sheet is still up arrives
+            // through the store's customer-info updates, not this button.
+            .onChange(of: store.isPro) { _, isPro in
+                if isPro { dismiss() }
+            }
             .alert(
                 "Restore purchases",
                 isPresented: Binding(get: { restoreResult != nil }, set: { if !$0 { restoreResult = nil } })
@@ -263,11 +271,12 @@ struct PaywallView: View {
                 // Error takes the disclosure's slot rather than stacking with
                 // it: two paragraphs appearing at once is what pushed the
                 // button off the screen before.
-                if let errorMessage {
-                    Text(errorMessage)
+                if let purchaseNotice {
+                    Text(purchaseNotice.message)
                         .font(.caption)
-                        .foregroundStyle(.red)
+                        .foregroundStyle(purchaseNotice.isError ? Color.red : Color.secondaryText)
                         .multilineTextAlignment(.center)
+                        .accessibilityIdentifier("paywall.notice")
                 } else if let disclosureText {
                     Text(disclosureText)
                         .font(.caption2)
@@ -391,6 +400,7 @@ struct PaywallView: View {
         let isSelected = selectedPlan?.id == plan.id
         return Button {
             selectedPlanID = plan.id
+            purchaseNotice = nil
         } label: {
             HStack(alignment: .center, spacing: 12) {
                 Image(systemName: isSelected ? "largecircle.fill.circle" : "circle")
@@ -455,13 +465,14 @@ struct PaywallView: View {
 
     private func purchase(_ plan: PlanOption) {
         isPurchasing = true
+        purchaseNotice = nil
         Task {
             defer { isPurchasing = false }
             do {
                 try await store.purchase(plan)
                 if store.isPro { dismiss() }
             } catch {
-                errorMessage = error.localizedDescription
+                purchaseNotice = PurchaseNotice.from(error)
             }
         }
     }

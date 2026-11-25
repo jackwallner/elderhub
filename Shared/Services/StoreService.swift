@@ -135,6 +135,48 @@ enum ProProduct {
     }
 }
 
+/// What the paywall says after a purchase did not go through.
+///
+/// RevenueCat's own descriptions are English sentences written for
+/// developers, and one of its "errors" is not a failure at all: Ask to Buy
+/// sends the request to a parent, and Apple finishes the purchase later. That
+/// reached the paywall as red text, which reads as "it broke" to the person
+/// who is about to be told yes.
+enum PurchaseNotice: Equatable, Sendable {
+    /// Ask to Buy. The customer-info stream unlocks Plus once it is approved.
+    case waitingForApproval
+    /// No connection, or the App Store did not answer.
+    case storeUnreachable
+    /// Anything else, in the store's own words.
+    case failed(String)
+
+    static func from(_ error: Error) -> PurchaseNotice {
+        if let code = error as? RevenueCat.ErrorCode {
+            switch code {
+            case .paymentPendingError: return .waitingForApproval
+            case .networkError, .offlineConnectionError: return .storeUnreachable
+            default: break
+            }
+        }
+        if error is URLError { return .storeUnreachable }
+        return .failed(error.localizedDescription)
+    }
+
+    var message: String {
+        switch self {
+        case .waitingForApproval:
+            return "Waiting for approval. Your purchase unlocks once it is approved."
+        case .storeUnreachable:
+            return "We couldn't reach the App Store just now. Check your connection and try again."
+        case .failed(let description):
+            return description
+        }
+    }
+
+    /// Drawn as an error. Waiting on a parent is not one.
+    var isError: Bool { self != .waitingForApproval }
+}
+
 enum RevenueCatConfig {
     static let apiKey = "appl_dvyPWLaZxKyjLUrFVzDynNGjVGb"
     /// Entitlement identifier as configured on the RevenueCat dashboard. It is
@@ -192,6 +234,8 @@ final class StoreService: NSObject {
     private(set) var introEligibilityResolved: Bool = false
 
     private var isConfigured = false
+    /// Follows RevenueCat's customer-info updates for the life of the app.
+    private var customerInfoUpdates: Task<Void, Never>?
     private var paywallImpressionsThisSession: Set<String> = []
     private var localOverride: Bool?
     private let log = Logger(subsystem: "com.jackwallner.aging", category: "store")
@@ -448,6 +492,21 @@ final class StoreService: NSObject {
         await GroupService.shared.refreshBilling()
     }
 
+    /// Plus that arrives outside a purchase call: an Ask to Buy approved
+    /// later, a renewal, a lapse, a purchase on another device. Without this
+    /// an approved request stayed locked until the app was relaunched, because
+    /// nothing else asks RevenueCat again while the app is open.
+    private func observeCustomerInfo() {
+        guard isConfigured, customerInfoUpdates == nil else { return }
+        customerInfoUpdates = Task {
+            for await info in Purchases.shared.customerInfoStream {
+                let wasPro = isPro
+                apply(info)
+                if !wasPro, isPro { await propagateToGroup() }
+            }
+        }
+    }
+
     private func apply(_ info: CustomerInfo) {
         guard localOverride == nil else { return }
         let identifiers = [RevenueCatConfig.proEntitlement] + RevenueCatConfig.fallbackEntitlements
@@ -476,6 +535,7 @@ final class StoreService: NSObject {
                     .build()
             )
             isConfigured = true
+            observeCustomerInfo()
         }
         #endif
         #else
@@ -484,6 +544,7 @@ final class StoreService: NSObject {
         #endif
         Purchases.configure(withAPIKey: RevenueCatConfig.apiKey)
         isConfigured = true
+        observeCustomerInfo()
         #endif
     }
 }
