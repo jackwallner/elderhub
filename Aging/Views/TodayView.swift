@@ -24,6 +24,8 @@ struct TodayView: View {
     @State private var showNotificationsBlocked = false
     @State private var undo: UndoableAction?
     @State private var reviewTask: Task<Void, Never>?
+    /// Today's own screen is showing: not another tab, not a pushed screen.
+    @State private var isOnScreen = false
     @Environment(\.requestReview) private var requestReview
     /// Bumped on every tick-off so the phone confirms it in the hand. Doses,
     /// tasks and bills gave no feedback at all; only the check-in button did.
@@ -187,6 +189,10 @@ struct TodayView: View {
                     }
                 }
             }
+            // Root content only, so a pushed screen or another tab counts as
+            // Today having left the screen.
+            .onAppear { isOnScreen = true }
+            .onDisappear { isOnScreen = false }
         }
         .onAppear {
             applyPendingNotificationRoute()
@@ -831,7 +837,7 @@ struct TodayView: View {
         guard let medication = person.liveMedications.first(where: { $0.id == slot.medicationID }) else { return }
 
         // A dose taken is the app's core action and its positive moment.
-        if status == .taken { scheduleReviewRequestAfterPositiveMoment() }
+        if status == .taken { scheduleReviewRequest(after: .dose(status)) }
         confirmations += 1
 
         let calendar = Calendar.current
@@ -925,7 +931,7 @@ struct TodayView: View {
     /// behind would mean an undo that quietly adds next month's errand.
     private func complete(_ task: CareTask) {
         let followUp = task.markComplete(by: CareTaskAuthor.name(from: groups), in: context)
-        scheduleReviewRequestAfterPositiveMoment()
+        scheduleReviewRequest(after: .taskDone)
         let name = task.title.isEmpty ? "task" : task.title
         offerUndo("Marked \(name) done") {
             task.markIncomplete(in: context)
@@ -935,7 +941,7 @@ struct TodayView: View {
 
     private func pay(_ bill: Bill) {
         let followUp = bill.markPaid(by: CareTaskAuthor.name(from: groups), in: context)
-        scheduleReviewRequestAfterPositiveMoment()
+        scheduleReviewRequest(after: .billPaid)
         let name = bill.payee.isEmpty ? "bill" : bill.payee
         offerUndo("Marked \(name) paid") {
             bill.markUnpaid(in: context)
@@ -958,28 +964,29 @@ struct TodayView: View {
     }
 
     /// The rating ask after a dose, task or bill was just marked done: Apple's
-    /// own prompt, no question in front of it. Waits for the confirmation to
-    /// settle, then asks only if nothing is presented and nothing is
-    /// outstanding for anyone today. This is a Medical-category app opened by
-    /// worried people, so an ask in front of an overdue 8am dose is worse than
-    /// never asking. A blocked ask keeps the moment pending for the next one.
-    private func scheduleReviewRequestAfterPositiveMoment() {
+    /// own prompt, no question in front of it, and the only automatic ask in
+    /// the app. Waits for the confirmation to settle, then asks only if Today
+    /// is still the screen showing, nothing is presented over it, and nothing
+    /// is outstanding for anyone today (`ReviewPrompt.isGoodMoment`). This is
+    /// a Medical-category app opened by worried people, so an ask in front of
+    /// an overdue 8am dose is worse than never asking. A blocked ask is
+    /// skipped; the next moment asks. RevenueCat's `rating_prompt: off`
+    /// pauses it without a release.
+    private func scheduleReviewRequest(after moment: ReviewPrompt.Moment) {
+        guard StoreService.shared.isOn(.ratingPrompt) else { return }
         ReviewPrompt.recordPositiveMoment()
         reviewTask?.cancel()
         reviewTask = Task { @MainActor in
             try? await Task.sleep(for: .seconds(3))
-            guard !Task.isCancelled, isTodayClear, isQuietDay,
+            let digests = TodayDigest.build(for: people, on: Date(), checkInState: checkInState)
+            guard !Task.isCancelled, isOnScreen, isTodayClear,
+                  StoreService.shared.isOn(.ratingPrompt),
+                  ReviewPrompt.isGoodMoment(moment, digests: digests),
                   ReviewPrompt.shouldRequestAfterPositiveMoment(hasCompletedSetup: !people.isEmpty)
             else { return }
             ReviewPrompt.markShown()
             requestReview()
         }
-    }
-
-    /// Everything for everybody is dealt with today.
-    private var isQuietDay: Bool {
-        let digests = TodayDigest.build(for: people, on: Date(), checkInState: checkInState)
-        return !digests.isEmpty && digests.allSatisfy(\.isClear)
     }
 
     /// No sheet, alert or other screen is presented over Today.

@@ -103,6 +103,24 @@ enum ReviewPrompt {
         hasPendingPositiveMoment = true
     }
 
+    // MARK: - The moment
+
+    /// What was just ticked off on Today.
+    enum Moment: Sendable, Equatable {
+        case dose(DoseStatus)
+        case taskDone
+        case billPaid
+    }
+
+    /// The one good moment this app asks at: something was just done, and
+    /// with it nothing is left for anyone today (every `PersonDigest` clear).
+    /// A skipped or missed dose is an answered question, not a good result,
+    /// and an ask in front of an overdue 8am dose is worse than never asking.
+    static func isGoodMoment(_ moment: Moment, digests: [PersonDigest]) -> Bool {
+        if case .dose(let status) = moment, status != .taken { return false }
+        return !digests.isEmpty && digests.allSatisfy(\.isClear)
+    }
+
     // MARK: - Eligibility
 
     static func passivePromptAllowed(now: Date = .now) -> Bool {

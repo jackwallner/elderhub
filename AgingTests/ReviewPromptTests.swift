@@ -100,4 +100,16 @@ struct ReviewPromptTests {
             #expect(!ReviewPrompt.shouldRequestAfterPositiveMoment(hasCompletedSetup: true))
         }
     }
+
+    /// The cooldown runs from the call, not from what iOS chose to show.
+    @Test func theCooldownIsStampedWhenTheCallIsMade() {
+        withCleanTracker {
+            ReviewPrompt.appLaunchCount = 2
+            let asked = Date.now
+            ReviewPrompt.markShown(now: asked)
+            #expect(ReviewPrompt.lastShownDate == asked)
+            #expect(!ReviewPrompt.canRequestReview(hasCompletedSetup: true, now: asked.addingTimeInterval(29 * 86_400)))
+            #expect(ReviewPrompt.canRequestReview(hasCompletedSetup: true, now: asked.addingTimeInterval(30 * 86_400)))
+        }
+    }
 }
