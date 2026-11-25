@@ -127,6 +127,9 @@ struct VisitsView: View {
             confirmLabel: "Delete",
             perform: {
                 for visit in doomed { visit.tombstone(in: context) }
+                // The evening-before reminder goes with the appointment, now,
+                // not at the next foreground after it has already fired.
+                Task { await DoseReminderScheduler.refresh(in: context) }
             }
         )
     }

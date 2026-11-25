@@ -786,6 +786,7 @@ final class GroupService {
             context.delete(cursor)
         }
         try? context.save()
+        if current != nil { withdrawRemindersForForgottenRecords() }
     }
 
     func forgetGroupLocally() {
@@ -811,6 +812,17 @@ final class GroupService {
         pendingInvites = []
         pendingInviteCount = 0
         loadFromCache()
+        withdrawRemindersForForgottenRecords()
+    }
+
+    /// Re-plans the device's reminders from what is left in the store. A
+    /// repeating "Dad: Warfarin" request outlives the row it names, so leaving
+    /// the circle, being removed from it or having access narrowed kept
+    /// putting that person's medications on this lock screen until the app
+    /// next came to the foreground.
+    private func withdrawRemindersForForgottenRecords() {
+        let context = context
+        Task { await DoseReminderScheduler.refresh(in: context) }
     }
 
     private func hasAcceptedTransparency(for groupID: UUID) -> Bool {
