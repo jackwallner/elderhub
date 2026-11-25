@@ -16,11 +16,12 @@ struct PurchaseNoticeTests {
 
     @Test func noConnectionIsTheAppStoreLine() {
         let expected = "We couldn't reach the App Store just now. Check your connection and try again."
-        for error: Error in [
+        let errors: [Error] = [
             RevenueCat.ErrorCode.networkError,
             RevenueCat.ErrorCode.offlineConnectionError,
             URLError(.notConnectedToInternet),
-        ] {
+        ]
+        for error in errors {
             let notice = PurchaseNotice.from(error)
             #expect(notice == .storeUnreachable)
             #expect(notice.isError)
