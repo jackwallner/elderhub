@@ -579,8 +579,17 @@ enum RefillReminderPlanner {
 
                 guard
                     let fireDay = calendar.date(byAdding: .day, value: dayOffset, to: calendar.startOfDay(for: date)),
-                    let fireDate = calendar.date(bySettingHour: notificationHour, minute: 0, second: 0, of: fireDay)
+                    var fireDate = calendar.date(bySettingHour: notificationHour, minute: 0, second: 0, of: fireDay)
                 else { continue }
+                // A supply reaching its threshold today, planned after 9:00
+                // (the evening dose, or a count edited at lunch), used to be
+                // handed to iOS for 9:00 this morning: a one-shot trigger
+                // already in the past, which never fires. The next 9:00 is the
+                // first one that can.
+                if fireDate <= date {
+                    guard let tomorrow = calendar.date(byAdding: .day, value: 1, to: fireDate) else { continue }
+                    fireDate = tomorrow
+                }
 
                 specs.append(
                     RefillReminderSpec(
