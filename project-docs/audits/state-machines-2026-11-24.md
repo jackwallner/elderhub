@@ -21,7 +21,7 @@ Seams used: `BillPlanner.nextDueDate` and `TaskPlanner.nextDueDate` take a calen
 
 ## Evidence results
 
-Repro run `45550920479`: pending at the time of the audit commit; recorded in the fixes doc. Local cross-check (Command Line Tools Swift 6.0.3, the planner's loop and the fixed loop copied into a script, Gregorian, America/New_York): 31 Jan monthly with `notBefore` 5 Mar 2027 gives 28 Mar under the shipped loop and 31 Mar under whole steps from the start; 30 Nov quarterly with `notBefore` 1 Mar gives 28 May and 30 May. On-time month end (28 Feb), mid-month (15 Apr), weekly and daily across the DST change are identical under both.
+Repro run `45550920479` (`eh-repro-mbpro81e1-1124-210322-10719`, Xcode 27.1, iPhone 17, iOS 27.2) on `74bec1f` plus the suite: 6 tests, 2 passed (both controls), 4 failed (every claim). Recorded failures: `lateBillDueOnThe31stKeepsItsDay` and `lateTaskDueOnThe31stKeepsItsDay` got 2027-03-28 for 2027-03-31; `lateQuarterlyBillKeepsItsDay` got 2027-05-28 for 2027-05-30; `monthEndSeriesReturnsToThe31stAfterFebruary` got day 28 for day 31 (its February assertion passed). Local cross-check (Command Line Tools Swift 6.0.3, the planner's loop and the fixed loop copied into a script, Gregorian, America/New_York): 31 Jan monthly with `notBefore` 5 Mar 2027 gives 28 Mar under the shipped loop and 31 Mar under whole steps from the start; 30 Nov quarterly with `notBefore` 1 Mar gives 28 May and 30 May. On-time month end (28 Feb), mid-month (15 Apr), weekly and daily across the DST change are identical under both.
 
 ## Phase 2, skeptical review
 

@@ -10,6 +10,9 @@ Developer notes and historical audits for this repository. The published site re
 - [paudit91.md](audits/paudit91.md): Elderhub persona audit 91
 - [reg93.md](audits/reg93.md): Elderhub release to TestFlight audit
 - [presubmit-review-2026-11-07.md](audits/presubmit-review-2026-11-07.md): Pre-submit code review of 1.0.6 against live 1.0.5
+- [state-machines-2026-11-24.md](audits/state-machines-2026-11-24.md): State machine audit (repro suite `state-machines-2026-11-24-repro.swift`)
+- [state-machines-2026-11-24-fixes.md](audits/state-machines-2026-11-24-fixes.md): Fixes, holds and tests for that audit
+- [rollout-2026-11-24.md](audits/rollout-2026-11-24.md): Rollouts M, A, C, S (state machines, Ask to Buy, trial_cta, star prompt)
 
 ## Marketing
 

@@ -119,6 +119,8 @@ These files load automatically when you read a file matching their `paths:`. Age
   a delete.)
 - Roles are cached in `CareGroup` so gating works offline. The UI mirrors the RLS
   policies; it never is the enforcement.
+- Paywall wording tests run through RevenueCat offering metadata `trial_cta`
+  (`RemoteConfig`), never a release; `rating_prompt: off` pauses the star ask.
 - Not sold in the EU or UK (`scripts/asc-restrict-territories.py`).
 - Migrations are append-only once applied. Fix forward, never edit a shipped file.
   Apply them with `./scripts/db-apply.sh` **before** shipping the client that
