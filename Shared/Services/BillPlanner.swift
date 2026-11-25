@@ -66,13 +66,17 @@ enum BillPlanner {
     ) -> Date? {
         guard let step = recurrence.step else { return nil }
 
+        // Each candidate is a whole number of steps from `date` itself, never
+        // from the previous candidate: stepping from a clamped month end
+        // (31 Jan, then 28 Feb) carried the 28th into every later month, so a
+        // bill due on the 31st and paid late came back due on 28 March.
         var next = date
-        var iterations = 0
-        while iterations < 500 {
-            guard let advanced = calendar.date(byAdding: step, to: next) else { return nil }
+        var count = 1
+        while count <= 500 {
+            guard let advanced = calendar.date(byAdding: step.scaled(by: count), to: date) else { return nil }
             next = advanced
-            iterations += 1
             if next > notBefore { return next }
+            count += 1
         }
         return next
     }
